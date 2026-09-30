@@ -94,7 +94,8 @@ private:
     QLabel *m_branchLabel = nullptr;
     QLabel *m_modeLabel = nullptr;
     QToolButton *m_tabsButton = nullptr;
-    QLabel *m_encodingLabel = nullptr;
+    QToolButton *m_encodingButton = nullptr;
+    void changeEncoding(const QString &encoding, bool bom);
     void buildStatusBar();
     QString gitBranchFor(const QString &filePath) const;
     Theme m_theme;

@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QPlainTextDocumentLayout>
 #include <QSaveFile>
+#include <QStringConverter>
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QTextStream>
@@ -175,16 +176,64 @@ void Document::setTheme(const Theme &theme)
     m_highlighter->setTheme(theme);
 }
 
-bool Document::load(const QString &path, QString *error)
+void Document::setEncoding(const QString &encoding, bool bom)
+{
+    m_encoding = encoding;
+    m_bom = bom;
+    Q_EMIT changed();
+}
+
+QString Document::encodingLabel() const
+{
+    return m_bom ? m_encoding + QStringLiteral(" (BOM)") : m_encoding;
+}
+
+bool Document::load(const QString &path, QString *error, const QString &encoding)
 {
     QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly)) {
         if (error)
             *error = file.errorString();
         return false;
     }
-    QTextStream in(&file);
-    m_text->setPlainText(in.readAll());
+    const QByteArray data = file.readAll();
+
+    QString name = encoding;
+    bool bom = false;
+    if (const auto detected = QStringConverter::encodingForData(data); detected) {
+        // BOM presente: ele manda (UTF-8/16/32).
+        bom = true;
+        if (name.isEmpty())
+            name = QString::fromLatin1(QStringConverter::nameForEncoding(*detected));
+    }
+    QString text;
+    if (name.isEmpty()) {
+        QStringDecoder utf8(QStringConverter::Utf8);
+        text = utf8.decode(data);
+        name = QStringLiteral("UTF-8");
+        if (utf8.hasError()) {
+            // Não é UTF-8 válido: arquivos antigos costumam ser Windows-1252/Latin-1.
+            QStringDecoder legacy("windows-1252");
+            text = legacy.decode(data);
+            name = QStringLiteral("windows-1252");
+        }
+    } else {
+        QStringDecoder decoder(name.toLatin1().constData(),
+                               bom ? QStringConverter::Flag::Default : QStringConverter::Flag::Stateless);
+        if (!decoder.isValid()) {
+            if (error)
+                *error = tr("Unknown encoding: %1").arg(name);
+            return false;
+        }
+        text = decoder.decode(data);
+    }
+    if (text.startsWith(QChar(0xFEFF)))
+        text.remove(0, 1);
+    text.replace(QLatin1String("\r\n"), QLatin1String("\n"));
+
+    m_encoding = name;
+    m_bom = bom;
+    m_text->setPlainText(text);
     m_text->setModified(false);
     setFilePath(path);
     return true;
@@ -192,15 +241,26 @@ bool Document::load(const QString &path, QString *error)
 
 bool Document::save(const QString &path, QString *error)
 {
+    QStringEncoder encoder(m_encoding.toLatin1().constData(),
+                           m_bom ? QStringConverter::Flag::WriteBom : QStringConverter::Flag::Default);
+    if (!encoder.isValid()) {
+        if (error)
+            *error = tr("Unknown encoding: %1").arg(m_encoding);
+        return false;
+    }
+    const QByteArray data = encoder.encode(m_text->toPlainText());
+    if (encoder.hasError()) {
+        if (error)
+            *error = tr("Some characters cannot be represented in %1.").arg(m_encoding);
+        return false;
+    }
     QSaveFile file(path);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::WriteOnly)) {
         if (error)
             *error = file.errorString();
         return false;
     }
-    QTextStream out(&file);
-    out << m_text->toPlainText();
-    out.flush();
+    file.write(data);
     if (!file.commit()) {
         if (error)
             *error = file.errorString();

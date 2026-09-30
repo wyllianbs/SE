@@ -28,6 +28,8 @@
 #include <QTimer>
 #include <QPushButton>
 #include <QSet>
+#include <QStringConverter>
+#include <QTextDocument>
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QToolBar>
@@ -716,7 +718,46 @@ void MainWindow::buildStatusBar()
 
     m_modeLabel = new QLabel(this);
     m_modeLabel->setToolTip(tr("Insert key toggles insert/overwrite"));
-    m_encodingLabel = new QLabel(QStringLiteral("UTF-8"), this);
+    m_encodingButton = new QToolButton(this);
+    m_encodingButton->setObjectName(QStringLiteral("StatusButton"));
+    m_encodingButton->setPopupMode(QToolButton::InstantPopup);
+    m_encodingButton->setAutoRaise(true);
+    m_encodingButton->setToolTip(tr("Text encoding"));
+    auto *encodingMenu = new QMenu(m_encodingButton);
+    m_encodingButton->setMenu(encodingMenu);
+    connect(encodingMenu, &QMenu::aboutToShow, this, [this, encodingMenu]() {
+        encodingMenu->clear();
+        CodeEditor *editor = currentEditor();
+        if (!editor)
+            return;
+        Document *doc = editor->doc();
+        auto addEncoding = [this, doc](QMenu *menu, const QString &label, const QString &name, bool bom) {
+            QAction *a = menu->addAction(label);
+            a->setCheckable(true);
+            a->setChecked(doc->encoding().compare(name, Qt::CaseInsensitive) == 0 && doc->hasBom() == bom);
+            connect(a, &QAction::triggered, this, [this, name, bom]() { changeEncoding(name, bom); });
+        };
+        const QList<std::tuple<QString, QString, bool>> common{
+            {QStringLiteral("UTF-8"), QStringLiteral("UTF-8"), false},
+            {tr("UTF-8 with BOM"), QStringLiteral("UTF-8"), true},
+            {QStringLiteral("UTF-16 LE"), QStringLiteral("UTF-16LE"), true},
+            {QStringLiteral("UTF-16 BE"), QStringLiteral("UTF-16BE"), true},
+            {tr("ISO-8859-1 (Western European)"), QStringLiteral("ISO-8859-1"), false},
+            {tr("ISO-8859-15 (Western European, €)"), QStringLiteral("ISO-8859-15"), false},
+            {tr("Windows-1252 (Western European)"), QStringLiteral("windows-1252"), false},
+            {QStringLiteral("US-ASCII"), QStringLiteral("US-ASCII"), false}};
+        encodingMenu->addSection(doc->isModified() || doc->filePath().isEmpty()
+                                     ? tr("Save with encoding") : tr("Reload with encoding"));
+        for (const auto &[label, name, bom] : common)
+            addEncoding(encodingMenu, label, name, bom);
+        QMenu *more = encodingMenu->addMenu(tr("Other Encodings"));
+        QStringList names = QStringConverter::availableCodecs();
+        names.removeIf([](const QString &n) { return n.contains(QLatin1Char(',')) || n.contains(QLatin1Char('_')); });
+        names.sort(Qt::CaseInsensitive);
+        names.removeDuplicates();
+        for (const QString &n : std::as_const(names))
+            addEncoding(more, n, n, false);
+    });
 
     m_tabsButton = new QToolButton(this);
     m_tabsButton->setObjectName(QStringLiteral("StatusButton"));
@@ -754,9 +795,37 @@ void MainWindow::buildStatusBar()
 
     m_languageCombo->setFocusPolicy(Qt::NoFocus);
     m_languageCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-    for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingLabel,
+    for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingButton,
                                                         m_languageCombo})
         statusBar()->addPermanentWidget(w);
+}
+
+/**
+ * Como no Kate: arquivo salvo e sem alterações é relido na nova codificação;
+ * caso contrário, ela passa a valer para o próximo salvamento.
+ */
+void MainWindow::changeEncoding(const QString &encoding, bool bom)
+{
+    CodeEditor *editor = currentEditor();
+    if (!editor)
+        return;
+    Document *doc = editor->doc();
+    if (!doc->filePath().isEmpty() && !doc->isModified() && QFileInfo::exists(doc->filePath())) {
+        const int line = editor->textCursor().blockNumber();
+        QString error;
+        if (!doc->load(doc->filePath(), &error, encoding)) {
+            QMessageBox::warning(this, tr("Encoding"), error);
+            return;
+        }
+        doc->setEncoding(encoding, bom);
+        editor->goToLine(line + 1);
+        statusBar()->showMessage(tr("Reloaded as %1").arg(doc->encodingLabel()), 3000);
+    } else {
+        doc->setEncoding(encoding, bom);
+        doc->text()->setModified(true);
+        statusBar()->showMessage(tr("%1 will be saved as %2").arg(doc->displayName(), doc->encodingLabel()), 4000);
+    }
+    updateStatus();
 }
 
 /** Branch atual lendo .git/HEAD (sem executar o git). Vazio fora de repositório. */
@@ -800,7 +869,7 @@ void MainWindow::updateStatus()
         return;
     CodeEditor *editor = currentEditor();
     const bool has = editor != nullptr;
-    for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingLabel,
+    for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingButton,
                                                         m_languageCombo})
         w->setVisible(has);
     if (!has) {
@@ -811,6 +880,7 @@ void MainWindow::updateStatus()
     const QTextCursor c = editor->textCursor();
     m_cursorLabel->setText(QStringLiteral("%1:%2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
     m_modeLabel->setText(editor->overwriteMode() ? tr("OVERWRITE") : tr("INSERT"));
+    m_encodingButton->setText(editor->doc()->encodingLabel());
     m_tabsButton->setText(editor->insertSpaces() ? tr("Soft Tabs: %1").arg(editor->tabWidth())
                                                  : tr("Tab Size: %1").arg(editor->tabWidth()));
     const QString branch = gitBranchFor(editor->filePath());
