@@ -32,7 +32,6 @@ private:
     Theme m_theme;
     QList<Rule> m_rules;
     QTextCharFormat m_commentFormat;
-    QRegularExpression m_lineComment;
-    QRegularExpression m_blockStart;
-    QRegularExpression m_blockEnd;
+    /** Delimitadores de comentário de bloco (abre, fecha). */
+    QList<QPair<QString, QString>> m_blocks;
 };

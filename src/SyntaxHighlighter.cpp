@@ -40,9 +40,7 @@ static QString wordAlternation(const QStringList &words)
 void SyntaxHighlighter::rebuildRules()
 {
     m_rules.clear();
-    m_lineComment = QRegularExpression();
-    m_blockStart = QRegularExpression();
-    m_blockEnd = QRegularExpression();
+    m_blocks.clear();
 
     if (m_language.id == QLatin1String("text")) {
         rehighlight();
@@ -74,12 +72,11 @@ void SyntaxHighlighter::rebuildRules()
         m_rules.append({QRegularExpression(QStringLiteral("`[^`]*`")), fmt(m_theme.string)});
 
     m_commentFormat = fmt(m_theme.comment, false, true);
-    if (!m_language.lineComment.isEmpty())
-        m_lineComment = QRegularExpression(QRegularExpression::escape(m_language.lineComment) + QStringLiteral(".*$"));
-    if (!m_language.blockCommentStart.isEmpty()) {
-        m_blockStart = QRegularExpression(QRegularExpression::escape(m_language.blockCommentStart));
-        m_blockEnd = QRegularExpression(QRegularExpression::escape(m_language.blockCommentEnd));
-    }
+    if (!m_language.blockCommentStart.isEmpty())
+        m_blocks.append({m_language.blockCommentStart, m_language.blockCommentEnd});
+    // Python: docstrings com ''' também são decoradas como comentário.
+    if (m_language.id == QLatin1String("python"))
+        m_blocks.append({QStringLiteral("'''"), QStringLiteral("'''")});
     rehighlight();
 }
 
@@ -99,11 +96,11 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
     }
 
     // Comentário de linha, ignorando o marcador quando ele está dentro de string.
-    if (m_lineComment.isValid() && !m_lineComment.pattern().isEmpty()) {
-        auto it = m_lineComment.globalMatch(text);
-        while (it.hasNext()) {
-            const auto match = it.next();
-            const int pos = match.capturedStart();
+    // (Busca posição a posição: um regex ".*$" consumiria a linha já no
+    // primeiro marcador dentro de string, como em "http://…".)
+    const QString &marker = m_language.lineComment;
+    if (!marker.isEmpty()) {
+        for (int pos = text.indexOf(marker); pos >= 0; pos = text.indexOf(marker, pos + 1)) {
             if (!inString(pos)) {
                 setFormat(pos, text.length() - pos, m_commentFormat);
                 break;
@@ -111,34 +108,48 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
         }
     }
 
-    // Comentários de bloco (multilinha): estado 1 = dentro de comentário.
+    // Comentários de bloco (multilinha). Estado 1 + i = dentro do par i, para
+    // que um bloco aberto com ''' só feche com '''.
     setCurrentBlockState(0);
-    if (m_blockStart.pattern().isEmpty())
+    if (m_blocks.isEmpty())
         return;
+    // Aspas triplas do Python são, elas mesmas, aspas: o teste de "dentro de
+    // string" não se aplica a elas.
+    const bool quoteDelimiters = (m_language.id == QLatin1String("python"));
 
-    int start = 0;
-    if (previousBlockState() != 1) {
-        const auto m = m_blockStart.match(text);
-        start = m.hasMatch() ? m.capturedStart() : -1;
-        // Marcador dentro de string não abre comentário.
-        while (start >= 0 && inString(start) && m_language.id != QLatin1String("python")) {
-            const auto next = m_blockStart.match(text, start + 1);
-            start = next.hasMatch() ? next.capturedStart() : -1;
+    int pos = 0;
+    int open = previousBlockState() - 1; // par aberto vindo da linha anterior
+    if (open < 0 || open >= m_blocks.size())
+        open = -1;
+    while (pos <= text.length()) {
+        int start = 0;
+        if (open < 0) {
+            // Próximo delimitador de abertura, o mais à esquerda. Não conta
+            // se estiver dentro de string ou de um comentário de linha.
+            int bestPos = -1;
+            for (int i = 0; i < m_blocks.size(); ++i) {
+                int p = text.indexOf(m_blocks[i].first, pos);
+                while (p >= 0 && ((!quoteDelimiters && inString(p)) || format(p) == m_commentFormat))
+                    p = text.indexOf(m_blocks[i].first, p + 1);
+                if (p >= 0 && (bestPos < 0 || p < bestPos)) {
+                    open = i;
+                    bestPos = p;
+                }
+            }
+            if (bestPos < 0)
+                break;
+            start = bestPos;
+            pos = bestPos + m_blocks[open].first.length();
         }
-    }
-    const int openLen = m_language.blockCommentStart.length();
-    while (start >= 0) {
-        const int searchFrom = (previousBlockState() == 1 && start == 0) ? 0 : start + openLen;
-        const auto end = m_blockEnd.match(text, searchFrom);
-        int length;
-        if (!end.hasMatch()) {
-            setCurrentBlockState(1);
-            length = text.length() - start;
-        } else {
-            length = end.capturedEnd() - start;
+        const int close = text.indexOf(m_blocks[open].second, pos);
+        if (close < 0) {
+            setFormat(start, text.length() - start, m_commentFormat);
+            setCurrentBlockState(1 + open);
+            return;
         }
-        setFormat(start, length, m_commentFormat);
-        const auto next = m_blockStart.match(text, start + length);
-        start = next.hasMatch() ? next.capturedStart() : -1;
+        const int stop = close + m_blocks[open].second.length();
+        setFormat(start, stop - start, m_commentFormat);
+        pos = stop;
+        open = -1;
     }
 }
