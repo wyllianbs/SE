@@ -34,6 +34,19 @@ Q_SIGNALS:
     void closeViewRequested(ViewSpace *space);
     void closeInactiveViewsRequested(ViewSpace *space);
     void hideInactiveViewsToggled(ViewSpace *space, bool hide);
+    /** Menu de contexto / duplo clique na barra de abas. */
+    void newTabRequested(ViewSpace *space);
+    void tabActionRequested(ViewSpace *space, int index, const QString &action);
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    // A área vazia à direita das abas pertence ao QTabWidget, não à QTabBar.
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
+
+private:
+    bool inEmptyTabStrip(const QPoint &pos) const;
+    void showTabMenu(int index, const QPoint &globalPos);
 
 private:
     QToolButton *m_splitButton;

@@ -11,7 +11,9 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QApplication>
+#include <QClipboard>
 #include <QCloseEvent>
+#include <QGuiApplication>
 #include <QComboBox>
 #include <QDir>
 #include <QFileDialog>
@@ -410,6 +412,11 @@ ViewSpace *MainWindow::createViewSpace()
         }
     });
     connect(space, &ViewSpace::splitRequested, this, &MainWindow::splitSpace);
+    connect(space, &ViewSpace::newTabRequested, this, [this](ViewSpace *s) {
+        setActiveSpace(s);
+        newTab();
+    });
+    connect(space, &ViewSpace::tabActionRequested, this, &MainWindow::tabAction);
     connect(space, &ViewSpace::closeViewRequested, this, &MainWindow::closeSpace);
     connect(space, &ViewSpace::closeInactiveViewsRequested, this, [this](ViewSpace *keep) {
         for (ViewSpace *s : viewSpaces()) {
@@ -770,6 +777,66 @@ bool MainWindow::closeTab(ViewSpace *space, int index)
     else
         updateEmptyState();
     return true;
+}
+
+void MainWindow::tabAction(ViewSpace *space, int index, const QString &action)
+{
+    CodeEditor *editor = space->editorAt(index);
+    if (!editor)
+        return;
+    setActiveSpace(space);
+    if (action == QLatin1String("save")) {
+        save(editor);
+    } else if (action == QLatin1String("saveAs")) {
+        saveAs(editor);
+    } else if (action == QLatin1String("rename")) {
+        renameFile(editor);
+    } else if (action == QLatin1String("copyPath")) {
+        QGuiApplication::clipboard()->setText(editor->filePath());
+        statusBar()->showMessage(tr("Copied %1").arg(editor->filePath()), 2500);
+    } else if (action == QLatin1String("close")) {
+        closeTab(space, index);
+    } else if (action == QLatin1String("closeOthers")) {
+        const QList<CodeEditor *> others = space->editors();
+        for (CodeEditor *e : others) {
+            if (e != editor && !closeTab(space, space->indexOf(e)))
+                break;
+        }
+    }
+}
+
+/** Renomeia o arquivo no disco; aba sem título vira "Salvar como". */
+void MainWindow::renameFile(CodeEditor *editor)
+{
+    Document *doc = editor->doc();
+    if (doc->filePath().isEmpty() || !QFileInfo::exists(doc->filePath())) {
+        saveAs(editor);
+        return;
+    }
+    const QFileInfo info(doc->filePath());
+    bool ok = false;
+    const QString name = QInputDialog::getText(this, tr("Rename File"), tr("New name:"), QLineEdit::Normal,
+                                               info.fileName(), &ok)
+                             .trimmed();
+    if (!ok || name.isEmpty() || name == info.fileName())
+        return;
+    if (name.contains(QLatin1Char('/'))) {
+        QMessageBox::warning(this, tr("Rename File"), tr("The name cannot contain “/”."));
+        return;
+    }
+    const QString target = info.dir().filePath(name);
+    if (QFileInfo::exists(target)) {
+        QMessageBox::warning(this, tr("Rename File"), tr("“%1” already exists.").arg(name));
+        return;
+    }
+    if (!QFile::rename(doc->filePath(), target)) {
+        QMessageBox::warning(this, tr("Rename File"), tr("Could not rename “%1”.").arg(info.fileName()));
+        return;
+    }
+    doc->setFilePath(target);
+    doc->setLanguage(languageForPath(target));
+    m_lsp->documentSaved(doc);
+    statusBar()->showMessage(tr("Renamed to %1").arg(name), 2500);
 }
 
 void MainWindow::updateDocumentTitles(Document *doc)

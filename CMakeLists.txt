@@ -78,4 +78,9 @@ if(BUILD_TESTING)
     add_executable(tst_highlight tests/tst_highlight.cpp src/SyntaxHighlighter.cpp src/Language.cpp src/Theme.cpp)
     target_link_libraries(tst_highlight PRIVATE Qt6::Gui Qt6::Test)
     add_test(NAME highlight COMMAND tst_highlight)
+    add_executable(tst_viewspace tests/tst_viewspace.cpp src/ViewSpace.cpp src/CodeEditor.cpp src/Document.cpp
+                   src/Folding.cpp src/SyntaxHighlighter.cpp src/Language.cpp src/Theme.cpp src/Icons.cpp
+                   resources/resources.qrc)
+    target_link_libraries(tst_viewspace PRIVATE Qt6::Widgets Qt6::Test)
+    add_test(NAME viewspace COMMAND tst_viewspace)
 endif()

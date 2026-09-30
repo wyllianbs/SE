@@ -3,7 +3,9 @@
 #include "Icons.h"
 
 #include <QHBoxLayout>
+#include <QContextMenuEvent>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QStyle>
 #include <QTabBar>
 #include <QToolButton>
@@ -70,6 +72,88 @@ ViewSpace::ViewSpace(QWidget *parent)
     cornerLayout->addWidget(m_splitButton);
     setCornerWidget(corner, Qt::TopRightCorner);
     setMultipleViews(false, false);
+
+    tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(tabBar(), &QTabBar::customContextMenuRequested, this, [this](const QPoint &pos) {
+        showTabMenu(tabBar()->tabAt(pos), tabBar()->mapToGlobal(pos));
+    });
+    // Duplo clique na área vazia da barra cria uma aba, como no Kate.
+    tabBar()->installEventFilter(this);
+}
+
+void ViewSpace::showTabMenu(int index, const QPoint &globalPos)
+{
+        QMenu menu(this);
+        if (index < 0) {
+            connect(menu.addAction(tr("New Tab")), &QAction::triggered, this,
+                    [this]() { Q_EMIT newTabRequested(this); });
+        } else {
+            setCurrentIndex(index);
+            const QList<QPair<QString, QString>> items{
+                {"save", tr("Save")},
+                {"saveAs", tr("Save As…")},
+                {"rename", tr("Rename…")},
+                {"copyPath", tr("Copy File Path")},
+                {"-", QString()},
+                {"close", tr("Close")},
+                {"closeOthers", tr("Close Other Tabs")},
+            };
+            for (const auto &[key, label] : items) {
+                if (key == QLatin1String("-")) {
+                    menu.addSeparator();
+                    continue;
+                }
+                QAction *a = menu.addAction(label);
+                const QString action = key;
+                connect(a, &QAction::triggered, this,
+                        [this, index, action]() { Q_EMIT tabActionRequested(this, index, action); });
+                if (key == QLatin1String("closeOthers"))
+                    a->setEnabled(count() > 1);
+                if (key == QLatin1String("copyPath"))
+                    a->setEnabled(editorAt(index) && !editorAt(index)->filePath().isEmpty());
+            }
+        }
+        menu.exec(globalPos);
+}
+
+/** Faixa das abas (altura da QTabBar), fora de qualquer aba. */
+bool ViewSpace::inEmptyTabStrip(const QPoint &pos) const
+{
+    const QRect bar = tabBar()->geometry();
+    if (pos.y() < bar.top() || pos.y() > bar.bottom())
+        return false;
+    const QPoint inBar = tabBar()->mapFrom(this, pos);
+    return !tabBar()->rect().contains(inBar) || tabBar()->tabAt(inBar) < 0;
+}
+
+void ViewSpace::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && inEmptyTabStrip(event->position().toPoint())) {
+        Q_EMIT newTabRequested(this);
+        return;
+    }
+    QTabWidget::mouseDoubleClickEvent(event);
+}
+
+void ViewSpace::contextMenuEvent(QContextMenuEvent *event)
+{
+    if (inEmptyTabStrip(event->pos())) {
+        showTabMenu(-1, event->globalPos());
+        return;
+    }
+    QTabWidget::contextMenuEvent(event);
+}
+
+bool ViewSpace::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == tabBar() && event->type() == QEvent::MouseButtonDblClick) {
+        const auto *me = static_cast<QMouseEvent *>(event);
+        if (tabBar()->tabAt(me->position().toPoint()) < 0) {
+            Q_EMIT newTabRequested(this);
+            return true;
+        }
+    }
+    return QTabWidget::eventFilter(watched, event);
 }
 
 CodeEditor *ViewSpace::currentEditor() const

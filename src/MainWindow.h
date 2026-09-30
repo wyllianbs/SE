@@ -59,6 +59,8 @@ private:
     CodeEditor *openView(Document *doc, ViewSpace *space);
     void releaseView(CodeEditor *editor);
     void updateDocumentTitles(Document *doc);
+    void tabAction(ViewSpace *space, int index, const QString &action);
+    void renameFile(CodeEditor *editor);
     void openFile(const QString &path);
     bool save(CodeEditor *editor);
     bool saveAs(CodeEditor *editor);

@@ -679,6 +679,74 @@
         <source>Language servers disabled</source>
         <translation>Servidores de linguagem desativados</translation>
     </message>
+    <message>
+        <source>Code Com&amp;pletion</source>
+        <translation>Auto&amp;completar</translation>
+    </message>
+    <message>
+        <source>Code completion enabled</source>
+        <translation>Autocompletar ativado</translation>
+    </message>
+    <message>
+        <source>Code completion disabled</source>
+        <translation>Autocompletar desativado</translation>
+    </message>
+    <message>
+        <source>Auto-Close &amp;Brackets and Quotes</source>
+        <translation>Fechar &amp;parênteses e aspas automaticamente</translation>
+    </message>
+    <message>
+        <source>Auto-closing pairs enabled</source>
+        <translation>Fechamento automático de pares ativado</translation>
+    </message>
+    <message>
+        <source>Auto-closing pairs disabled</source>
+        <translation>Fechamento automático de pares desativado</translation>
+    </message>
+    <message>
+        <source>Code F&amp;olding Markers</source>
+        <translation>Marcadores de &amp;dobramento</translation>
+    </message>
+    <message>
+        <source>Code folding enabled</source>
+        <translation>Dobramento de código ativado</translation>
+    </message>
+    <message>
+        <source>Code folding disabled</source>
+        <translation>Dobramento de código desativado</translation>
+    </message>
+    <message>
+        <source>Run</source>
+        <translation>Executar</translation>
+    </message>
+    <message>
+        <source>Copied %1</source>
+        <translation>%1 copiado</translation>
+    </message>
+    <message>
+        <source>Rename File</source>
+        <translation>Renomear arquivo</translation>
+    </message>
+    <message>
+        <source>New name:</source>
+        <translation>Novo nome:</translation>
+    </message>
+    <message>
+        <source>The name cannot contain “/”.</source>
+        <translation>O nome não pode conter “/”.</translation>
+    </message>
+    <message>
+        <source>“%1” already exists.</source>
+        <translation>“%1” já existe.</translation>
+    </message>
+    <message>
+        <source>Could not rename “%1”.</source>
+        <translation>Não foi possível renomear “%1”.</translation>
+    </message>
+    <message>
+        <source>Renamed to %1</source>
+        <translation>Renomeado para %1</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -1045,6 +1113,34 @@
     <message>
         <source>Split view</source>
         <translation>Dividir visão</translation>
+    </message>
+    <message>
+        <source>New Tab</source>
+        <translation>Nova aba</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Salvar</translation>
+    </message>
+    <message>
+        <source>Save As…</source>
+        <translation>Salvar como…</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Renomear…</translation>
+    </message>
+    <message>
+        <source>Copy File Path</source>
+        <translation>Copiar caminho do arquivo</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fechar</translation>
+    </message>
+    <message>
+        <source>Close Other Tabs</source>
+        <translation>Fechar outras abas</translation>
     </message>
 </context>
 </TS>
