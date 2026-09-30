@@ -66,7 +66,7 @@ private:
     bool saveAs(CodeEditor *editor);
     bool closeTab(ViewSpace *space, int index);
     bool maybeSave(CodeEditor *editor);
-    void runCurrent();
+    void runCurrent(bool interactive = false);
     void goToLine();
     void showAbout();
     void showHelp();
@@ -112,6 +112,7 @@ private:
     QList<QPair<QAction *, Icons::Glyph>> m_iconActions;
     QAction *m_runAction = nullptr;
     QAction *m_runToolbarAction = nullptr;
+    QAction *m_runInteractiveAction = nullptr;
     QAction *m_lspAction = nullptr;
     QList<QPair<QAction *, bool AppSettings::*>> m_settingToggles;
 };

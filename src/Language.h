@@ -19,6 +19,8 @@ struct Language
      * %b nome sem extensão, %d diretório. Vazio = não executável.
      */
     QString runCommand;
+    /** Execução interativa (REPL após o programa); vazio = igual a runCommand. */
+    QString interactiveCommand;
 
     static const QList<Language> &all();
     static const Language &plainText();
@@ -28,7 +30,8 @@ struct Language
     bool isCustom() const { return id.startsWith(QLatin1String("custom:")); }
 
     /** Monta o comando para um arquivo, já com aspas de shell. */
-    QString commandFor(const QString &filePath, const QString &tool, const QString &flags) const;
+    QString commandFor(const QString &filePath, const QString &tool, const QString &flags,
+                       bool interactive = false) const;
 
     static Language custom(const QString &name, const QStringList &extensions);
     static QStringList splitExtensions(const QString &text);

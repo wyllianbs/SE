@@ -755,6 +755,14 @@
         <source>LSP off</source>
         <translation>LSP desligado</translation>
     </message>
+    <message>
+        <source>Run &amp;Interactive</source>
+        <translation>Executar &amp;interativo</translation>
+    </message>
+    <message>
+        <source>Run and stay in the interpreter — Python, JavaScript, Shell (Alt+F5); compiled languages run as usual</source>
+        <translation>Executar e continuar no interpretador — Python, JavaScript, Shell (Alt+F5); linguagens compiladas executam normalmente</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>

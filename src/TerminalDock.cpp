@@ -19,6 +19,8 @@
 
 #include <qtermwidget.h>
 
+#include <unistd.h>
+
 #include "Icons.h"
 
 TerminalDock::TerminalDock(QMainWindow *mainWindow)
@@ -284,6 +286,31 @@ QTermWidget *TerminalDock::newTerminal()
     updateTabBar();
     term->setFocus();
     return term;
+}
+
+QString TerminalDock::newTeletype(const QString &title)
+{
+    QTermWidget *term = createTerminal();
+    term->startTerminalTeletype();
+    const int fd = term->getPtySlaveFd();
+    const char *name = fd >= 0 ? ::ttyname(fd) : nullptr;
+    if (!name) {
+        delete term;
+        return QString();
+    }
+    const int index = m_tabs->addTab(term, title);
+    auto *close = new QToolButton(m_tabs->tabBar());
+    close->setObjectName(QStringLiteral("TabClose"));
+    close->setAutoRaise(true);
+    close->setIconSize(QSize(12, 12));
+    close->setToolTip(tr("Close terminal tab"));
+    connect(close, &QToolButton::clicked, this, [this, term]() { closeTerminal(m_tabs->indexOf(term)); });
+    m_tabs->tabBar()->setTabButton(index, QTabBar::RightSide, close);
+    m_tabs->setCurrentIndex(index);
+    updateTabBar();
+    show();
+    raise();
+    return QString::fromLocal8Bit(name);
 }
 
 void TerminalDock::closeTerminal(int index)

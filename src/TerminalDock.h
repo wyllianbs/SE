@@ -37,6 +37,11 @@ public:
     /** Abre uma aba de terminal nova e a torna a atual. */
     QTermWidget *newTerminal();
     void closeTerminal(int index);
+    /**
+     * Aba sem shell (PTY livre) para o programa depurado: devolve o caminho do
+     * TTY (/dev/pts/N), que o gdb usa com "set inferior-tty".
+     */
+    QString newTeletype(const QString &title);
     QTermWidget *current() const;
     QList<QTermWidget *> terminals() const;
 

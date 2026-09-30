@@ -291,6 +291,10 @@ void MainWindow::createActions()
     QMenu *run = menuBar()->addMenu(tr("&Run"));
     m_runAction = add(run, tr("&Run File"), QKeySequence(Qt::Key_F5), [this]() { runCurrent(); }, Icons::Run);
     m_runAction->setToolTip(tr("Save and run the current file (F5)"));
+    m_runInteractiveAction = add(run, tr("Run &Interactive"), QKeySequence(Qt::ALT | Qt::Key_F5),
+                                 [this]() { runCurrent(true); }, Icons::RunInteractive);
+    m_runInteractiveAction->setToolTip(tr("Run and stay in the interpreter — Python, JavaScript, Shell (Alt+F5); "
+                                          "compiled languages run as usual"));
     run->addSeparator();
     // Atalho para a chave geral de Settings → Editor → Features.
     m_lspAction = run->addAction(tr("Language Servers (&LSP)"));
@@ -327,6 +331,7 @@ void MainWindow::createActions()
     m_runToolbarAction->setToolTip(m_runAction->toolTip());
     connect(m_runToolbarAction, &QAction::triggered, this, [this]() { runCurrent(); });
     m_toolbar->addAction(m_runToolbarAction);
+    m_toolbar->addAction(m_runInteractiveAction);
 
     if (auto *runButton = m_toolbar->widgetForAction(m_runToolbarAction)) {
         runButton->setObjectName(QStringLiteral("RunButton"));
@@ -1097,7 +1102,7 @@ void MainWindow::updateStatus()
 
 // ----------------------------------------------------------- executar
 
-void MainWindow::runCurrent()
+void MainWindow::runCurrent(bool interactive)
 {
     CodeEditor *editor = currentEditor();
     if (!editor)
@@ -1125,7 +1130,7 @@ void MainWindow::runCurrent()
         tool = cfg.tool;
         flags = cfg.flags;
     }
-    m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags), info.absolutePath());
+    m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags, interactive), info.absolutePath());
 }
 
 void MainWindow::goToLine()

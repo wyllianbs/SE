@@ -104,6 +104,15 @@ QList<Language> buildLanguages()
         "#", QString(), QString(),
         QStringLiteral("{tool} {flags} %f")});
 
+    // Interativo: o interpretador fica aberto com o estado do programa.
+    for (Language &lang : list) {
+        if (lang.id == QLatin1String("python"))
+            lang.interactiveCommand = QStringLiteral("{tool} {flags} -i %f");
+        else if (lang.id == QLatin1String("javascript"))
+            lang.interactiveCommand = QStringLiteral("{tool} {flags} -i -e \"$(cat %f)\"");
+        else if (lang.id == QLatin1String("bash"))
+            lang.interactiveCommand = QStringLiteral("{tool} {flags} --rcfile %f -i");
+    }
     return list;
 }
 
@@ -141,10 +150,11 @@ const Language &Language::byId(const QString &id)
     return plainText();
 }
 
-QString Language::commandFor(const QString &filePath, const QString &tool, const QString &flags) const
+QString Language::commandFor(const QString &filePath, const QString &tool, const QString &flags,
+                             bool interactive) const
 {
     const QFileInfo info(filePath);
-    QString cmd = runCommand;
+    QString cmd = (interactive && !interactiveCommand.isEmpty()) ? interactiveCommand : runCommand;
     cmd.replace(QLatin1String("{tool}"), tool.trimmed());
     cmd.replace(QLatin1String("{flags}"), flags.trimmed());
     cmd = cmd.simplified(); // flags vazias deixam espaços duplos
