@@ -2,6 +2,7 @@
 
 #include <QColor>
 #include <QList>
+#include <QJsonObject>
 #include <QString>
 
 /** Paleta de cores do editor, da interface e do terminal. */
@@ -31,9 +32,23 @@ struct Theme
     QColor terminalBackground;
     QColor ansi[16];
 
+    /** Temas do app, sem personalizações. */
+    static const QList<Theme> &builtIns();
+    static bool isBuiltIn(const QString &id);
+    /** Temas em uso: os do app (com personalizações) + os criados pelo usuário. */
     static const QList<Theme> &all();
     static const Theme &byId(const QString &id);
+    /** Aplica as personalizações (mesmo id de um tema do app) e os temas novos. */
+    static void setUserThemes(const QList<Theme> &themes);
+    static QList<Theme> compose(const QList<Theme> &userThemes);
+
+    QJsonObject toJson() const;
+    static Theme fromJson(const QJsonObject &json);
+
+    /** Cores editáveis: chave, rótulo (tr no chamador) e ponteiro para o membro. */
+    struct Field { const char *key; const char *label; const char *group; QColor Theme::*member; };
+    static const QList<Field> &fields();
 
     /** Grava o esquema de cores do QTermWidget e devolve o nome dele. */
-    QString writeTerminalScheme(const QString &dir) const;
+    QString writeTerminalScheme(const QString &dir, const QString &name = QString()) const;
 };

@@ -4,6 +4,7 @@
 #include "Theme.h"
 
 #include <QDockWidget>
+#include <QJsonObject>
 
 class QMainWindow;
 class QTermWidget;
@@ -71,6 +72,8 @@ private:
     int m_counter = 0;
     QColor m_iconColor;
     QString m_schemeName;
+    QJsonObject m_schemeColors;
+    int m_nextSlot = 0;
     QFont m_font;
     QString m_shell;
     QString m_workingDir;

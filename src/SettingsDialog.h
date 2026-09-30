@@ -40,6 +40,8 @@ private:
     QWidget *buildLanguagesPage();
     QWidget *buildServersPage();
     void refreshServerStatus();
+    void rebuildThemeList(const QString &selectId);
+    QString currentThemeId() const;
     void addPage(const QString &title, char32_t glyph, QWidget *page);
 
     void setForm(const AppSettings &s);
@@ -72,6 +74,7 @@ private:
 
     // Aparência
     QListWidget *m_themes = nullptr;
+    QList<Theme> m_userThemes; //< em edição; vão para AppSettings::userThemes
     QSlider *m_buttonScale = nullptr;
     QLabel *m_buttonScaleLabel = nullptr;
     QSlider *m_uiScale = nullptr;

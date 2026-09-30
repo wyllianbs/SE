@@ -71,6 +71,8 @@ Q_SIGNALS:
     void scopesReady(const QList<QPair<QString, int>> &scopes);
     void finished(const QString &message);
     void error(const QString &message);
+    /** Mensagem de andamento (ex.: "Compilando…"). */
+    void status(const QString &message);
 
 private:
     void setState(State state);
@@ -79,7 +81,8 @@ private:
     void sendAllBreakpoints();
     void end(const QString &message);
     void step(const QString &command);
-    bool compile(const QString &filePath, const QString &languageId, const AppSettings &settings, QString *binary);
+    void compileAsync(const QString &filePath, const QString &languageId, const AppSettings &settings,
+                      std::function<void(const QString &binary)> done);
 
     TerminalDock *m_terminal;
     QPointer<DapClient> m_dap;
@@ -88,6 +91,7 @@ private:
     QString m_workingDir;
     QHash<QString, QList<int>> m_breakpoints;
     bool m_configured = false;
+    QPointer<QProcess> m_compiler;
 };
 
 Q_DECLARE_METATYPE(DebugFrame)

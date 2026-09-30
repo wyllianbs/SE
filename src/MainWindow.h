@@ -129,6 +129,7 @@ private:
     QAction *m_debugAction = nullptr;
     QAction *m_stopDebugAction = nullptr;
     QPointer<Document> m_execDoc;
+    bool m_focusProgramOnRun = true;
     QAction *m_lspAction = nullptr;
     QList<QPair<QAction *, bool AppSettings::*>> m_settingToggles;
 };

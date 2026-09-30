@@ -112,6 +112,68 @@ private Q_SLOTS:
         QVERIFY(m_terminal->current()->getShellPID() > 0); // o shell continua vivo
     }
 
+    void cReadsInputFromDebugTab()
+    {
+        if (QStandardPaths::findExecutable("gdb").isEmpty())
+            QSKIP("gdb not installed");
+        const QString file = write("input.c",
+                                   "#include <stdio.h>\n"
+                                   "int main(void) {\n"
+                                   "    int n = 0;\n"
+                                   "    if (scanf(\"%d\", &n) != 1) return 1;\n"
+                                   "    int dobro = n * 2;\n"          // linha 4 (base 0)
+                                   "    printf(\"%d\\n\", dobro);\n"
+                                   "    return 0;\n"
+                                   "}\n");
+        DebugSession s(m_terminal);
+        QSignalSpy stopped(&s, &DebugSession::stopped);
+        QSignalSpy scopes(&s, &DebugSession::scopesReady);
+        QSignalSpy finished(&s, &DebugSession::finished);
+        s.start(file, "c", AppSettings::defaults(), {{file, {5}}});
+        // A compilação é assíncrona: start() volta na hora.
+        QCOMPARE(s.state(), DebugSession::State::Starting);
+        QVERIFY(QTest::qWaitFor([&]() { return s.state() == DebugSession::State::Running; }, 20000));
+        QTest::qWait(500);
+        m_terminal->current()->sendText("5\n"); // o usuário digita na aba do programa
+        QCOMPARE(waitStopped(stopped), 5);
+        QCOMPARE(valueOf(locals(s, scopes), "dobro"), QStringLiteral("10"));
+        s.resume();
+        QVERIFY(QTest::qWaitFor([&]() { return finished.count() > 0; }, 20000));
+    }
+
+    void compileErrorIsReported()
+    {
+        if (QStandardPaths::findExecutable("gcc").isEmpty())
+            QSKIP("gcc not installed");
+        const QString file = write("broken.c", "int main(void) { return x; }\n");
+        DebugSession s(m_terminal);
+        QSignalSpy errors(&s, &DebugSession::error);
+        s.start(file, "c", AppSettings::defaults(), {});
+        QVERIFY(QTest::qWaitFor([&]() { return errors.count() > 0; }, 20000));
+        QVERIFY(errors.first().at(0).toString().contains("x"));
+        QCOMPARE(s.state(), DebugSession::State::Idle);
+    }
+
+    void editedThemeReachesTerminal()
+    {
+        // Temas criados/alterados durante a sessão precisam valer no terminal
+        // (o QTermWidget guarda cada esquema na primeira vez que o usa).
+        auto sample = [this]() {
+            QTest::qWait(300);
+            const QImage img = m_terminal->current()->grab().toImage();
+            return img.pixelColor(img.width() / 2, img.height() - 8);
+        };
+        Theme red = Theme::builtIns().first();
+        red.id = "test-red";
+        red.terminalBackground = QColor("#ff0000");
+        m_terminal->setTheme(red);
+        QCOMPARE(sample().name(), QStringLiteral("#ff0000"));
+        Theme blue = red;
+        blue.terminalBackground = QColor("#0000ff");
+        m_terminal->setTheme(blue); // mesmo id, cores novas
+        QCOMPARE(sample().name(), QStringLiteral("#0000ff"));
+    }
+
     void cWithGdb()
     {
         if (QStandardPaths::findExecutable("gdb").isEmpty() || QStandardPaths::findExecutable("gcc").isEmpty())

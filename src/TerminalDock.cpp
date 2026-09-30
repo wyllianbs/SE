@@ -1,6 +1,7 @@
 #include "TerminalDock.h"
 
 #include <QActionGroup>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -72,10 +73,20 @@ TerminalDock::TerminalDock(QMainWindow *mainWindow)
     });
 }
 
+namespace {
+
+QString schemeDir()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/color-schemes");
+}
+} // namespace
+
 /**
- * O QTermWidget lê a lista de esquemas de cores uma única vez, ao criar o
- * primeiro terminal: diretórios registrados depois são ignorados. Por isso
- * todos os esquemas são gravados e o diretório registrado antes disso.
+ * O QTermWidget lê a lista de diretórios de esquemas uma única vez (ao criar
+ * o primeiro terminal) e guarda em cache cada esquema já carregado, inclusive
+ * todos os arquivos presentes na primeira consulta. Por isso o diretório é
+ * registrado cedo e vazio, e cada conjunto de cores novo (tema criado ou
+ * editado) vai para um arquivo de nome novo, lido do disco quando usado.
  */
 void TerminalDock::registerColorSchemes()
 {
@@ -83,11 +94,18 @@ void TerminalDock::registerColorSchemes()
     if (done)
         return;
     done = true;
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-                        + QStringLiteral("/color-schemes");
-    for (const Theme &theme : Theme::all())
-        theme.writeTerminalScheme(dir);
+    // Limpa só os esquemas desta instância que sobraram de antes (PID reciclado).
+    const QString dir = schemeDir();
+    for (const QString &f : QDir(dir).entryList({QStringLiteral("SlayerEditor-%1-*").arg(QCoreApplication::applicationPid())}))
+        QFile::remove(QDir(dir).filePath(f));
+    QDir().mkpath(dir);
     QTermWidget::addCustomColorSchemeDir(dir);
+    // Esquemas de instâncias encerradas: apaga os que não são de processos vivos.
+    for (const QString &f : QDir(dir).entryList({QStringLiteral("SlayerEditor-*.colorscheme")})) {
+        const QString pid = f.section(QLatin1Char('-'), 1, 1);
+        if (!QFileInfo::exists(QStringLiteral("/proc/") + pid))
+            QFile::remove(QDir(dir).filePath(f));
+    }
 }
 
 QString TerminalDock::areaKey(Qt::DockWidgetArea area)
@@ -292,8 +310,22 @@ QTermWidget *TerminalDock::newTerminal()
 
 QString TerminalDock::newTeletype(const QString &title)
 {
-    QTermWidget *term = createTerminal();
-    term->startTerminalTeletype();
+    // Um PTY cujo processo nunca lê o teclado: o programa depurado (em outra
+    // sessão, sem terminal de controle) lê e escreve nele, e o que se digita
+    // chega a ele com eco normal. (O modo "teletype" do QTermWidget não serve:
+    // as teclas viram sinais em vez de ir para o PTY.)
+    auto *term = new QTermWidget(0, m_tabs);
+    term->setShellProgram(QStringLiteral("/bin/sleep"));
+    term->setArgs({QStringLiteral("infinity")});
+    term->setScrollBarPosition(QTermWidget::ScrollBarRight);
+    term->setTerminalSizeHint(false);
+    term->setBlinkingCursor(m_cursorBlink);
+    if (!m_schemeName.isEmpty())
+        term->setColorScheme(m_schemeName);
+    if (m_font != QFont())
+        term->setTerminalFont(m_font);
+    term->setTerminalOpacity(opacity());
+    term->startShellProgram();
     const int fd = term->getPtySlaveFd();
     const char *name = fd >= 0 ? ::ttyname(fd) : nullptr;
     if (!name) {
@@ -462,7 +494,17 @@ void TerminalDock::setTheme(const Theme &theme)
     m_titleIcon->setPixmap(Icons::icon(Icons::Terminal, theme.primary, 16).pixmap(16, 16));
     m_iconColor = theme.textSecondary;
     refreshTabIcons();
-    m_schemeName = QStringLiteral("SlayerEditor-") + theme.id;
+    // Arquivo novo só quando as cores mudam; o nome inclui o PID para não
+    // colidir com outra instância do app.
+    const QJsonObject colors = theme.toJson();
+    if (colors != m_schemeColors) {
+        m_schemeColors = colors;
+        const QString name = QStringLiteral("SlayerEditor-%1-%2").arg(QCoreApplication::applicationPid()).arg(m_nextSlot++);
+        theme.writeTerminalScheme(schemeDir(), name);
+        // Caminho completo: o QTermWidget lê o arquivo, sem depender da lista
+        // de esquemas que ele montou na primeira consulta.
+        m_schemeName = schemeDir() + QLatin1Char('/') + name + QStringLiteral(".colorscheme");
+    }
     m_background = theme.terminalBackground;
     updateContainerBackground();
     for (QTermWidget *t : terminals())

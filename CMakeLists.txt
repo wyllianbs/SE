@@ -22,6 +22,7 @@ add_executable(slayer-editor
     src/TerminalDock.cpp src/TerminalDock.h
     src/FindBar.cpp src/FindBar.h
     src/Icons.cpp src/Icons.h
+    src/ThemeEditor.cpp src/ThemeEditor.h
     src/DapClient.cpp src/DapClient.h
     src/DebugSession.cpp src/DebugSession.h
     src/DebugPanel.cpp src/DebugPanel.h

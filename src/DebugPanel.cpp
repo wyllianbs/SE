@@ -100,6 +100,7 @@ DebugPanel::DebugPanel(DebugSession *session, QWidget *parent)
         }
     });
     connect(m_session, &DebugSession::finished, this, [this](const QString &msg) { setStatus(msg); });
+    connect(m_session, &DebugSession::status, this, [this](const QString &msg) { setStatus(msg); });
     connect(m_stack, &QListWidget::itemActivated, this, [this](QListWidgetItem *item) {
         const int row = m_stack->row(item);
         if (row >= 0 && row < m_frames.size()) {

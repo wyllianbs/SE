@@ -2,6 +2,7 @@
 #include "Icons.h"
 #include "Language.h"
 #include "LspManager.h"
+#include "ThemeEditor.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -309,28 +310,6 @@ QWidget *SettingsDialog::buildAppearancePage()
     m_themes->setResizeMode(QListView::Adjust);
     m_themes->setMinimumHeight(240);
     m_themes->setSpacing(6);
-    for (const Theme &t : Theme::all()) {
-        // Miniatura: fundo, barra lateral e três linhas de "código".
-        QPixmap pm(120, 72);
-        pm.fill(t.surface);
-        QPainter p(&pm);
-        p.setRenderHint(QPainter::Antialiasing);
-        p.fillRect(0, 0, 120, 12, t.window);
-        p.fillRect(0, 56, 120, 16, t.terminalBackground);
-        const QColor colors[] = {t.keyword, t.string, t.function, t.comment};
-        for (int i = 0; i < 4; ++i) {
-            p.setBrush(colors[i]);
-            p.setPen(Qt::NoPen);
-            p.drawRoundedRect(10, 17 + i * 9, 30 + (i * 23) % 60, 5, 2, 2);
-        }
-        p.setBrush(t.primary);
-        p.drawEllipse(QPoint(110, 6), 3, 3);
-        p.end();
-        auto *item = new QListWidgetItem(QIcon(pm), t.name);
-        item->setData(kIdRole, t.id);
-        m_themes->addItem(item);
-    }
-
     auto makeSlider = [](QSlider *&slider, QLabel *&label, int min, int max) {
         slider = new QSlider(Qt::Horizontal);
         slider->setRange(min / 10, max / 10);
@@ -359,8 +338,25 @@ QWidget *SettingsDialog::buildAppearancePage()
     languageForm->setHorizontalSpacing(24);
     languageForm->addRow(tr("Interface language"), m_uiLanguage);
 
+    auto *customize = new QPushButton(tr("Customize…"));
+    customize->setAutoDefault(false);
+    customize->setToolTip(tr("Create your own themes or change the colors of the built-in ones"));
+    connect(customize, &QPushButton::clicked, this, [this]() {
+        ThemeEditor editor(m_userThemes, currentThemeId(), m_theme, this);
+        if (editor.exec() == QDialog::Accepted) {
+            m_userThemes = editor.userThemes();
+            rebuildThemeList(editor.selectedId());
+        }
+    });
+    auto *customizeRow = new QHBoxLayout;
+    auto *customizeHint = new QLabel(tr("✦ your themes   ✎ customized built-in themes"));
+    customizeHint->setObjectName(QStringLiteral("Hint"));
+    customizeRow->addWidget(customizeHint, 1);
+    customizeRow->addWidget(customize);
+
     auto *themeBox = new QVBoxLayout;
     themeBox->addWidget(m_themes, 1);
+    themeBox->addLayout(customizeRow);
 
     auto *layout = new QVBoxLayout;
     layout->setSpacing(14);
@@ -584,6 +580,51 @@ void SettingsDialog::refreshServerStatus()
     }
 }
 
+QString SettingsDialog::currentThemeId() const
+{
+    auto *item = m_themes->currentItem();
+    return item ? item->data(kIdRole).toString() : Theme::builtIns().first().id;
+}
+
+/** Miniaturas dos temas (do app, personalizados e do usuário) em edição. */
+void SettingsDialog::rebuildThemeList(const QString &selectId)
+{
+    m_themes->clear();
+    for (const Theme &t : Theme::compose(m_userThemes)) {
+        // Miniatura: fundo, barra de título e três linhas de "código".
+        QPixmap pm(120, 72);
+        pm.fill(t.surface);
+        QPainter p(&pm);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.fillRect(0, 0, 120, 12, t.window);
+        p.fillRect(0, 56, 120, 16, t.terminalBackground);
+        const QColor colors[] = {t.keyword, t.string, t.function, t.comment};
+        for (int i = 0; i < 4; ++i) {
+            p.setBrush(colors[i]);
+            p.setPen(Qt::NoPen);
+            p.drawRoundedRect(10, 17 + i * 9, 30 + (i * 23) % 60, 5, 2, 2);
+        }
+        p.setBrush(t.primary);
+        p.drawEllipse(QPoint(110, 6), 3, 3);
+        p.end();
+        QString label = t.name;
+        bool customized = false;
+        for (const Theme &u : std::as_const(m_userThemes))
+            customized |= (u.id == t.id);
+        if (!Theme::isBuiltIn(t.id))
+            label += QStringLiteral(" ✦");
+        else if (customized)
+            label += QStringLiteral(" ✎");
+        auto *item = new QListWidgetItem(QIcon(pm), label);
+        item->setData(kIdRole, t.id);
+        m_themes->addItem(item);
+        if (t.id == selectId)
+            m_themes->setCurrentItem(item);
+    }
+    if (!m_themes->currentItem() && m_themes->count() > 0)
+        m_themes->setCurrentRow(0);
+}
+
 // ---------------------------------------------------------- formulário
 
 void SettingsDialog::refreshProfiles()
@@ -646,10 +687,10 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_insertSpaces->setChecked(s.insertSpaces);
     m_editorBlink->setChecked(s.editorCursorBlink);
 
-    for (int i = 0; i < m_themes->count(); ++i) {
-        if (m_themes->item(i)->data(kIdRole).toString() == s.theme)
-            m_themes->setCurrentRow(i);
-    }
+    m_userThemes.clear();
+    for (const QJsonValue &v : s.userThemes)
+        m_userThemes << Theme::fromJson(v.toObject());
+    rebuildThemeList(s.theme);
     m_buttonScale->setValue(s.buttonScale / 10);
     m_uiScale->setValue(s.uiScale / 10);
     m_buttonScaleLabel->setText(QStringLiteral("%1%").arg(m_buttonScale->value() * 10));
@@ -705,6 +746,8 @@ AppSettings SettingsDialog::settings() const
 
     if (auto *item = m_themes->currentItem())
         s.theme = item->data(kIdRole).toString();
+    for (const Theme &t : m_userThemes)
+        s.userThemes.append(t.toJson());
     s.buttonScale = m_buttonScale->value() * 10;
     s.uiScale = m_uiScale->value() * 10;
     s.uiLanguage = m_uiLanguage->currentData().toString();

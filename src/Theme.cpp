@@ -1,6 +1,8 @@
 #include "Theme.h"
 
+#include <QCoreApplication>
 #include <QDir>
+#include <QJsonArray>
 #include <QFile>
 #include <QTextStream>
 
@@ -93,12 +95,54 @@ QString rgb(const QColor &c)
     return QStringLiteral("%1,%2,%3").arg(c.red()).arg(c.green()).arg(c.blue());
 }
 
+QList<Theme> &activeThemes()
+{
+    static QList<Theme> themes = Theme::builtIns();
+    return themes;
+}
+
 } // namespace
 
-const QList<Theme> &Theme::all()
+const QList<Theme> &Theme::builtIns()
 {
     static const QList<Theme> themes = buildThemes();
     return themes;
+}
+
+bool Theme::isBuiltIn(const QString &id)
+{
+    for (const Theme &t : builtIns()) {
+        if (t.id == id)
+            return true;
+    }
+    return false;
+}
+
+QList<Theme> Theme::compose(const QList<Theme> &userThemes)
+{
+    QList<Theme> out = builtIns();
+    for (const Theme &u : userThemes) {
+        bool replaced = false;
+        for (Theme &t : out) {
+            if (t.id == u.id) {
+                t = u; // personalização de um tema do app
+                replaced = true;
+            }
+        }
+        if (!replaced)
+            out.append(u);
+    }
+    return out;
+}
+
+void Theme::setUserThemes(const QList<Theme> &themes)
+{
+    activeThemes() = compose(themes);
+}
+
+const QList<Theme> &Theme::all()
+{
+    return activeThemes();
 }
 
 const Theme &Theme::byId(const QString &id)
@@ -110,10 +154,70 @@ const Theme &Theme::byId(const QString &id)
     return all().first();
 }
 
-QString Theme::writeTerminalScheme(const QString &dir) const
+const QList<Theme::Field> &Theme::fields()
+{
+    static const QList<Field> list{
+        {"primary", QT_TRANSLATE_NOOP("Theme", "Accent"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::primary},
+        {"window", QT_TRANSLATE_NOOP("Theme", "Window"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::window},
+        {"surface", QT_TRANSLATE_NOOP("Theme", "Editor background"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::surface},
+        {"text", QT_TRANSLATE_NOOP("Theme", "Text"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::text},
+        {"textSecondary", QT_TRANSLATE_NOOP("Theme", "Secondary text"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::textSecondary},
+        {"divider", QT_TRANSLATE_NOOP("Theme", "Borders"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::divider},
+        {"currentLine", QT_TRANSLATE_NOOP("Theme", "Current line"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::currentLine},
+        {"selection", QT_TRANSLATE_NOOP("Theme", "Selection"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::selection},
+        {"keyword", QT_TRANSLATE_NOOP("Theme", "Keywords"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::keyword},
+        {"type", QT_TRANSLATE_NOOP("Theme", "Types"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::type},
+        {"function", QT_TRANSLATE_NOOP("Theme", "Functions"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::function},
+        {"string", QT_TRANSLATE_NOOP("Theme", "Strings"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::string},
+        {"number", QT_TRANSLATE_NOOP("Theme", "Numbers"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::number},
+        {"comment", QT_TRANSLATE_NOOP("Theme", "Comments"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::comment},
+        {"preprocessor", QT_TRANSLATE_NOOP("Theme", "Preprocessor"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::preprocessor},
+        {"terminalBackground", QT_TRANSLATE_NOOP("Theme", "Background"), QT_TRANSLATE_NOOP("Theme", "Terminal"), &Theme::terminalBackground},
+    };
+    return list;
+}
+
+QJsonObject Theme::toJson() const
+{
+    QJsonObject colors;
+    for (const Field &f : fields())
+        colors[QLatin1String(f.key)] = (this->*f.member).name();
+    QJsonArray ansiArray;
+    for (const QColor &c : ansi)
+        ansiArray.append(c.name());
+    return QJsonObject{{"id", id}, {"name", name}, {"dark", dark}, {"colors", colors}, {"ansi", ansiArray}};
+}
+
+Theme Theme::fromJson(const QJsonObject &o)
+{
+    // Parte do tema do app de mesmo id (ou do primeiro): campos ausentes ficam válidos.
+    Theme t = builtIns().first();
+    for (const Theme &b : builtIns()) {
+        if (b.id == o.value("id").toString())
+            t = b;
+    }
+    t.id = o.value("id").toString(t.id);
+    t.name = o.value("name").toString(t.name);
+    t.dark = o.value("dark").toBool(t.dark);
+    const QJsonObject colors = o.value("colors").toObject();
+    for (const Field &f : fields()) {
+        const QColor c(colors.value(QLatin1String(f.key)).toString());
+        if (c.isValid())
+            t.*f.member = c;
+    }
+    const QJsonArray a = o.value("ansi").toArray();
+    for (int i = 0; i < 16 && i < a.size(); ++i) {
+        const QColor c(a.at(i).toString());
+        if (c.isValid())
+            t.ansi[i] = c;
+    }
+    return t;
+}
+
+QString Theme::writeTerminalScheme(const QString &dir, const QString &name) const
 {
     QDir().mkpath(dir);
-    const QString schemeName = QStringLiteral("SlayerEditor-") + id;
+    const QString schemeName = name.isEmpty() ? QStringLiteral("SlayerEditor-") + id : name;
     QFile file(dir + QLatin1Char('/') + schemeName + QStringLiteral(".colorscheme"));
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
         return QString();

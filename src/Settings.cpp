@@ -79,6 +79,7 @@ QJsonObject AppSettings::toJson() const
     for (auto it = lsp.cbegin(); it != lsp.cend(); ++it)
         lspObj[it.key()] = QJsonObject{{"enabled", it->enabled}, {"command", it->command}};
     o[QStringLiteral("lsp")] = lspObj;
+    o[QStringLiteral("userThemes")] = userThemes;
     o[QStringLiteral("insertSpaces")] = insertSpaces;
     o[QStringLiteral("editorCursorBlink")] = editorCursorBlink;
     o[QStringLiteral("theme")] = theme;
@@ -123,6 +124,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.codeCompletion = flag("codeCompletion", s.codeCompletion);
     s.codeFolding = flag("codeFolding", s.codeFolding);
     s.lspEnabled = flag("lspEnabled", s.lspEnabled);
+    s.userThemes = o.value(QStringLiteral("userThemes")).toArray();
     const QJsonObject lspObj = o.value(QStringLiteral("lsp")).toObject();
     for (auto it = lspObj.begin(); it != lspObj.end(); ++it) {
         const QJsonObject l = it.value().toObject();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QList>
 #include <QMap>
@@ -69,6 +70,8 @@ struct AppSettings
     QMap<QString, LanguageConfig> languages; //< id da linguagem embutida → config
     QList<CustomLanguage> customLanguages;
     QMap<QString, LspConfig> lsp;           //< id da linguagem → servidor
+    /** Temas do usuário (JSON de Theme): mesmo id de um tema do app = personalização. */
+    QJsonArray userThemes;
 
     static AppSettings defaults();
     static LanguageConfig defaultLanguageConfig(const QString &languageId);

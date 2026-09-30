@@ -49,36 +49,49 @@ void DebugSession::setState(State state)
     Q_EMIT stateChanged(state);
 }
 
-/** C/C++ com -g -O0 (as flags de otimização das configurações são removidas). */
-bool DebugSession::compile(const QString &filePath, const QString &id, const AppSettings &settings, QString *binary)
+/**
+ * C/C++ com -g -O0 (sem as otimizações das configurações), sem bloquear a
+ * interface: done(binário) é chamado ao terminar com sucesso.
+ */
+void DebugSession::compileAsync(const QString &filePath, const QString &id, const AppSettings &settings,
+                                std::function<void(const QString &binary)> done)
 {
     const LanguageConfig cfg = settings.languageConfig(id);
-    QStringList args;
+    QStringList before, after;
     for (const QString &f : QProcess::splitCommand(cfg.flags)) {
-        if (!f.startsWith(QLatin1String("-O")) && f != QLatin1String("-s"))
-            args << f;
+        if (f.startsWith(QLatin1String("-O")) || f == QLatin1String("-s"))
+            continue;
+        // -lm e -Wl,… vão depois do arquivo, como no terminal.
+        (f.startsWith(QLatin1String("-l")) || f.startsWith(QLatin1String("-Wl,")) ? after : before) << f;
     }
     const QString outDir = QStringLiteral("/tmp/slayer_out");
     QDir().mkpath(outDir);
-    *binary = outDir + QLatin1Char('/') + QFileInfo(filePath).completeBaseName() + QStringLiteral("-debug");
-    // -lm e -Wl,… das configurações vão depois do arquivo, como no terminal.
-    QStringList before, after;
-    for (const QString &a : std::as_const(args))
-        (a.startsWith(QLatin1String("-l")) || a.startsWith(QLatin1String("-Wl,")) ? after : before) << a;
-    QProcess cc;
-    cc.setWorkingDirectory(QFileInfo(filePath).absolutePath());
-    cc.setProcessChannelMode(QProcess::MergedChannels);
-    cc.start(cfg.tool, before + QStringList{"-g", "-O0", filePath, "-o", *binary} + after);
-    if (!cc.waitForStarted(5000)) {
-        Q_EMIT error(tr("Could not start the compiler “%1”.").arg(cfg.tool));
-        return false;
-    }
-    cc.waitForFinished(120000);
-    if (cc.exitStatus() != QProcess::NormalExit || cc.exitCode() != 0) {
-        Q_EMIT error(tr("Compilation failed:\n\n%1").arg(QString::fromLocal8Bit(cc.readAll()).trimmed()));
-        return false;
-    }
-    return true;
+    const QString binary = outDir + QLatin1Char('/') + QFileInfo(filePath).completeBaseName() + QStringLiteral("-debug");
+
+    auto *cc = new QProcess(this);
+    m_compiler = cc;
+    cc->setWorkingDirectory(QFileInfo(filePath).absolutePath());
+    cc->setProcessChannelMode(QProcess::MergedChannels);
+    connect(cc, &QProcess::errorOccurred, this, [this, cc, tool = cfg.tool](QProcess::ProcessError e) {
+        if (e != QProcess::FailedToStart)
+            return;
+        cc->deleteLater();
+        setState(State::Idle);
+        Q_EMIT error(tr("Could not start the compiler “%1”.").arg(tool));
+    });
+    connect(cc, &QProcess::finished, this, [this, cc, binary, done](int code, QProcess::ExitStatus status) {
+        cc->deleteLater();
+        if (m_state != State::Starting)
+            return; // parado durante a compilação
+        if (status != QProcess::NormalExit || code != 0) {
+            setState(State::Idle);
+            Q_EMIT error(tr("Compilation failed:\n\n%1").arg(QString::fromLocal8Bit(cc->readAll()).trimmed()));
+            return;
+        }
+        done(binary);
+    });
+    Q_EMIT status(tr("Compiling %1 with -g…").arg(QFileInfo(filePath).fileName()));
+    cc->start(cfg.tool, before + QStringList{"-g", "-O0", filePath, "-o", binary} + after);
 }
 
 void DebugSession::start(const QString &filePath, const QString &id, const AppSettings &settings,
@@ -115,19 +128,16 @@ void DebugSession::start(const QString &filePath, const QString &id, const AppSe
         return;
     }
     setState(State::Starting);
-    QString binary;
-    if (!compile(filePath, id, settings, &binary)) {
-        setState(State::Idle);
-        return;
-    }
-    // Aba própria (PTY sem shell): o programa lê e escreve nela.
-    const QString tty = m_terminal->newTeletype(tr("Debug: %1").arg(QFileInfo(filePath).fileName()));
-    QStringList args{"-q", "-nx", "-i", "dap"};
-    if (!tty.isEmpty())
-        args << "-iex" << QStringLiteral("set inferior-tty %1").arg(tty);
-    const QJsonObject launch{{"name", "Slayer Editor"}, {"request", "launch"}, {"program", binary},
-                             {"cwd", m_workingDir}};
-    launchAdapter(QStringLiteral("gdb"), args, launch);
+    compileAsync(filePath, id, settings, [this, filePath](const QString &binary) {
+        // Aba própria (PTY sem shell): o programa lê e escreve nela.
+        const QString tty = m_terminal->newTeletype(tr("Debug: %1").arg(QFileInfo(filePath).fileName()));
+        QStringList args{"-q", "-nx", "-i", "dap"};
+        if (!tty.isEmpty())
+            args << "-iex" << QStringLiteral("set inferior-tty %1").arg(tty);
+        const QJsonObject launch{{"name", "Slayer Editor"}, {"request", "launch"}, {"program", binary},
+                                 {"cwd", m_workingDir}};
+        launchAdapter(QStringLiteral("gdb"), args, launch);
+    });
 }
 
 void DebugSession::launchAdapter(const QString &program, const QStringList &args, const QJsonObject &launch)
@@ -290,6 +300,10 @@ void DebugSession::resume() { step(QStringLiteral("continue")); }
 
 void DebugSession::stop()
 {
+    if (m_compiler) {
+        m_compiler->kill(); // parar durante a compilação
+        m_compiler = nullptr;
+    }
     if (!m_dap) {
         setState(State::Idle);
         return;

@@ -120,6 +120,10 @@ sudo apt install gdb</translation>
         <source>Debugging stopped.</source>
         <translation>Depuração interrompida.</translation>
     </message>
+    <message>
+        <source>Compiling %1 with -g…</source>
+        <translation>Compilando %1 com -g…</translation>
+    </message>
 </context>
 <context>
     <name>Document</name>
@@ -956,6 +960,10 @@ sudo apt install gdb</translation>
         <source>No breakpoints: click left of a line number (or F9) to add one.</source>
         <translation>Sem pontos de parada: clique à esquerda do número da linha (ou F9) para adicionar.</translation>
     </message>
+    <message>
+        <source>Customize Themes…</source>
+        <translation>Personalizar temas…</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -1245,6 +1253,18 @@ sudo apt install gdb</translation>
         <source>Interface language</source>
         <translation>Idioma da interface</translation>
     </message>
+    <message>
+        <source>Customize…</source>
+        <translation>Personalizar…</translation>
+    </message>
+    <message>
+        <source>Create your own themes or change the colors of the built-in ones</source>
+        <translation>Crie seus próprios temas ou altere as cores dos temas do app</translation>
+    </message>
+    <message>
+        <source>✦ your themes   ✎ customized built-in themes</source>
+        <translation>✦ seus temas   ✎ temas do app personalizados</translation>
+    </message>
 </context>
 <context>
     <name>TerminalDock</name>
@@ -1299,6 +1319,144 @@ sudo apt install gdb</translation>
     <message>
         <source>Close terminal tab</source>
         <translation>Fechar aba do terminal</translation>
+    </message>
+</context>
+<context>
+    <name>Theme</name>
+    <message>
+        <source>Accent</source>
+        <translation>Destaque</translation>
+    </message>
+    <message>
+        <source>Interface</source>
+        <translation>Interface</translation>
+    </message>
+    <message>
+        <source>Window</source>
+        <translation>Janela</translation>
+    </message>
+    <message>
+        <source>Editor background</source>
+        <translation>Fundo do editor</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Texto</translation>
+    </message>
+    <message>
+        <source>Secondary text</source>
+        <translation>Texto secundário</translation>
+    </message>
+    <message>
+        <source>Borders</source>
+        <translation>Bordas</translation>
+    </message>
+    <message>
+        <source>Current line</source>
+        <translation>Linha atual</translation>
+    </message>
+    <message>
+        <source>Selection</source>
+        <translation>Seleção</translation>
+    </message>
+    <message>
+        <source>Keywords</source>
+        <translation>Palavras-chave</translation>
+    </message>
+    <message>
+        <source>Syntax</source>
+        <translation>Sintaxe</translation>
+    </message>
+    <message>
+        <source>Types</source>
+        <translation>Tipos</translation>
+    </message>
+    <message>
+        <source>Functions</source>
+        <translation>Funções</translation>
+    </message>
+    <message>
+        <source>Strings</source>
+        <translation>Strings</translation>
+    </message>
+    <message>
+        <source>Numbers</source>
+        <translation>Números</translation>
+    </message>
+    <message>
+        <source>Comments</source>
+        <translation>Comentários</translation>
+    </message>
+    <message>
+        <source>Preprocessor</source>
+        <translation>Pré-processador</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <translation>Fundo</translation>
+    </message>
+    <message>
+        <source>Terminal</source>
+        <translation>Terminal</translation>
+    </message>
+</context>
+<context>
+    <name>ThemeEditor</name>
+    <message>
+        <source>Dark theme</source>
+        <translation>Tema escuro</translation>
+    </message>
+    <message>
+        <source>New From This…</source>
+        <translation>Novo a partir deste…</translation>
+    </message>
+    <message>
+        <source>Restore Original</source>
+        <translation>Restaurar original</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Excluir</translation>
+    </message>
+    <message>
+        <source>Customize Themes</source>
+        <translation>Personalizar temas</translation>
+    </message>
+    <message>
+        <source>Terminal colors (ANSI 0–15)</source>
+        <translation>Cores do terminal (ANSI 0–15)</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nome</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Prévia</translation>
+    </message>
+    <message>
+        <source>New Theme</source>
+        <translation>Novo tema</translation>
+    </message>
+    <message>
+        <source>Theme name:</source>
+        <translation>Nome do tema:</translation>
+    </message>
+    <message>
+        <source>%1 (copy)</source>
+        <translation>%1 (cópia)</translation>
+    </message>
+    <message>
+        <source>Delete Theme</source>
+        <translation>Excluir tema</translation>
+    </message>
+    <message>
+        <source>Delete theme “%1”?</source>
+        <translation>Excluir o tema “%1”?</translation>
+    </message>
+    <message>
+        <source>Choose Color</source>
+        <translation>Escolher cor</translation>
     </message>
 </context>
 <context>

@@ -8,6 +8,7 @@
 #include "LspManager.h"
 #include "SettingsDialog.h"
 #include "TerminalDock.h"
+#include "ThemeEditor.h"
 #include "ViewSpace.h"
 
 #include <QAction>
@@ -89,7 +90,14 @@ MainWindow::MainWindow(QWidget *parent)
     m_debugPanel = new DebugPanel(m_debug, this);
     addDockWidget(Qt::RightDockWidgetArea, m_debugPanel);
     m_debugPanel->hide();
-    connect(m_debug, &DebugSession::stateChanged, this, [this]() { updateDebugActions(); });
+    connect(m_debug, &DebugSession::stateChanged, this, [this](DebugSession::State st) {
+        updateDebugActions();
+        // Rodando livre (início ou Continuar): o foco vai para o programa, que
+        // pode estar esperando entrada (scanf, input). Nos passos, fica no editor.
+        if (st == DebugSession::State::Running && m_focusProgramOnRun)
+            m_terminal->focusTerminal();
+    });
+    connect(m_debug, &DebugSession::status, this, [this](const QString &msg) { statusBar()->showMessage(msg, 4000); });
     connect(m_debug, &DebugSession::stopped, this, [this](const QList<DebugFrame> &frames, const QString &) {
         if (!frames.isEmpty())
             showExecutionPoint(frames.first());
@@ -130,6 +138,15 @@ MainWindow::MainWindow(QWidget *parent)
     if (qEnvironmentVariableIsSet("SLAYER_DEBUG_GRAB")) {
         QTimer::singleShot(qEnvironmentVariableIntValue("SLAYER_DEBUG_DELAY") + 900, this, [this]() {
             const QString out = qEnvironmentVariable("SLAYER_DEBUG_GRAB");
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_THEMEEDITOR")) {
+                auto *editor = new ThemeEditor({}, m_theme.id, m_theme, this);
+                editor->show();
+                QTimer::singleShot(300, this, [editor, out]() {
+                    editor->grab().save(out);
+                    qApp->exit(0);
+                });
+                return;
+            }
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_HELP")) {
                 showHelp();
                 auto *help = findChild<HelpDialog *>();
@@ -300,19 +317,26 @@ void MainWindow::createActions()
     add(split, tr("Next View"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Right), [this]() { cycleSpace(1); });
     add(split, tr("Previous View"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Left), [this]() { cycleSpace(-1); });
     view->addSeparator();
+    // Montado ao abrir: inclui temas criados/editados em Settings → Aparência.
     QMenu *themeMenu = view->addMenu(tr("T&heme"));
-    auto *themeGroup = new QActionGroup(themeMenu);
-    for (const Theme &t : Theme::all()) {
-        QAction *a = themeMenu->addAction(t.name);
-        a->setCheckable(true);
-        a->setData(t.id);
-        themeGroup->addAction(a);
-        const QString id = t.id;
-        connect(a, &QAction::triggered, this, [this, id]() { applyTheme(id); });
-    }
-    connect(themeMenu, &QMenu::aboutToShow, this, [this, themeGroup]() {
-        for (QAction *a : themeGroup->actions())
-            a->setChecked(a->data().toString() == m_theme.id);
+    connect(themeMenu, &QMenu::aboutToShow, this, [this, themeMenu]() {
+        themeMenu->clear();
+        auto *group = new QActionGroup(themeMenu);
+        for (const Theme &t : Theme::all()) {
+            QAction *a = themeMenu->addAction(t.name);
+            a->setCheckable(true);
+            a->setChecked(t.id == m_theme.id);
+            group->addAction(a);
+            const QString id = t.id;
+            connect(a, &QAction::triggered, this, [this, id]() { applyTheme(id); });
+        }
+        themeMenu->addSeparator();
+        connect(themeMenu->addAction(tr("Customize Themes…")), &QAction::triggered, this, [this]() {
+            showSettings();
+            if (auto *dialog = findChild<SettingsDialog *>())
+                if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
+                    nav->setCurrentRow(2);
+        });
     });
     view->addSeparator();
     add(view, tr("Zoom &In"), QKeySequence::ZoomIn, [this]() { applyFontSize(m_settings.editorFontSize + 1); });
@@ -345,13 +369,25 @@ void MainWindow::createActions()
                         [this]() { startDebugging(); }, Icons::Bug);
     m_debugAction->setToolTip(tr("Debug the current file (Ctrl+F5) — Python, C, C++"));
     debug->addSeparator();
-    QAction *overA = add(debug, tr("Step &Over"), QKeySequence(Qt::Key_F6), [this]() { m_debug->stepOver(); },
+    QAction *overA = add(debug, tr("Step &Over"), QKeySequence(Qt::Key_F6), [this]() {
+        m_focusProgramOnRun = false;
+        m_debug->stepOver();
+    },
                          Icons::StepOver);
-    QAction *intoA = add(debug, tr("Step &Into"), QKeySequence(Qt::Key_F7), [this]() { m_debug->stepInto(); },
+    QAction *intoA = add(debug, tr("Step &Into"), QKeySequence(Qt::Key_F7), [this]() {
+        m_focusProgramOnRun = false;
+        m_debug->stepInto();
+    },
                          Icons::StepInto);
-    QAction *outA = add(debug, tr("Step O&ut"), QKeySequence(Qt::SHIFT | Qt::Key_F7), [this]() { m_debug->stepOut(); },
+    QAction *outA = add(debug, tr("Step O&ut"), QKeySequence(Qt::SHIFT | Qt::Key_F7), [this]() {
+        m_focusProgramOnRun = false;
+        m_debug->stepOut();
+    },
                         Icons::StepOut);
-    QAction *contA = add(debug, tr("&Continue"), QKeySequence(Qt::Key_F8), [this]() { m_debug->resume(); },
+    QAction *contA = add(debug, tr("&Continue"), QKeySequence(Qt::Key_F8), [this]() {
+        m_focusProgramOnRun = true;
+        m_debug->resume();
+    },
                          Icons::Continue);
     m_stopDebugAction = add(debug, tr("&Stop"), QKeySequence(Qt::SHIFT | Qt::Key_F5), [this]() { m_debug->stop(); },
                             Icons::Stop);
@@ -1249,6 +1285,7 @@ void MainWindow::startDebugging()
     if (bps.isEmpty())
         statusBar()->showMessage(tr("No breakpoints: click left of a line number (or F9) to add one."), 6000);
     m_debugPanel->show();
+    m_focusProgramOnRun = true;
     m_debug->start(editor->filePath(), id, m_settings, bps);
 }
 
@@ -1411,6 +1448,10 @@ void MainWindow::applySettings(const AppSettings &settings)
 {
     m_settings = settings;
     m_settings.save();
+    QList<Theme> userThemes;
+    for (const QJsonValue &v : std::as_const(m_settings.userThemes))
+        userThemes << Theme::fromJson(v.toObject());
+    Theme::setUserThemes(userThemes);
     m_theme = Theme::byId(m_settings.theme);
 
     {
