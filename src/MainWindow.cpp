@@ -24,6 +24,8 @@
 #include <QTabWidget>
 #include <QTextBlock>
 #include <QTimer>
+#include <QPushButton>
+#include <QStackedWidget>
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -55,7 +57,10 @@ MainWindow::MainWindow(QWidget *parent)
     auto *layout = new QVBoxLayout(central);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    layout->addWidget(m_tabs, 1);
+    m_stack = new QStackedWidget(central);
+    m_stack->addWidget(m_tabs);
+    m_stack->addWidget(buildEmptyState());
+    layout->addWidget(m_stack, 1);
     layout->addWidget(m_findBar);
     setCentralWidget(central);
 
@@ -81,8 +86,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     createActions();
     restoreSession();
-    if (m_tabs->count() == 0)
-        newTab();
+    updateEmptyState();
     // Depuração: renderiza a janela (e opcionalmente uma página das configurações) em PNG e sai.
     if (qEnvironmentVariableIsSet("SLAYER_DEBUG_GRAB")) {
         QTimer::singleShot(800, this, [this]() {
@@ -220,6 +224,69 @@ void MainWindow::createActions()
 
 // --------------------------------------------------------------- abas
 
+/** Tela exibida quando todas as abas estão fechadas. */
+QWidget *MainWindow::buildEmptyState()
+{
+    auto *page = new QWidget;
+    page->setObjectName(QStringLiteral("EmptyState"));
+    page->setAttribute(Qt::WA_StyledBackground);
+    auto *v = new QVBoxLayout(page);
+    v->addStretch(1);
+
+    auto *logo = new QLabel;
+    logo->setPixmap(QPixmap(QStringLiteral(":/icons/slayer-editor.png"))
+                        .scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    logo->setAlignment(Qt::AlignCenter);
+    v->addWidget(logo);
+
+    auto *title = new QLabel(QStringLiteral("Slayer Editor"));
+    title->setObjectName(QStringLiteral("EmptyTitle"));
+    title->setAlignment(Qt::AlignCenter);
+    v->addWidget(title);
+
+    auto *hint = new QLabel(tr("No open files"));
+    hint->setObjectName(QStringLiteral("EmptyHint"));
+    hint->setAlignment(Qt::AlignCenter);
+    v->addWidget(hint);
+    v->addSpacing(18);
+
+    auto makeButton = [this, page](Icons::Glyph glyph, const QString &text, const QString &keys) {
+        auto *b = new QPushButton(page);
+        b->setObjectName(QStringLiteral("EmptyAction"));
+        b->setText(text + QStringLiteral("    ") + keys);
+        b->setCursor(Qt::PointingHandCursor);
+        b->setMinimumWidth(260);
+        m_emptyButtons.append({b, glyph});
+        return b;
+    };
+    auto *newButton = makeButton(Icons::NewFile, tr("New File"), QStringLiteral("Ctrl+N"));
+    auto *openButton = makeButton(Icons::Open, tr("Open File…"), QStringLiteral("Ctrl+O"));
+    connect(newButton, &QPushButton::clicked, this, [this]() { newTab(); });
+    connect(openButton, &QPushButton::clicked, this, [this]() {
+        openFiles(QFileDialog::getOpenFileNames(this, tr("Open File"), m_lastDir));
+    });
+    for (QPushButton *b : {newButton, openButton}) {
+        auto *row = new QHBoxLayout;
+        row->addStretch(1);
+        row->addWidget(b);
+        row->addStretch(1);
+        v->addLayout(row);
+    }
+    v->addStretch(2);
+    return page;
+}
+
+void MainWindow::updateEmptyState()
+{
+    const bool empty = m_tabs->count() == 0;
+    m_stack->setCurrentIndex(empty ? 1 : 0);
+    if (empty) {
+        m_findBar->hide();
+        m_findBar->setEditor(nullptr);
+    }
+    updateStatus();
+}
+
 CodeEditor *MainWindow::newTab()
 {
     auto *editor = new CodeEditor(m_tabs);
@@ -234,6 +301,7 @@ CodeEditor *MainWindow::newTab()
     connect(closeButton, &QToolButton::clicked, this, [this, editor]() { closeTab(m_tabs->indexOf(editor)); });
     m_tabs->tabBar()->setTabButton(index, QTabBar::RightSide, closeButton);
     m_tabs->setCurrentIndex(index);
+    updateEmptyState();
     connect(editor->document(), &QTextDocument::modificationChanged, this,
             [this, editor]() { updateTabTitle(editor); });
     connect(editor, &QPlainTextEdit::cursorPositionChanged, this, [this, editor]() {
@@ -311,12 +379,7 @@ bool MainWindow::saveAs(CodeEditor *editor)
 {
     if (!editor)
         return false;
-    QString start = editor->filePath();
-    if (start.isEmpty()) {
-        const QString dir = m_settings.effectiveProjectDir();
-        QDir().mkpath(dir);
-        start = dir;
-    }
+    const QString start = editor->filePath().isEmpty() ? m_lastDir : editor->filePath();
     const QString path = QFileDialog::getSaveFileName(this, tr("Save As"), start);
     if (path.isEmpty())
         return false;
@@ -353,8 +416,7 @@ bool MainWindow::closeTab(int index)
         return false;
     m_tabs->removeTab(index);
     editor->deleteLater();
-    if (m_tabs->count() == 0)
-        newTab();
+    updateEmptyState();
     return true;
 }
 
@@ -375,8 +437,13 @@ void MainWindow::updateTabTitle(CodeEditor *editor)
 void MainWindow::updateStatus()
 {
     CodeEditor *editor = currentEditor();
-    if (!editor)
+    if (!editor) {
+        m_cursorLabel->clear();
+        m_languageCombo->setVisible(false);
+        setWindowTitle(QStringLiteral("Slayer Editor"));
         return;
+    }
+    m_languageCombo->setVisible(true);
     const QTextCursor c = editor->textCursor();
     m_cursorLabel->setText(tr("Ln %1, Col %2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
     const int idx = m_languageCombo->findData(editor->language().id);
@@ -535,8 +602,6 @@ void MainWindow::applySettings(const AppSettings &settings)
 
     m_terminal->setTheme(m_theme);
     m_terminal->setTerminalFont(terminalFont());
-    m_terminal->setWorkingDirectory(m_settings.effectiveProjectDir());
-    QDir().mkpath(m_settings.effectiveProjectDir());
     m_terminal->configure(m_settings.shell, m_settings.terminalCursorBlink, m_settings.blockDestructiveCommands);
     refreshIcons();
     updateStatus();
@@ -598,6 +663,8 @@ Language MainWindow::languageForPath(const QString &path) const
 
 void MainWindow::refreshIcons()
 {
+    for (const auto &[button, glyph] : std::as_const(m_emptyButtons))
+        button->setIcon(Icons::icon(glyph, m_theme.primary, 18));
     const int size = m_toolbar->iconSize().width();
     for (const auto &[action, glyph] : std::as_const(m_iconActions))
         action->setIcon(Icons::icon(glyph, action == m_runAction ? m_theme.window : m_theme.textSecondary, size));
@@ -664,6 +731,12 @@ QMainWindow::separator { background: %4; width: 1px; height: 1px; }
 QMainWindow::separator:hover { background: %5; }
 QMessageBox, QInputDialog, QFileDialog { background: %1; }
 QDialog#SettingsDialog { background: %2; }
+#EmptyState { background: %2; }
+QLabel#EmptyTitle { color: %3; font-size: 26px; font-weight: 700; margin-top: 10px; }
+QLabel#EmptyHint { color: %7; font-size: 14px; }
+QPushButton#EmptyAction { background: %1; color: %3; border: 1px solid %4; border-radius: 12px;
+                          padding: 12px 20px; text-align: left; font-size: 14px; margin: 4px; }
+QPushButton#EmptyAction:hover { border-color: %5; background: %4; }
 QListWidget#SettingsNav { background: %1; border: none; border-right: 1px solid %4; padding: 12px 8px;
                           outline: 0; }
 QListWidget#SettingsNav::item { color: %3; padding: 4px 10px; border-radius: 8px; margin: 1px 0; }

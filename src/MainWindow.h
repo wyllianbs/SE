@@ -12,6 +12,8 @@ class FindBar;
 class QAction;
 class QComboBox;
 class QLabel;
+class QPushButton;
+class QStackedWidget;
 class QTabWidget;
 class QToolBar;
 class TerminalDock;
@@ -33,6 +35,8 @@ private:
     void saveSession();
 
     CodeEditor *newTab();
+    QWidget *buildEmptyState();
+    void updateEmptyState();
     CodeEditor *currentEditor() const;
     CodeEditor *editorAt(int index) const;
     void openFile(const QString &path);
@@ -60,6 +64,8 @@ private:
     QString styleSheetFor(const Theme &theme) const;
 
     QTabWidget *m_tabs;
+    QStackedWidget *m_stack = nullptr;
+    QList<QPair<QPushButton *, Icons::Glyph>> m_emptyButtons;
     FindBar *m_findBar;
     TerminalDock *m_terminal;
     QToolBar *m_toolbar = nullptr;

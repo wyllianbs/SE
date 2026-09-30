@@ -117,7 +117,6 @@ SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, 
     addPage(tr("Terminal"), Icons::Terminal, buildTerminalPage());
     addPage(tr("Languages"), Icons::Languages, buildLanguagesPage());
     addPage(tr("Security"), Icons::Shield, buildSecurityPage());
-    addPage(tr("Files"), Icons::Folder, buildFilesPage());
     connect(m_nav, &QListWidget::currentRowChanged, m_pages, &QStackedWidget::setCurrentIndex);
     m_nav->setCurrentRow(1);
 
@@ -492,31 +491,6 @@ QWidget *SettingsDialog::buildSecurityPage()
     return makePage(tr("Security"), QString(), layout);
 }
 
-QWidget *SettingsDialog::buildFilesPage()
-{
-    m_projectDir = new QLineEdit;
-    m_projectDir->setPlaceholderText(QDir::homePath() + QStringLiteral("/SlayerEditor"));
-    auto *browse = new QPushButton(tr("Choose…"));
-    browse->setAutoDefault(false);
-    connect(browse, &QPushButton::clicked, this, [this]() {
-        const QString start = m_projectDir->text().isEmpty() ? QDir::homePath() : m_projectDir->text();
-        const QString dir = QFileDialog::getExistingDirectory(this, tr("Default Directory"), start);
-        if (!dir.isEmpty())
-            m_projectDir->setText(dir);
-    });
-    auto *row = new QHBoxLayout;
-    row->addWidget(m_projectDir, 1);
-    row->addWidget(browse);
-    auto *hint = new QLabel(tr("Where new files are saved and where the terminal starts."));
-    hint->setObjectName(QStringLiteral("Hint"));
-    auto *box = new QVBoxLayout;
-    box->addLayout(row);
-    box->addWidget(hint);
-    auto *layout = new QVBoxLayout;
-    layout->addWidget(card(tr("Default directory"), box));
-    return makePage(tr("Files"), QString(), layout);
-}
-
 // ---------------------------------------------------------- formulário
 
 void SettingsDialog::refreshProfiles()
@@ -595,7 +569,6 @@ void SettingsDialog::setForm(const AppSettings &s)
         addLanguageRow(QString(), c.name, {c.tool, c.flags, c.extensions}, true);
 
     m_guard->setChecked(s.blockDestructiveCommands);
-    m_projectDir->setText(s.projectDir);
 }
 
 AppSettings SettingsDialog::settings() const
@@ -644,6 +617,5 @@ AppSettings SettingsDialog::settings() const
     }
 
     s.blockDestructiveCommands = m_guard->isChecked();
-    s.projectDir = m_projectDir->text().trimmed();
     return s;
 }

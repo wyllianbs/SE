@@ -50,12 +50,6 @@ LanguageConfig AppSettings::languageConfig(const QString &id) const
     return cfg;
 }
 
-QString AppSettings::effectiveProjectDir() const
-{
-    return projectDir.trimmed().isEmpty() ? QDir::homePath() + QStringLiteral("/SlayerEditor")
-                                          : QDir::cleanPath(projectDir.trimmed());
-}
-
 QJsonObject AppSettings::toJson() const
 {
     QJsonObject o;
@@ -76,7 +70,6 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("shell")] = shell;
     o[QStringLiteral("terminalCursorBlink")] = terminalCursorBlink;
     o[QStringLiteral("blockDestructiveCommands")] = blockDestructiveCommands;
-    o[QStringLiteral("projectDir")] = projectDir;
 
     QJsonObject langs;
     for (auto it = languages.cbegin(); it != languages.cend(); ++it) {
@@ -117,7 +110,6 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.shell = str("shell", s.shell);
     s.terminalCursorBlink = flag("terminalCursorBlink", s.terminalCursorBlink);
     s.blockDestructiveCommands = flag("blockDestructiveCommands", s.blockDestructiveCommands);
-    s.projectDir = str("projectDir", s.projectDir);
 
     const QJsonObject langs = o.value(QStringLiteral("languages")).toObject();
     for (auto it = langs.begin(); it != langs.end(); ++it) {

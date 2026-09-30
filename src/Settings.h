@@ -56,9 +56,6 @@ struct AppSettings
     // Segurança
     bool blockDestructiveCommands = true;
 
-    // Arquivos
-    QString projectDir;          //< vazio = ~/SlayerEditor
-
     // Linguagens
     QMap<QString, LanguageConfig> languages; //< id da linguagem embutida → config
     QList<CustomLanguage> customLanguages;
@@ -68,7 +65,6 @@ struct AppSettings
 
     /** Config efetiva de uma linguagem embutida (com os padrões preenchidos). */
     LanguageConfig languageConfig(const QString &languageId) const;
-    QString effectiveProjectDir() const;
 
     QJsonObject toJson() const;
     static AppSettings fromJson(const QJsonObject &json);

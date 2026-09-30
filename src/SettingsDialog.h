@@ -18,7 +18,7 @@ class QTableWidget;
 
 /**
  * Configurações, no mesmo espírito do painel do Slayer Editor para Android:
- * perfis, editor, aparência, terminal, linguagens, segurança e arquivos.
+ * perfis, editor, aparência, terminal, linguagens e segurança.
  * "Aplicar" emite applied() com os valores do formulário.
  */
 class SettingsDialog : public QDialog
@@ -39,7 +39,6 @@ private:
     QWidget *buildTerminalPage();
     QWidget *buildLanguagesPage();
     QWidget *buildSecurityPage();
-    QWidget *buildFilesPage();
     void addPage(const QString &title, char32_t glyph, QWidget *page);
 
     void setForm(const AppSettings &s);
@@ -84,7 +83,4 @@ private:
 
     // Segurança
     QCheckBox *m_guard = nullptr;
-
-    // Arquivos
-    QLineEdit *m_projectDir = nullptr;
 };
