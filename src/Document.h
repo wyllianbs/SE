@@ -57,6 +57,13 @@ public:
     /** Desdobra o que esconder a linha (o cursor entrou nela). */
     void revealLine(int line);
 
+    // Depuração: pontos de parada (linhas base 0) e linha em execução (-1 = nenhuma).
+    const QSet<int> &breakpoints() const { return m_breakpoints; }
+    void toggleBreakpoint(int line);
+    void clearBreakpoints();
+    int executionLine() const { return m_executionLine; }
+    void setExecutionLine(int line);
+
     const QList<Diagnostic> &diagnostics() const { return m_diagnostics; }
     void setDiagnostics(const QList<Diagnostic> &diagnostics);
     /** Diagnósticos que tocam a linha, do mais grave para o menos. */
@@ -77,6 +84,8 @@ Q_SIGNALS:
     void changed();
     void foldingChanged();
     void diagnosticsChanged();
+    void breakpointsChanged();
+    void executionLineChanged();
 
 private:
     QTextDocument *m_text;
@@ -86,6 +95,8 @@ private:
     QString m_encoding = QStringLiteral("UTF-8");
     bool m_bom = false;
     QList<Diagnostic> m_diagnostics;
+    QSet<int> m_breakpoints;
+    int m_executionLine = -1;
     void recomputeFolds();
     void applyFolding();
     QList<FoldRegion> m_regions;

@@ -407,8 +407,8 @@ QWidget *SettingsDialog::buildTerminalPage()
 
     auto *hint = new QLabel(tr("Move the terminal to the left, top, right or bottom with the ▥ button on its "
                                "title bar, or drag it by the title. Typing “exit” starts a new shell.<br><br>"
-                               "Transparency shows the desktop behind the terminal. The first time it is turned "
-                               "on, restart Slayer Editor; later changes apply immediately."));
+                               "Transparency applies to the detached terminal (❐ button): the desktop shows "
+                               "through it. Docked, the terminal stays opaque."));
     hint->setObjectName(QStringLiteral("Hint"));
     hint->setWordWrap(true);
     auto *tips = new QVBoxLayout;

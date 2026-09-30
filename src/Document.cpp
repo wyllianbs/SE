@@ -22,15 +22,24 @@ Document::Document(QObject *parent)
     m_foldTimer->setInterval(200);
     connect(m_foldTimer, &QTimer::timeout, this, &Document::recomputeFolds);
     connect(m_text, &QTextDocument::contentsChange, this, [this](int pos, int, int) {
-        // Linhas inseridas/removidas deslocam os cabeçalhos dobrados abaixo delas.
-        if (!m_folded.isEmpty()) {
+        // Linhas inseridas/removidas deslocam dobras e pontos de parada abaixo delas.
+        const int delta = m_text->blockCount() - m_lastBlockCount;
+        if (delta != 0) {
             const int line = m_text->findBlock(pos).blockNumber();
-            const int delta = m_text->blockCount() - m_lastBlockCount;
-            if (delta != 0) {
+            auto shift = [line, delta](const QSet<int> &set) {
                 QSet<int> moved;
-                for (int h : std::as_const(m_folded))
-                    moved.insert(h > line ? h + delta : h);
-                m_folded = moved;
+                for (int h : set) {
+                    if (h <= line)
+                        moved.insert(h);
+                    else if (h + delta > line)
+                        moved.insert(h + delta); // linhas apagadas levam o ponto junto
+                }
+                return moved;
+            };
+            m_folded = shift(m_folded);
+            if (!m_breakpoints.isEmpty()) {
+                m_breakpoints = shift(m_breakpoints);
+                Q_EMIT breakpointsChanged();
             }
         }
         m_lastBlockCount = m_text->blockCount();
@@ -174,6 +183,29 @@ void Document::applyFolding()
 void Document::setTheme(const Theme &theme)
 {
     m_highlighter->setTheme(theme);
+}
+
+void Document::toggleBreakpoint(int line)
+{
+    if (!m_breakpoints.remove(line))
+        m_breakpoints.insert(line);
+    Q_EMIT breakpointsChanged();
+}
+
+void Document::clearBreakpoints()
+{
+    if (m_breakpoints.isEmpty())
+        return;
+    m_breakpoints.clear();
+    Q_EMIT breakpointsChanged();
+}
+
+void Document::setExecutionLine(int line)
+{
+    if (m_executionLine == line)
+        return;
+    m_executionLine = line;
+    Q_EMIT executionLineChanged();
 }
 
 void Document::setDiagnostics(const QList<Diagnostic> &diagnostics)

@@ -48,6 +48,11 @@ TerminalDock::TerminalDock(QMainWindow *mainWindow)
     setTitleBarWidget(buildTitleBar());
     registerColorSchemes();
 
+    // Transparência só no painel destacado: a janela dele nasce translúcida
+    // (atributo inócuo enquanto acoplado). A janela principal fica opaca —
+    // translúcida inteira, repinturas parciais piscavam.
+    setAttribute(Qt::WA_TranslucentBackground);
+
     // Destacado, o painel vira janela sem moldura (barra de título própria):
     // bordas e cantos são tratados aqui e repassados ao compositor.
     for (QWidget *w : {static_cast<QWidget *>(m_container), titleBarWidget()}) {
@@ -59,6 +64,7 @@ TerminalDock::TerminalDock(QMainWindow *mainWindow)
                                                   floating ? kGrip : 6);
         if (!floating)
             m_container->unsetCursor();
+        applyOpacity();
     });
 }
 
@@ -235,7 +241,7 @@ QTermWidget *TerminalDock::createTerminal()
         term->setColorScheme(m_schemeName);
     if (m_font != QFont())
         term->setTerminalFont(m_font);
-    term->setTerminalOpacity(1.0 - m_transparency / 100.0);
+    term->setTerminalOpacity(opacity());
     return term;
 }
 
@@ -413,7 +419,7 @@ void TerminalDock::setTheme(const Theme &theme)
 void TerminalDock::updateContainerBackground()
 {
     QColor c = m_background;
-    c.setAlphaF(1.0 - m_transparency / 100.0);
+    c.setAlphaF(opacity());
     m_container->setStyleSheet(QStringLiteral("#TerminalContainer { background: rgba(%1,%2,%3,%4); }")
                                    .arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alpha()));
 }
@@ -421,9 +427,19 @@ void TerminalDock::updateContainerBackground()
 void TerminalDock::setTransparency(int percent)
 {
     m_transparency = qBound(0, percent, 90);
+    applyOpacity();
+}
+
+qreal TerminalDock::opacity() const
+{
+    return isFloating() ? 1.0 - m_transparency / 100.0 : 1.0;
+}
+
+void TerminalDock::applyOpacity()
+{
     updateContainerBackground();
     for (QTermWidget *t : terminals())
-        t->setTerminalOpacity(1.0 - m_transparency / 100.0);
+        t->setTerminalOpacity(opacity());
 }
 
 void TerminalDock::setTerminalFont(const QFont &font)

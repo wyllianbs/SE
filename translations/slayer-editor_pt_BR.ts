@@ -664,10 +664,6 @@
         <translation>A escala e o idioma da interface valem após reiniciar o Slayer Editor.</translation>
     </message>
     <message>
-        <source>Restart Slayer Editor to see the desktop through the terminal.</source>
-        <translation>Reinicie o Slayer Editor para ver a área de trabalho através do terminal.</translation>
-    </message>
-    <message>
         <source>Language Servers (&amp;LSP)</source>
         <translation>Servidores de linguagem (&amp;LSP)</translation>
     </message>
@@ -1037,8 +1033,8 @@
         <translation>Transparência</translation>
     </message>
     <message>
-        <source>Move the terminal to the left, top, right or bottom with the ▥ button on its title bar, or drag it by the title. Typing “exit” starts a new shell.&lt;br&gt;&lt;br&gt;Transparency shows the desktop behind the terminal. The first time it is turned on, restart Slayer Editor; later changes apply immediately.</source>
-        <translation>Mova o terminal para a esquerda, o topo, a direita ou a base com o botão ▥ da barra de título, ou arraste-o pelo título. Digitar “exit” inicia um novo shell.&lt;br&gt;&lt;br&gt;A transparência mostra a área de trabalho por trás do terminal. Na primeira vez que for ligada, reinicie o Slayer Editor; depois, as mudanças valem na hora.</translation>
+        <source>Move the terminal to the left, top, right or bottom with the ▥ button on its title bar, or drag it by the title. Typing “exit” starts a new shell.&lt;br&gt;&lt;br&gt;Transparency applies to the detached terminal (❐ button): the desktop shows through it. Docked, the terminal stays opaque.</source>
+        <translation>Mova o terminal para a esquerda, o topo, a direita ou a base com o botão ▥ da barra de título, ou arraste-o pelo título. Digitar “exit” inicia um novo shell.&lt;br&gt;&lt;br&gt;A transparência vale para o terminal destacado (botão ❐): a área de trabalho aparece através dele. Acoplado, o terminal fica opaco.</translation>
     </message>
 </context>
 <context>

@@ -72,6 +72,8 @@ private:
     int m_transparency = 0;
     QColor m_background;
     void updateContainerBackground();
+    qreal opacity() const;   //< transparência só vale destacado
+    void applyOpacity();
     QLabel *m_titleIcon = nullptr;
     QList<QPair<QToolButton *, Icons::Glyph>> m_buttons;
 };
