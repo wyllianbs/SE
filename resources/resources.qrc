@@ -1,0 +1,8 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>icons/slayer-editor.png</file>
+        <file>fonts/JetBrainsMonoNerdFont-Regular.ttf</file>
+        <file>fonts/SymbolsNerdFontMono-Regular.ttf</file>
+    </qresource>
+</RCC>

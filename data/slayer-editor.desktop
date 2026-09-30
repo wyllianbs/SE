@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Slayer Editor
+GenericName=Code Editor
+GenericName[pt_BR]=Editor de Código
+Comment=Lightweight code editor with an embedded terminal
+Comment[pt_BR]=Editor de código leve com terminal embutido
+Exec=slayer-editor %F
+Icon=slayer-editor
+Terminal=false
+Categories=Development;TextEditor;Qt;
+MimeType=text/plain;text/x-csrc;text/x-chdr;text/x-c++src;text/x-c++hdr;text/x-python;text/x-rust;text/x-go;text/javascript;text/x-java;application/x-shellscript;
+Keywords=editor;code;programming;terminal;run;
+StartupWMClass=slayer-editor

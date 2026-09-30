@@ -1,0 +1,24 @@
+Source: slayer-editor
+Section: editors
+Priority: optional
+Maintainer: Prof. Wyllian <wyllianbs@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+ cmake,
+ qt6-base-dev,
+ libqtermwidget-dev,
+ libutf8proc-dev
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: slayer-editor
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: build-essential, python3
+Suggests: rustc, golang-go, nodejs, default-jdk
+Description: lightweight code editor with an embedded terminal
+ Slayer Editor is a Qt 6 code editor with tabs, syntax highlighting,
+ auto-indentation, auto-closing pairs, find/replace and several color themes.
+ .
+ An embedded terminal (QTermWidget) can be docked on the left, top, right or
+ bottom of the window, or detached. Press F5 to compile and run the current
+ file: C, C++, Python, Rust, Go, JavaScript, Java and shell scripts.

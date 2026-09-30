@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.wyllianbs.SlayerEditor</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Slayer Editor</name>
+  <summary>Lightweight code editor with an embedded terminal</summary>
+  <description>
+    <p>Slayer Editor is a fast code editor with syntax highlighting, tabs and an
+    embedded terminal that can be docked on any edge of the window. Press F5 to
+    compile and run C, C++, Python, Rust, Go, JavaScript, Java and shell scripts.</p>
+  </description>
+  <launchable type="desktop-id">slayer-editor.desktop</launchable>
+  <developer id="io.github.wyllianbs"><name>Prof. Wyllian</name></developer>
+  <releases>
+    <release version="0.1.0" date="2026-09-30"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>
