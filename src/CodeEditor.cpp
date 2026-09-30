@@ -1,7 +1,11 @@
 #include "CodeEditor.h"
 #include "SyntaxHighlighter.h"
 
+#include <QAbstractItemView>
+#include <QCompleter>
 #include <QFile>
+#include <QScrollBar>
+#include <QStringListModel>
 #include <QFileInfo>
 #include <QPainter>
 #include <QSaveFile>
@@ -39,8 +43,17 @@ CodeEditor::CodeEditor(QWidget *parent)
     , m_highlighter(new SyntaxHighlighter(document()))
     , m_language(Language::plainText())
     , m_theme(Theme::all().first())
+    , m_completer(new QCompleter(this))
+    , m_completionModel(new QStringListModel(this))
 {
     setLineWrapMode(QPlainTextEdit::NoWrap);
+    m_completer->setModel(m_completionModel);
+    m_completer->setWidget(this);
+    m_completer->setCompletionMode(QCompleter::PopupCompletion);
+    m_completer->setCaseSensitivity(Qt::CaseInsensitive);
+    m_completer->setModelSorting(QCompleter::UnsortedModel);
+    m_completer->setMaxVisibleItems(10);
+    connect(m_completer, qOverload<const QString &>(&QCompleter::activated), this, &CodeEditor::insertCompletion);
     setFrameShape(QFrame::NoFrame);
 
     connect(this, &QPlainTextEdit::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
@@ -106,7 +119,6 @@ bool CodeEditor::loadFile(const QString &path, QString *error)
     setPlainText(in.readAll());
     document()->setModified(false);
     setFilePath(path);
-    setLanguage(Language::forFileName(path));
     return true;
 }
 
@@ -127,10 +139,7 @@ bool CodeEditor::saveFile(const QString &path, QString *error)
         return false;
     }
     document()->setModified(false);
-    if (path != m_filePath) {
-        setFilePath(path);
-        setLanguage(Language::forFileName(path));
-    }
+    setFilePath(path);
     return true;
 }
 
@@ -193,6 +202,8 @@ void CodeEditor::goToLine(int line)
 
 int CodeEditor::lineNumberAreaWidth() const
 {
+    if (!m_lineNumbers)
+        return 0;
     int digits = QString::number(qMax(1, blockCount())).length();
     return 16 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(3, digits);
 }
@@ -214,14 +225,38 @@ void CodeEditor::updateLineNumberArea(const QRect &rect, int dy)
 
 void CodeEditor::resizeEvent(QResizeEvent *event)
 {
-    QPlainTextEdit::resizeEvent(event);
+    if (event)
+        QPlainTextEdit::resizeEvent(event);
     const QRect cr = contentsRect();
     m_lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
+}
+
+void CodeEditor::setLineNumbersVisible(bool visible)
+{
+    m_lineNumbers = visible;
+    m_lineNumberArea->setVisible(visible);
+    updateLineNumberAreaWidth();
+    resizeEvent(nullptr);
+}
+
+void CodeEditor::setWordWrap(bool wrap)
+{
+    setLineWrapMode(wrap ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
+}
+
+void CodeEditor::setHighlightCurrentLine(bool enabled)
+{
+    m_highlightLine = enabled;
+    highlightCurrentLine();
 }
 
 void CodeEditor::highlightCurrentLine()
 {
     QList<QTextEdit::ExtraSelection> extra;
+    if (!m_highlightLine) {
+        setExtraSelections(extra);
+        return;
+    }
     QTextEdit::ExtraSelection sel;
     sel.format.setBackground(m_theme.currentLine);
     sel.format.setProperty(QTextFormat::FullWidthSelection, true);
@@ -334,6 +369,29 @@ bool CodeEditor::handleAutoPair(QKeyEvent *event)
 
 void CodeEditor::keyPressEvent(QKeyEvent *event)
 {
+    // Com o popup aberto, Enter/Tab aceitam e Esc fecha (o QCompleter trata).
+    if (m_completer->popup()->isVisible()) {
+        switch (event->key()) {
+        case Qt::Key_Return:
+        case Qt::Key_Enter:
+        case Qt::Key_Tab:
+            if (m_completer->popup()->currentIndex().isValid()) {
+                insertCompletion(m_completer->popup()->currentIndex().data().toString());
+                m_completer->popup()->hide();
+                return;
+            }
+            m_completer->popup()->hide();
+            break;
+        case Qt::Key_Escape:
+        case Qt::Key_Backtab:
+            event->ignore();
+            m_completer->popup()->hide();
+            return;
+        default:
+            break;
+        }
+    }
+
     QTextCursor c = textCursor();
 
     if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
@@ -398,7 +456,86 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
     if (!(event->modifiers() & (Qt::ControlModifier | Qt::AltModifier)) && handleAutoPair(event))
         return;
 
-    QPlainTextEdit::keyPressEvent(event);
+    const bool manual = (event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Space;
+    if (!manual)
+        QPlainTextEdit::keyPressEvent(event);
+
+    const QString typed = event->text();
+    if (manual || (m_completionEnabled && !typed.isEmpty()
+                   && (typed.at(0).isLetterOrNumber() || typed.at(0) == QLatin1Char('_')))) {
+        updateCompletion();
+    } else if (m_completer->popup()->isVisible() && event->key() == Qt::Key_Backspace) {
+        updateCompletion();
+    } else if (!typed.isEmpty()) {
+        m_completer->popup()->hide();
+    }
+}
+
+QString CodeEditor::wordUnderCursor() const
+{
+    const QTextCursor c = textCursor();
+    const QString line = c.block().text();
+    int start = c.positionInBlock();
+    while (start > 0 && (line.at(start - 1).isLetterOrNumber() || line.at(start - 1) == QLatin1Char('_')))
+        --start;
+    return line.mid(start, c.positionInBlock() - start);
+}
+
+/** Sugestões: palavras-chave e tipos da linguagem + palavras do próprio arquivo. */
+void CodeEditor::updateCompletion()
+{
+    const QString prefix = wordUnderCursor();
+    if (prefix.length() < 2 || prefix.at(0).isDigit()) {
+        m_completer->popup()->hide();
+        return;
+    }
+
+    QStringList candidates;
+    QSet<QString> seen;
+    auto consider = [&](const QString &w) {
+        if (w.length() > prefix.length() && w.startsWith(prefix, Qt::CaseInsensitive) && !seen.contains(w)) {
+            seen.insert(w);
+            candidates << w;
+        }
+    };
+    for (const QString &k : m_language.keywords) consider(k);
+    for (const QString &t : m_language.types) consider(t);
+    static const QRegularExpression wordRe(QStringLiteral("[A-Za-z_][A-Za-z0-9_]{2,}"));
+    auto it = wordRe.globalMatch(toPlainText());
+    int scanned = 0;
+    while (it.hasNext() && scanned++ < 20000)
+        consider(it.next().captured());
+
+    if (candidates.isEmpty()) {
+        m_completer->popup()->hide();
+        return;
+    }
+    // Prefixo com a mesma caixa primeiro, depois os mais curtos.
+    std::stable_sort(candidates.begin(), candidates.end(), [&prefix](const QString &a, const QString &b) {
+        const bool ea = a.startsWith(prefix), eb = b.startsWith(prefix);
+        if (ea != eb) return ea;
+        return a.length() < b.length();
+    });
+    if (candidates.size() > 50)
+        candidates = candidates.mid(0, 50);
+    m_completionModel->setStringList(candidates);
+    m_completer->setCompletionPrefix(QString());
+    m_completer->popup()->setCurrentIndex(m_completionModel->index(0));
+
+    QRect rect = cursorRect();
+    rect.translate(viewportMargins().left(), 0);
+    rect.setWidth(m_completer->popup()->sizeHintForColumn(0)
+                  + m_completer->popup()->verticalScrollBar()->sizeHint().width() + 24);
+    m_completer->complete(rect);
+}
+
+void CodeEditor::insertCompletion(const QString &word)
+{
+    const QString prefix = wordUnderCursor();
+    QTextCursor c = textCursor();
+    c.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, prefix.length());
+    c.insertText(word);
+    setTextCursor(c);
 }
 
 void CodeEditor::wheelEvent(QWheelEvent *event)

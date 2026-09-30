@@ -3,7 +3,10 @@
 #include <QFontDatabase>
 #include <QGuiApplication>
 #include <QPainter>
+#include <QDir>
+#include <QFile>
 #include <QPixmap>
+#include <QStandardPaths>
 
 namespace {
 QString s_symbols = QStringLiteral("Symbols Nerd Font Mono");
@@ -81,4 +84,15 @@ QColor Icons::colorForLanguage(const QString &id)
     if (id == QLatin1String("java")) return QColor("#e76f00");
     if (id == QLatin1String("bash")) return QColor("#89e051");
     return QColor("#8b949e");
+}
+
+QString Icons::glyphFile(Glyph glyph, const QColor &color, int size)
+{
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/glyphs");
+    QDir().mkpath(dir);
+    const QString path = QStringLiteral("%1/%2-%3-%4.png")
+                             .arg(dir, QString::number(uint(glyph), 16), color.name().mid(1), QString::number(size));
+    if (!QFile::exists(path))
+        render(glyph, color, size, 2.0).save(path);
+    return path;
 }

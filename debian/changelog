@@ -1,3 +1,15 @@
+slayer-editor (0.2.0) unstable; urgency=medium
+
+  * Settings dialog: profiles, editor, appearance, terminal, languages,
+    security and files.
+  * Per-language tool, flags and extensions; custom languages.
+  * Destructive command guard for the embedded bash terminal.
+  * Code completion (file words + keywords), line numbers, word wrap,
+    current-line highlight and cursor blink toggles.
+  * Toolbar button and interface scale.
+
+ -- Prof. Wyllian <wyllianbs@gmail.com>  Wed, 30 Sep 2026 13:10:00 -0300
+
 slayer-editor (0.1.0) unstable; urgency=medium
 
   * Initial release.

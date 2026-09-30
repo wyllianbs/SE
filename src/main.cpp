@@ -1,5 +1,6 @@
 #include "Icons.h"
 #include "MainWindow.h"
+#include "Settings.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -7,6 +8,15 @@
 
 int main(int argc, char *argv[])
 {
+    // Escala da interface (Settings → Appearance): precisa ser definida antes do QApplication.
+    QCoreApplication::setOrganizationName(QStringLiteral("slayer-editor"));
+    QCoreApplication::setApplicationName(QStringLiteral("slayer-editor"));
+    if (qEnvironmentVariableIsEmpty("QT_SCALE_FACTOR")) {
+        const int scale = AppSettings::load().uiScale;
+        if (scale != 100)
+            qputenv("QT_SCALE_FACTOR", QByteArray::number(scale / 100.0));
+    }
+
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("slayer-editor"));
     QApplication::setApplicationDisplayName(QStringLiteral("Slayer Editor"));

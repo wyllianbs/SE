@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Icons.h"
+#include "Language.h"
+#include "Settings.h"
 #include "Theme.h"
 
 #include <QMainWindow>
@@ -42,8 +44,16 @@ private:
     void goToLine();
     void showAbout();
 
+    void applySettings(const AppSettings &settings);
     void applyTheme(const QString &themeId);
     void applyFontSize(int pointSize);
+    void configureEditor(CodeEditor *editor) const;
+    void showSettings();
+    void rebuildLanguageCombo();
+    Language languageForPath(const QString &path) const;
+    Language languageById(const QString &id) const;
+    QFont editorFont() const;
+    QFont terminalFont() const;
     void refreshIcons();
     void updateTabTitle(CodeEditor *editor);
     void updateStatus();
@@ -56,7 +66,7 @@ private:
     QComboBox *m_languageCombo;
     QLabel *m_cursorLabel;
     Theme m_theme;
-    QFont m_editorFont;
+    AppSettings m_settings;
     QString m_lastDir;
     QList<QPair<QAction *, Icons::Glyph>> m_iconActions;
     QAction *m_runAction = nullptr;

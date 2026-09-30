@@ -5,6 +5,8 @@
 
 #include <QPlainTextEdit>
 
+class QCompleter;
+class QStringListModel;
 class SyntaxHighlighter;
 
 /** Editor de código: numeração de linhas, realce, indentação e pares automáticos. */
@@ -24,6 +26,10 @@ public:
     void setEditorFont(const QFont &font);
     void setAutoClosePairs(bool enabled) { m_autoClosePairs = enabled; }
     void setTabWidthSpaces(int spaces);
+    void setLineNumbersVisible(bool visible);
+    void setWordWrap(bool wrap);
+    void setHighlightCurrentLine(bool enabled);
+    void setCodeCompletion(bool enabled) { m_completionEnabled = enabled; }
 
     bool loadFile(const QString &path, QString *error = nullptr);
     bool saveFile(const QString &path, QString *error = nullptr);
@@ -45,6 +51,9 @@ private:
     void highlightCurrentLine();
     bool handleAutoPair(QKeyEvent *event);
     void insertNewlineWithIndent();
+    QString wordUnderCursor() const;
+    void updateCompletion();
+    void insertCompletion(const QString &word);
 
     QWidget *m_lineNumberArea;
     SyntaxHighlighter *m_highlighter;
@@ -53,4 +62,9 @@ private:
     QString m_filePath;
     bool m_autoClosePairs = true;
     int m_indentSpaces = 4;
+    bool m_lineNumbers = true;
+    bool m_highlightLine = true;
+    bool m_completionEnabled = true;
+    QCompleter *m_completer;
+    QStringListModel *m_completionModel;
 };

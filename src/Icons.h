@@ -25,6 +25,14 @@ enum Glyph : char32_t {
     Clear = 0xEABF,
     Float = 0xF2D2,
     File = 0xEA7B,
+    Profiles = 0xEB99,
+    Code = 0xEAC4,
+    Languages = 0xF1AB,
+    Shield = 0xEB53,
+    Folder = 0xEA83,
+    Check = 0xEAB2,
+    ChevronUp = 0xEAB7,
+    ChevronDown = 0xEAB4,
     LangC = 0xE61E,
     LangCpp = 0xE61D,
     LangPython = 0xE606,
@@ -42,6 +50,8 @@ QString monoFamily();
 
 QIcon icon(Glyph glyph, const QColor &color, int size = 18);
 QString glyphText(Glyph glyph);
+/** Grava o glifo como PNG (para url() em folhas de estilo) e devolve o caminho. */
+QString glyphFile(Glyph glyph, const QColor &color, int size);
 Glyph forLanguage(const QString &languageId);
 QColor colorForLanguage(const QString &languageId);
 

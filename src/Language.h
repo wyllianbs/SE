@@ -15,8 +15,8 @@ struct Language
     QString blockCommentStart;
     QString blockCommentEnd;
     /**
-     * Comando de execução. Placeholders: %f arquivo, %b nome sem extensão,
-     * %d diretório. Vazio = não executável.
+     * Modelo do comando de execução. Placeholders: {tool}, {flags}, %f arquivo,
+     * %b nome sem extensão, %d diretório. Vazio = não executável.
      */
     QString runCommand;
 
@@ -25,6 +25,11 @@ struct Language
     static const Language &forFileName(const QString &fileName);
     static const Language &byId(const QString &id);
 
+    bool isCustom() const { return id.startsWith(QLatin1String("custom:")); }
+
     /** Monta o comando para um arquivo, já com aspas de shell. */
-    QString commandFor(const QString &filePath) const;
+    QString commandFor(const QString &filePath, const QString &tool, const QString &flags) const;
+
+    static Language custom(const QString &name, const QStringList &extensions);
+    static QStringList splitExtensions(const QString &text);
 };

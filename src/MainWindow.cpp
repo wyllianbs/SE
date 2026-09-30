@@ -2,6 +2,7 @@
 #include "CodeEditor.h"
 #include "FindBar.h"
 #include "Language.h"
+#include "SettingsDialog.h"
 #include "TerminalDock.h"
 
 #include <QAction>
@@ -14,6 +15,7 @@
 #include <QFileInfo>
 #include <QInputDialog>
 #include <QLabel>
+#include <QListWidget>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSettings>
@@ -21,6 +23,7 @@
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTextBlock>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -58,9 +61,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     addDockWidget(Qt::BottomDockWidgetArea, m_terminal);
 
-    for (const Language &lang : Language::all())
-        m_languageCombo->addItem(lang.displayName, lang.id);
-    m_languageCombo->addItem(Language::plainText().displayName, Language::plainText().id);
     m_languageCombo->setFocusPolicy(Qt::NoFocus);
     statusBar()->addPermanentWidget(m_cursorLabel);
     statusBar()->addPermanentWidget(m_languageCombo);
@@ -68,7 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_languageCombo, &QComboBox::activated, this, [this](int index) {
         if (CodeEditor *ed = currentEditor()) {
-            ed->setLanguage(Language::byId(m_languageCombo->itemData(index).toString()));
+            ed->setLanguage(languageById(m_languageCombo->itemData(index).toString()));
             updateTabTitle(ed);
             updateStatus();
         }
@@ -83,6 +83,25 @@ MainWindow::MainWindow(QWidget *parent)
     restoreSession();
     if (m_tabs->count() == 0)
         newTab();
+    // Depuração: renderiza a janela (e opcionalmente uma página das configurações) em PNG e sai.
+    if (qEnvironmentVariableIsSet("SLAYER_DEBUG_GRAB")) {
+        QTimer::singleShot(800, this, [this]() {
+            const QString out = qEnvironmentVariable("SLAYER_DEBUG_GRAB");
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_SETTINGS")) {
+                showSettings();
+                auto *dialog = findChild<SettingsDialog *>();
+                if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
+                    nav->setCurrentRow(qEnvironmentVariableIntValue("SLAYER_DEBUG_SETTINGS"));
+                QTimer::singleShot(300, this, [dialog, out]() {
+                    dialog->grab().save(out);
+                    qApp->exit(0);
+                });
+                return;
+            }
+            grab().save(out);
+            qApp->exit(0);
+        });
+    }
 }
 
 // ---------------------------------------------------------------- ações
@@ -132,6 +151,9 @@ void MainWindow::createActions()
         if (auto *e = currentEditor()) e->toggleComment();
     });
     add(edit, tr("&Go to Line…"), QKeySequence(Qt::CTRL | Qt::Key_G), [this]() { goToLine(); });
+    edit->addSeparator();
+    QAction *settingsA = add(edit, tr("&Settings…"), QKeySequence(Qt::CTRL | Qt::Key_Comma),
+                             [this]() { showSettings(); }, Icons::Settings);
 
     QMenu *view = menuBar()->addMenu(tr("&View"));
     QAction *termA = add(view, tr("Show/Hide &Terminal"), QKeySequence(Qt::CTRL | Qt::Key_QuoteLeft), [this]() {
@@ -167,9 +189,10 @@ void MainWindow::createActions()
             a->setChecked(a->data().toString() == m_theme.id);
     });
     view->addSeparator();
-    add(view, tr("Zoom &In"), QKeySequence::ZoomIn, [this]() { applyFontSize(m_editorFont.pointSize() + 1); });
-    add(view, tr("Zoom &Out"), QKeySequence::ZoomOut, [this]() { applyFontSize(m_editorFont.pointSize() - 1); });
-    add(view, tr("&Reset Zoom"), QKeySequence(Qt::CTRL | Qt::Key_0), [this]() { applyFontSize(11); });
+    add(view, tr("Zoom &In"), QKeySequence::ZoomIn, [this]() { applyFontSize(m_settings.editorFontSize + 1); });
+    add(view, tr("Zoom &Out"), QKeySequence::ZoomOut, [this]() { applyFontSize(m_settings.editorFontSize - 1); });
+    add(view, tr("&Reset Zoom"), QKeySequence(Qt::CTRL | Qt::Key_0),
+        [this]() { applyFontSize(AppSettings::defaults().editorFontSize); });
 
     QMenu *run = menuBar()->addMenu(tr("&Run"));
     m_runAction = add(run, tr("&Run File"), QKeySequence(Qt::Key_F5), [this]() { runCurrent(); }, Icons::Run);
@@ -189,6 +212,10 @@ void MainWindow::createActions()
     m_toolbar->addSeparator();
     m_toolbar->addAction(termA);
     m_toolbar->addAction(m_runAction);
+    auto *spacer = new QWidget(m_toolbar);
+    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_toolbar->addWidget(spacer);
+    m_toolbar->addAction(settingsA);
     if (auto *runButton = m_toolbar->widgetForAction(m_runAction)) {
         runButton->setObjectName(QStringLiteral("RunButton"));
     }
@@ -199,8 +226,7 @@ void MainWindow::createActions()
 CodeEditor *MainWindow::newTab()
 {
     auto *editor = new CodeEditor(m_tabs);
-    editor->setTheme(m_theme);
-    editor->setEditorFont(m_editorFont);
+    configureEditor(editor);
     const int index = m_tabs->addTab(editor, QString());
     auto *closeButton = new QToolButton(m_tabs->tabBar());
     closeButton->setObjectName(QStringLiteral("TabClose"));
@@ -262,8 +288,8 @@ void MainWindow::openFile(const QString &path)
         }
     } else {
         editor->setFilePath(abs);
-        editor->setLanguage(Language::forFileName(abs));
     }
+    editor->setLanguage(languageForPath(abs));
     m_lastDir = QFileInfo(abs).absolutePath();
     updateTabTitle(editor);
     updateStatus();
@@ -288,7 +314,12 @@ bool MainWindow::saveAs(CodeEditor *editor)
 {
     if (!editor)
         return false;
-    const QString start = editor->filePath().isEmpty() ? m_lastDir : editor->filePath();
+    QString start = editor->filePath();
+    if (start.isEmpty()) {
+        const QString dir = m_settings.effectiveProjectDir();
+        QDir().mkpath(dir);
+        start = dir;
+    }
     const QString path = QFileDialog::getSaveFileName(this, tr("Save As"), start);
     if (path.isEmpty())
         return false;
@@ -298,6 +329,7 @@ bool MainWindow::saveAs(CodeEditor *editor)
         return false;
     }
     m_lastDir = QFileInfo(path).absolutePath();
+    editor->setLanguage(languageForPath(path));
     updateTabTitle(editor);
     updateStatus();
     return true;
@@ -371,7 +403,21 @@ void MainWindow::runCurrent()
     if (!save(editor))
         return;
     const QFileInfo info(editor->filePath());
-    m_terminal->runCommand(editor->language().commandFor(info.absoluteFilePath()), info.absolutePath());
+    const Language &lang = editor->language();
+    QString tool, flags;
+    if (lang.isCustom()) {
+        for (const CustomLanguage &c : std::as_const(m_settings.customLanguages)) {
+            if (QStringLiteral("custom:") + c.name == lang.id) {
+                tool = c.tool;
+                flags = c.flags;
+            }
+        }
+    } else {
+        const LanguageConfig cfg = m_settings.languageConfig(lang.id);
+        tool = cfg.tool;
+        flags = cfg.flags;
+    }
+    m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags), info.absolutePath());
 }
 
 void MainWindow::goToLine()
@@ -404,53 +450,163 @@ void MainWindow::showAbout()
 
 void MainWindow::applyTheme(const QString &themeId)
 {
-    m_theme = Theme::byId(themeId);
-
-    QPalette p;
-    p.setColor(QPalette::Window, m_theme.window);
-    p.setColor(QPalette::WindowText, m_theme.text);
-    p.setColor(QPalette::Base, m_theme.surface);
-    p.setColor(QPalette::AlternateBase, m_theme.window);
-    p.setColor(QPalette::Text, m_theme.text);
-    p.setColor(QPalette::Button, m_theme.surface);
-    p.setColor(QPalette::ButtonText, m_theme.text);
-    p.setColor(QPalette::Highlight, m_theme.primary);
-    p.setColor(QPalette::HighlightedText, m_theme.dark ? m_theme.window : QColor(Qt::white));
-    p.setColor(QPalette::ToolTipBase, m_theme.surface);
-    p.setColor(QPalette::ToolTipText, m_theme.text);
-    p.setColor(QPalette::PlaceholderText, m_theme.textSecondary);
-    p.setColor(QPalette::Link, m_theme.primary);
-    p.setColor(QPalette::Disabled, QPalette::Text, m_theme.textSecondary);
-    p.setColor(QPalette::Disabled, QPalette::ButtonText, m_theme.textSecondary);
-    p.setColor(QPalette::Disabled, QPalette::WindowText, m_theme.textSecondary);
-    qApp->setPalette(p);
-    qApp->setStyleSheet(styleSheetFor(m_theme));
-
-    for (int i = 0; i < m_tabs->count(); ++i)
-        editorAt(i)->setTheme(m_theme);
-    m_terminal->setTheme(m_theme);
-    refreshIcons();
-}
-
-void MainWindow::refreshIcons()
-{
-    for (const auto &[action, glyph] : std::as_const(m_iconActions))
-        action->setIcon(Icons::icon(glyph, action == m_runAction ? m_theme.window : m_theme.textSecondary));
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        if (auto *b = qobject_cast<QToolButton *>(m_tabs->tabBar()->tabButton(i, QTabBar::RightSide)))
-            b->setIcon(Icons::icon(Icons::Close, m_theme.textSecondary, 12));
-    }
+    AppSettings s = m_settings;
+    s.theme = themeId;
+    applySettings(s);
 }
 
 void MainWindow::applyFontSize(int pointSize)
 {
-    pointSize = qBound(6, pointSize, 48);
-    m_editorFont = QFont(Icons::monoFamily());
-    m_editorFont.setStyleHint(QFont::Monospace);
-    m_editorFont.setPointSize(pointSize);
-    for (int i = 0; i < m_tabs->count(); ++i)
-        editorAt(i)->setEditorFont(m_editorFont);
-    m_terminal->setTerminalFont(m_editorFont);
+    AppSettings s = m_settings;
+    s.editorFontSize = qBound(6, pointSize, 48);
+    // O terminal acompanha o zoom quando os tamanhos eram iguais.
+    if (m_settings.terminalFontSize == m_settings.editorFontSize)
+        s.terminalFontSize = s.editorFontSize;
+    applySettings(s);
+}
+
+QFont MainWindow::editorFont() const
+{
+    QFont f(m_settings.editorFont.isEmpty() ? Icons::monoFamily() : m_settings.editorFont);
+    f.setStyleHint(QFont::Monospace);
+    f.setPointSize(m_settings.editorFontSize);
+    return f;
+}
+
+QFont MainWindow::terminalFont() const
+{
+    QFont f(m_settings.terminalFont.isEmpty() ? Icons::monoFamily() : m_settings.terminalFont);
+    f.setStyleHint(QFont::Monospace);
+    f.setPointSize(m_settings.terminalFontSize);
+    return f;
+}
+
+void MainWindow::configureEditor(CodeEditor *editor) const
+{
+    editor->setTheme(m_theme);
+    editor->setEditorFont(editorFont());
+    editor->setTabWidthSpaces(m_settings.tabWidth);
+    editor->setLineNumbersVisible(m_settings.lineNumbers);
+    editor->setWordWrap(m_settings.wordWrap);
+    editor->setHighlightCurrentLine(m_settings.highlightCurrentLine);
+    editor->setAutoClosePairs(m_settings.autoClosePairs);
+    editor->setCodeCompletion(m_settings.codeCompletion);
+}
+
+void MainWindow::applySettings(const AppSettings &settings)
+{
+    m_settings = settings;
+    m_settings.save();
+    m_theme = Theme::byId(m_settings.theme);
+
+    {
+        QPalette p;
+        p.setColor(QPalette::Window, m_theme.window);
+        p.setColor(QPalette::WindowText, m_theme.text);
+        p.setColor(QPalette::Base, m_theme.surface);
+        p.setColor(QPalette::AlternateBase, m_theme.window);
+        p.setColor(QPalette::Text, m_theme.text);
+        p.setColor(QPalette::Button, m_theme.surface);
+        p.setColor(QPalette::ButtonText, m_theme.text);
+        p.setColor(QPalette::Highlight, m_theme.primary);
+        p.setColor(QPalette::HighlightedText, m_theme.dark ? m_theme.window : QColor(Qt::white));
+        p.setColor(QPalette::ToolTipBase, m_theme.surface);
+        p.setColor(QPalette::ToolTipText, m_theme.text);
+        p.setColor(QPalette::PlaceholderText, m_theme.textSecondary);
+        p.setColor(QPalette::Link, m_theme.primary);
+        p.setColor(QPalette::Disabled, QPalette::Text, m_theme.textSecondary);
+        p.setColor(QPalette::Disabled, QPalette::ButtonText, m_theme.textSecondary);
+        p.setColor(QPalette::Disabled, QPalette::WindowText, m_theme.textSecondary);
+        qApp->setPalette(p);
+        qApp->setStyleSheet(styleSheetFor(m_theme));
+    }
+
+    QApplication::setCursorFlashTime(m_settings.editorCursorBlink ? 1000 : 0);
+    const int iconSize = qRound(18 * m_settings.buttonScale / 100.0);
+    m_toolbar->setIconSize(QSize(iconSize, iconSize));
+
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        CodeEditor *ed = editorAt(i);
+        configureEditor(ed);
+        // Extensões e linguagens personalizadas podem ter mudado.
+        if (!ed->filePath().isEmpty())
+            ed->setLanguage(languageForPath(ed->filePath()));
+        updateTabTitle(ed);
+    }
+    rebuildLanguageCombo();
+
+    m_terminal->setTheme(m_theme);
+    m_terminal->setTerminalFont(terminalFont());
+    m_terminal->setWorkingDirectory(m_settings.effectiveProjectDir());
+    QDir().mkpath(m_settings.effectiveProjectDir());
+    m_terminal->configure(m_settings.shell, m_settings.terminalCursorBlink, m_settings.blockDestructiveCommands);
+    refreshIcons();
+    updateStatus();
+}
+
+void MainWindow::showSettings()
+{
+    auto *dialog = new SettingsDialog(m_settings, m_theme, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dialog, &SettingsDialog::applied, this, [this](const AppSettings &s) {
+        if (s.uiScale != m_settings.uiScale)
+            statusBar()->showMessage(tr("The interface scale applies after restarting Slayer Editor."), 5000);
+        applySettings(s);
+    });
+    dialog->open();
+}
+
+void MainWindow::rebuildLanguageCombo()
+{
+    m_languageCombo->clear();
+    for (const Language &lang : Language::all())
+        m_languageCombo->addItem(Icons::icon(Icons::forLanguage(lang.id), Icons::colorForLanguage(lang.id), 14),
+                                 lang.displayName, lang.id);
+    for (const CustomLanguage &c : std::as_const(m_settings.customLanguages))
+        m_languageCombo->addItem(Icons::icon(Icons::File, Icons::colorForLanguage(QString()), 14), c.name,
+                                 QStringLiteral("custom:") + c.name);
+    m_languageCombo->addItem(Icons::icon(Icons::File, Icons::colorForLanguage(QString()), 14),
+                             Language::plainText().displayName, Language::plainText().id);
+}
+
+Language MainWindow::languageById(const QString &id) const
+{
+    if (id.startsWith(QLatin1String("custom:"))) {
+        for (const CustomLanguage &c : m_settings.customLanguages) {
+            if (QStringLiteral("custom:") + c.name == id)
+                return Language::custom(c.name, Language::splitExtensions(c.extensions));
+        }
+        return Language::plainText();
+    }
+    return Language::byId(id);
+}
+
+/** Extensões configuradas em Settings → Languages; personalizadas têm prioridade. */
+Language MainWindow::languageForPath(const QString &path) const
+{
+    const QString ext = QFileInfo(path).suffix().toLower();
+    if (ext.isEmpty())
+        return Language::plainText();
+    for (const CustomLanguage &c : m_settings.customLanguages) {
+        if (Language::splitExtensions(c.extensions).contains(ext))
+            return Language::custom(c.name, Language::splitExtensions(c.extensions));
+    }
+    for (const Language &lang : Language::all()) {
+        if (Language::splitExtensions(m_settings.languageConfig(lang.id).extensions).contains(ext))
+            return lang;
+    }
+    return Language::plainText();
+}
+
+void MainWindow::refreshIcons()
+{
+    const int size = m_toolbar->iconSize().width();
+    for (const auto &[action, glyph] : std::as_const(m_iconActions))
+        action->setIcon(Icons::icon(glyph, action == m_runAction ? m_theme.window : m_theme.textSecondary, size));
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (auto *b = qobject_cast<QToolButton *>(m_tabs->tabBar()->tabButton(i, QTabBar::RightSide)))
+            b->setIcon(Icons::icon(Icons::Close, m_theme.textSecondary, 12));
+    }
 }
 
 QString MainWindow::styleSheetFor(const Theme &t) const
@@ -509,9 +665,53 @@ QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 QMainWindow::separator { background: %4; width: 1px; height: 1px; }
 QMainWindow::separator:hover { background: %5; }
 QMessageBox, QInputDialog, QFileDialog { background: %1; }
+QDialog#SettingsDialog { background: %2; }
+QListWidget#SettingsNav { background: %1; border: none; border-right: 1px solid %4; padding: 12px 8px;
+                          outline: 0; }
+QListWidget#SettingsNav::item { color: %3; padding: 4px 10px; border-radius: 8px; margin: 1px 0; }
+QListWidget#SettingsNav::item:hover { background: %4; }
+QListWidget#SettingsNav::item:selected { background: %4; color: %5; font-weight: 600; }
+QScrollArea, QScrollArea > QWidget > QWidget { background: %2; }
+QLabel#PageTitle { color: %3; font-size: 20px; font-weight: 700; }
+QLabel#PageSubtitle, QLabel#Hint { color: %7; }
+#Card { background: %1; border: 1px solid %4; border-radius: 12px; }
+#Card QLabel { background: transparent; }
+QLabel#CardTitle { color: %5; font-weight: 600; letter-spacing: 0.4px; }
+QPushButton#Danger { color: #f38ba8; }
+QPushButton#Danger:hover { background: #f38ba8; color: %1; border-color: #f38ba8; }
+QPushButton:disabled { color: %7; background: transparent; }
+QSpinBox, QComboBox#Field, QFontComboBox { background: %2; color: %3; border: 1px solid %4; border-radius: 8px;
+                                           padding: 4px 8px; min-height: 22px; }
+QSpinBox:focus, QFontComboBox:focus { border: 1px solid %5; }
+#Card QComboBox { background: %2; color: %3; border: 1px solid %4; border-radius: 8px; padding: 4px 8px; }
+QListWidget#ProfileList, QListWidget#ThemeList, QTableWidget#LanguageTable {
+    background: %2; color: %3; border: 1px solid %4; border-radius: 10px; padding: 4px; outline: 0; }
+QListWidget#ProfileList::item { padding: 6px 8px; border-radius: 6px; }
+QListWidget#ProfileList::item:selected, QListWidget#ThemeList::item:selected { background: %4; color: %3; }
+QListWidget#ThemeList::item { border-radius: 10px; padding: 6px; }
+QTableWidget#LanguageTable { alternate-background-color: %1; gridline-color: %4; }
+QTableWidget#LanguageTable::item { padding: 4px 6px; }
+QTableWidget#LanguageTable::item:selected { background: %4; color: %3; }
+QHeaderView::section { background: %1; color: %7; border: none; border-bottom: 1px solid %4;
+                       padding: 6px 8px; font-weight: 600; }
+QSlider::groove:horizontal { height: 4px; background: %4; border-radius: 2px; }
+QSlider::sub-page:horizontal { background: %5; border-radius: 2px; }
+QSlider::handle:horizontal { background: %5; width: 16px; height: 16px; margin: -6px 0; border-radius: 8px; }
+QCheckBox::indicator { width: 16px; height: 16px; border-radius: 5px; border: 1px solid %7; background: %2; }
+QCheckBox::indicator:checked { background: %5; border-color: %5; image: url(%9); }
+QSpinBox::up-button, QSpinBox::down-button { subcontrol-origin: border; width: 18px; border: none;
+                                             background: transparent; }
+QSpinBox::up-button { subcontrol-position: top right; }
+QSpinBox::down-button { subcontrol-position: bottom right; }
+QSpinBox::up-arrow { image: url(%10); width: 10px; height: 10px; }
+QSpinBox::down-arrow, QComboBox::down-arrow { image: url(%11); width: 10px; height: 10px; }
+QComboBox::drop-down { border: none; width: 22px; background: transparent; }
 )")
         .arg(t.window.name(), t.surface.name(), t.text.name(), hover, t.primary.name(),
-             t.primary.lighter(115).name(), t.textSecondary.name(), t.selection.name());
+             t.primary.lighter(115).name(), t.textSecondary.name(), t.selection.name(),
+             Icons::glyphFile(Icons::Check, t.window, 14),
+             Icons::glyphFile(Icons::ChevronUp, t.textSecondary, 12),
+             Icons::glyphFile(Icons::ChevronDown, t.textSecondary, 12));
 }
 
 // ------------------------------------------------------------ sessão
@@ -519,8 +719,7 @@ QMessageBox, QInputDialog, QFileDialog { background: %1; }
 void MainWindow::restoreSession()
 {
     QSettings s;
-    applyFontSize(s.value(QStringLiteral("editor/fontSize"), 11).toInt());
-    applyTheme(s.value(QStringLiteral("ui/theme"), QStringLiteral("catppuccin-mocha")).toString());
+    applySettings(AppSettings::load());
     m_lastDir = s.value(QStringLiteral("ui/lastDir"), QDir::homePath()).toString();
 
     if (!restoreGeometry(s.value(QStringLiteral("ui/geometry")).toByteArray()))
@@ -542,8 +741,7 @@ void MainWindow::restoreSession()
 void MainWindow::saveSession()
 {
     QSettings s;
-    s.setValue(QStringLiteral("editor/fontSize"), m_editorFont.pointSize());
-    s.setValue(QStringLiteral("ui/theme"), m_theme.id);
+    m_settings.save();
     s.setValue(QStringLiteral("ui/lastDir"), m_lastDir);
     s.setValue(QStringLiteral("ui/geometry"), saveGeometry());
     s.setValue(QStringLiteral("ui/state"), saveState());
