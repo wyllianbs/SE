@@ -874,8 +874,27 @@ void MainWindow::buildStatusBar()
     m_diagLabel->setMinimumWidth(0);
     m_diagLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     statusBar()->addWidget(m_diagLabel, 1);
-    m_lspLabel = new QLabel(this);
-    m_lspLabel->setToolTip(tr("Language server"));
+    // Servidor de linguagem: clicar abre o menu (ligar/desligar, configurações).
+    m_lspLabel = new QToolButton(this);
+    m_lspLabel->setObjectName(QStringLiteral("StatusButton"));
+    m_lspLabel->setPopupMode(QToolButton::InstantPopup);
+    m_lspLabel->setAutoRaise(true);
+    m_lspLabel->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_lspLabel->setIconSize(QSize(14, 14));
+    m_lspLabel->setToolTip(tr("Language server — click to turn on/off"));
+    auto *lspMenu = new QMenu(m_lspLabel);
+    m_lspLabel->setMenu(lspMenu);
+    connect(lspMenu, &QMenu::aboutToShow, this, [this, lspMenu]() {
+        lspMenu->clear();
+        lspMenu->addAction(m_lspAction); // a mesma ação do menu Run: sempre sincronizada
+        lspMenu->addSeparator();
+        connect(lspMenu->addAction(tr("Language Server Settings…")), &QAction::triggered, this, [this]() {
+            showSettings();
+            if (auto *dialog = findChild<SettingsDialog *>())
+                if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
+                    nav->setCurrentRow(5);
+        });
+    });
 
     m_modeLabel = new QLabel(this);
     m_modeLabel->setToolTip(tr("Insert key toggles insert/overwrite"));
@@ -1044,10 +1063,13 @@ void MainWindow::updateStatus()
     m_cursorLabel->setText(QStringLiteral("%1:%2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
     m_modeLabel->setText(editor->overwriteMode() ? tr("OVERWRITE") : tr("INSERT"));
     m_encodingButton->setText(editor->doc()->encodingLabel());
+    // Visível para linguagens com servidor conhecido: mostra o servidor ativo,
+    // ou "LSP off" para dar como religar dali mesmo.
     const QString server = m_lsp->statusFor(editor->doc());
-    m_lspLabel->setVisible(!server.isEmpty());
-    m_lspLabel->setText(QStringLiteral("<span style=\"font-family:'%1'\">%2</span>&nbsp;%3")
-                            .arg(Icons::symbolFamily(), Icons::glyphText(Icons::Server), server.toHtmlEscaped()));
+    const bool lspLanguage = LspManager::languages().contains(editor->language().id);
+    m_lspLabel->setVisible(!server.isEmpty() || (lspLanguage && !m_settings.lspEnabled));
+    m_lspLabel->setText(server.isEmpty() ? tr("LSP off") : server);
+    m_lspLabel->setIcon(Icons::icon(Icons::Server, server.isEmpty() ? m_theme.textSecondary : m_theme.primary, 14));
     // Diagnóstico da linha do cursor, como no Slayer Editor Android.
     const QList<Diagnostic> here = editor->doc()->diagnosticsAt(c.blockNumber());
     if (here.isEmpty()) {

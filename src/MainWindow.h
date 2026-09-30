@@ -100,7 +100,7 @@ private:
     QLabel *m_modeLabel = nullptr;
     QToolButton *m_tabsButton = nullptr;
     QToolButton *m_encodingButton = nullptr;
-    QLabel *m_lspLabel = nullptr;
+    QToolButton *m_lspLabel = nullptr;
     QLabel *m_diagLabel = nullptr;
     LspManager *m_lsp = nullptr;
     void changeEncoding(const QString &encoding, bool bom);

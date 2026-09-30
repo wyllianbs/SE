@@ -551,10 +551,6 @@
         <translation>“%1” tem alterações não salvas. Deseja salvá-las?</translation>
     </message>
     <message>
-        <source>Language server</source>
-        <translation>Servidor de linguagem</translation>
-    </message>
-    <message>
         <source>Insert key toggles insert/overwrite</source>
         <translation>A tecla Insert alterna entre inserir e sobrescrever</translation>
     </message>
@@ -746,6 +742,18 @@
     <message>
         <source>New Terminal Ta&amp;b</source>
         <translation>Nova a&amp;ba de terminal</translation>
+    </message>
+    <message>
+        <source>Language server — click to turn on/off</source>
+        <translation>Servidor de linguagem — clique para ligar/desligar</translation>
+    </message>
+    <message>
+        <source>Language Server Settings…</source>
+        <translation>Configurações dos servidores de linguagem…</translation>
+    </message>
+    <message>
+        <source>LSP off</source>
+        <translation>LSP desligado</translation>
     </message>
 </context>
 <context>

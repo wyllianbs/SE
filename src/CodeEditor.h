@@ -74,6 +74,7 @@ private:
     void insertNewlineWithIndent();
     QString wordUnderCursor() const;
     int foldMarkerWidth() const;
+    int breakpointWidth() const;
     void onFoldingChanged();
     void updateCompletion(bool fromTrigger = false);
     void showCompletions(const QString &prefix, QStringList words, const QList<ServerItem> &server);

@@ -52,6 +52,18 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
 {
     setDocument(document->text());
     connect(document, &Document::foldingChanged, this, &CodeEditor::onFoldingChanged);
+    connect(document, &Document::breakpointsChanged, m_lineNumberArea, qOverload<>(&QWidget::update));
+    connect(document, &Document::executionLineChanged, this, [this]() {
+        updateExtraSelections();
+        m_lineNumberArea->update();
+        const int line = m_doc->executionLine();
+        if (line >= 0 && isVisible()) {
+            m_doc->revealLine(line);
+            QTextCursor c(this->document()->findBlockByNumber(line));
+            setTextCursor(c);
+            centerCursor();
+        }
+    });
     connect(document, &Document::diagnosticsChanged, this, [this]() {
         updateExtraSelections();
         m_lineNumberArea->update();
@@ -194,7 +206,12 @@ int CodeEditor::lineNumberAreaWidth() const
         ? 12 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(3, int(QString::number(qMax(1, blockCount())).length()))
         : 0;
     const int fold = foldMarkerWidth();
-    return numbers + fold + (numbers || fold ? 4 : 0);
+    return breakpointWidth() + numbers + fold + 4;
+}
+
+int CodeEditor::breakpointWidth() const
+{
+    return fontMetrics().height() + 2;
 }
 
 void CodeEditor::onFoldingChanged()
@@ -207,6 +224,11 @@ void CodeEditor::onFoldingChanged()
 
 void CodeEditor::lineNumberAreaClicked(const QPoint &pos)
 {
+    // Coluna da esquerda: ponto de parada (como no Thonny e no Kate).
+    if (pos.x() < breakpointWidth()) {
+        m_doc->toggleBreakpoint(cursorForPosition(QPoint(0, pos.y())).blockNumber());
+        return;
+    }
     const int markerLeft = m_lineNumberArea->width() - foldMarkerWidth() - 4;
     if (foldMarkerWidth() == 0 || pos.x() < markerLeft)
         return;
@@ -301,6 +323,18 @@ void CodeEditor::updateExtraSelections()
         sel.cursor.clearSelection();
         extra.append(sel);
     }
+    if (m_doc->executionLine() >= 0) {
+        const QTextBlock b = document()->findBlockByNumber(m_doc->executionLine());
+        if (b.isValid()) {
+            QTextEdit::ExtraSelection sel;
+            QColor c("#f9e2af");
+            c.setAlpha(55);
+            sel.format.setBackground(c);
+            sel.format.setProperty(QTextFormat::FullWidthSelection, true);
+            sel.cursor = QTextCursor(b);
+            extra.append(sel);
+        }
+    }
     QList<Diagnostic> diags = m_doc->diagnostics();
     std::stable_sort(diags.begin(), diags.end(), [](const Diagnostic &a, const Diagnostic &b) { return a.severity > b.severity; });
     for (const Diagnostic &d : std::as_const(diags)) {
@@ -375,8 +409,22 @@ void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
     const QPixmap open = fold ? Icons::icon(Icons::ChevronDown, m_theme.textSecondary, markerSize).pixmap(markerSize) : QPixmap();
     const QPixmap closed = fold ? Icons::icon(Icons::ChevronRight, m_theme.primary, markerSize).pixmap(markerSize) : QPixmap();
     const int numbersRight = m_lineNumberArea->width() - fold - 6;
+    const int bpw = breakpointWidth();
+    const int execLine = m_doc->executionLine();
+    const QPixmap arrow = execLine >= 0
+        ? Icons::icon(Icons::DebugArrow, QColor("#f9e2af"), markerSize + 2).pixmap(markerSize + 2) : QPixmap();
+    painter.setRenderHint(QPainter::Antialiasing);
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
+            const int h = fontMetrics().height();
+            if (m_doc->breakpoints().contains(number)) {
+                const int d = qMax(8, h - 6);
+                painter.setPen(Qt::NoPen);
+                painter.setBrush(QColor("#f38ba8"));
+                painter.drawEllipse(QRectF((bpw - d) / 2.0 + 1, top + (h - d) / 2.0, d, d));
+            }
+            if (number == execLine)
+                painter.drawPixmap(1, top + (h - arrow.height() / arrow.devicePixelRatio()) / 2, arrow);
             if (m_lineNumbers) {
                 const QList<Diagnostic> here = m_doc->diagnosticsAt(number);
                 QColor pen = number == currentBlock ? m_theme.primary : m_theme.textSecondary;
