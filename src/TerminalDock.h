@@ -60,6 +60,7 @@ private:
     static constexpr int kGrip = 8; //< largura das bordas de redimensionar (destacado)
     QTermWidget *createTerminal();
     void updateTabBar();
+    void sendWhenIdle(QTermWidget *term, const QString &line, int attempt);
     void refreshTabIcons();
     QString effectiveShell() const;
     static void registerColorSchemes();

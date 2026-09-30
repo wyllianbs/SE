@@ -22,6 +22,8 @@ add_executable(slayer-editor
     src/TerminalDock.cpp src/TerminalDock.h
     src/FindBar.cpp src/FindBar.h
     src/Icons.cpp src/Icons.h
+    src/DapClient.cpp src/DapClient.h
+    src/DebugSession.cpp src/DebugSession.h
     src/HelpDialog.cpp src/HelpDialog.h
     src/LspClient.cpp src/LspClient.h
     src/LspManager.cpp src/LspManager.h
@@ -83,4 +85,10 @@ if(BUILD_TESTING)
                    resources/resources.qrc)
     target_link_libraries(tst_viewspace PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME viewspace COMMAND tst_viewspace)
+    add_executable(tst_debug tests/tst_debug.cpp src/DebugSession.cpp src/DapClient.cpp src/LspClient.cpp
+                   src/TerminalDock.cpp src/Theme.cpp src/Icons.cpp src/Settings.cpp src/LspManager.cpp
+                   src/Document.cpp src/Folding.cpp src/SyntaxHighlighter.cpp src/Language.cpp
+                   resources/resources.qrc)
+    target_link_libraries(tst_debug PRIVATE Qt6::Widgets Qt6::Test qtermwidget6)
+    add_test(NAME debug COMMAND tst_debug)
 endif()

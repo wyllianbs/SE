@@ -10,6 +10,8 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QPointer>
+#include <QTimer>
 #include <QWindow>
 #include <QTabBar>
 #include <QTabWidget>
@@ -416,16 +418,38 @@ void TerminalDock::setWorkingDirectory(const QString &dir)
 
 void TerminalDock::runCommand(const QString &command, const QString &workingDir)
 {
-    if (m_tabs->count() == 0)
+    if (m_tabs->count() == 0 || !current()->getShellPID())
         newTerminal();
     show();
     raise();
     QString dir = workingDir;
     dir.replace(QLatin1Char('\''), QLatin1String("'\\''"));
-    // Ctrl+U limpa o que houver digitado no prompt antes do comando.
-    current()->sendText(QStringLiteral("\x15") + QStringLiteral("cd '") + dir + QStringLiteral("' && clear && ")
-                        + command + QLatin1Char('\r'));
+    const QString line = QStringLiteral("cd '") + dir + QStringLiteral("' && clear && ") + command + QLatin1Char('\r');
+    QTermWidget *term = current();
+    sendWhenIdle(term, line, 0);
     focusTerminal();
+}
+
+/**
+ * Se algo roda no terminal (um REPL do "Executar interativo", um programa
+ * esperando entrada…), encerra antes de mandar o comando: Ctrl+C e, se o
+ * processo ainda estiver lá (REPLs ignoram Ctrl+C), Ctrl+D. Ctrl+D só é
+ * enviado a um processo que não é o shell, que fecharia o terminal.
+ */
+void TerminalDock::sendWhenIdle(QTermWidget *term, const QString &line, int attempt)
+{
+    if (!term)
+        return;
+    const int shell = term->getShellPID();
+    const int fg = term->getForegroundProcessId();
+    if (fg <= 0 || fg == shell || attempt >= 6) {
+        // Ctrl+U limpa o que houver digitado no prompt antes do comando.
+        term->sendText(QStringLiteral("\x15") + line);
+        return;
+    }
+    term->sendText(attempt % 2 == 0 ? QStringLiteral("\x03") : QStringLiteral("\x04"));
+    QPointer<QTermWidget> guard(term);
+    QTimer::singleShot(150, this, [this, guard, line, attempt]() { sendWhenIdle(guard, line, attempt + 1); });
 }
 
 void TerminalDock::setTheme(const Theme &theme)
