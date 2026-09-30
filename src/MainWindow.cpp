@@ -1409,7 +1409,11 @@ QSplitter::handle:hover { background: %5; }
 #SplitCorner { background: %1; }
 QToolButton#SplitButton { padding: 4px; margin: 2px 6px; border-radius: 6px; }
 QToolButton#TabClose { padding: 2px; border-radius: 5px; margin-left: 4px; }
-QTabWidget#TerminalTabs QTabBar::tab { padding: 5px 12px; margin: 2px 2px 0 2px; }
+QTabWidget#TerminalTabs QTabBar { background: %2; }
+QTabWidget#TerminalTabs QTabBar::tab { padding: 5px 12px; margin: 4px 1px 0 1px; color: %7; background: transparent;
+    border-top-left-radius: 8px; border-top-right-radius: 8px; border-top: 2px solid transparent; }
+QTabWidget#TerminalTabs QTabBar::tab:selected { background: %12; color: %3; border-top: 2px solid %5; font-weight: 600; }
+QTabWidget#TerminalTabs QTabBar::tab:hover:!selected { background: %4; color: %3; }
 QPlainTextEdit { background: %2; color: %3; border: none; selection-background-color: %8; }
 QStatusBar { background: %1; color: %7; border-top: 1px solid %4; }
 QStatusBar QLabel { color: %7; padding: 0 8px; }
@@ -1496,7 +1500,7 @@ QComboBox::drop-down { border: none; width: 22px; background: transparent; }
              t.primary.lighter(115).name(), t.textSecondary.name(), t.selection.name(),
              Icons::glyphFile(Icons::Check, t.window, 14),
              Icons::glyphFile(Icons::ChevronUp, t.textSecondary, 12),
-             Icons::glyphFile(Icons::ChevronDown, t.textSecondary, 12));
+             Icons::glyphFile(Icons::ChevronDown, t.textSecondary, 12), t.terminalBackground.name());
 }
 
 // ------------------------------------------------------------ sessão
