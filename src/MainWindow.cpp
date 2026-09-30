@@ -152,7 +152,7 @@ void MainWindow::createActions()
     });
     add(edit, tr("&Go to Line…"), QKeySequence(Qt::CTRL | Qt::Key_G), [this]() { goToLine(); });
     edit->addSeparator();
-    QAction *settingsA = add(edit, tr("&Settings…"), QKeySequence(Qt::CTRL | Qt::Key_Comma),
+    add(edit, tr("&Settings…"), QKeySequence(Qt::CTRL | Qt::Key_Comma),
                              [this]() { showSettings(); }, Icons::Settings);
 
     QMenu *view = menuBar()->addMenu(tr("&View"));
@@ -212,10 +212,7 @@ void MainWindow::createActions()
     m_toolbar->addSeparator();
     m_toolbar->addAction(termA);
     m_toolbar->addAction(m_runAction);
-    auto *spacer = new QWidget(m_toolbar);
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    m_toolbar->addWidget(spacer);
-    m_toolbar->addAction(settingsA);
+
     if (auto *runButton = m_toolbar->widgetForAction(m_runAction)) {
         runButton->setObjectName(QStringLiteral("RunButton"));
     }
@@ -384,7 +381,6 @@ void MainWindow::updateStatus()
     m_cursorLabel->setText(tr("Ln %1, Col %2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
     const int idx = m_languageCombo->findData(editor->language().id);
     m_languageCombo->setCurrentIndex(idx);
-    m_runAction->setEnabled(!editor->language().runCommand.isEmpty());
     const QString title = editor->displayName() + (editor->document()->isModified() ? QStringLiteral(" ●") : QString());
     setWindowTitle(title + QStringLiteral(" — Slayer Editor"));
 }
@@ -396,12 +392,14 @@ void MainWindow::runCurrent()
     CodeEditor *editor = currentEditor();
     if (!editor)
         return;
-    if (editor->language().runCommand.isEmpty()) {
-        statusBar()->showMessage(tr("No run command for %1").arg(editor->language().displayName), 3000);
-        return;
-    }
+    // Sem título: salvar primeiro define o nome e, com ele, a linguagem.
     if (!save(editor))
         return;
+    if (editor->language().runCommand.isEmpty()) {
+        statusBar()->showMessage(tr("No run command for %1 files — set one in Settings → Languages.")
+                                     .arg(editor->language().displayName), 5000);
+        return;
+    }
     const QFileInfo info(editor->filePath());
     const Language &lang = editor->language();
     QString tool, flags;
