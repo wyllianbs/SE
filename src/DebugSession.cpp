@@ -28,8 +28,12 @@ DebugSession::DebugSession(TerminalDock *terminal, QObject *parent)
 
 DebugSession::~DebugSession()
 {
-    if (m_dap)
+    // Na destruição (fechar a janela durante uma sessão), nada de sinais: a
+    // janela principal que os receberia já está sendo destruída.
+    if (m_dap) {
+        m_dap->disconnect(this);
         m_dap->stop();
+    }
 }
 
 bool DebugSession::supports(const QString &id)

@@ -1,6 +1,116 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="pt_BR">
 <context>
+    <name>DebugPanel</name>
+    <message>
+        <source>Debugger</source>
+        <translation>Depurador</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nome</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Valor</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation>Tipo</translation>
+    </message>
+    <message>
+        <source>VARIABLES</source>
+        <translation>VARIÁVEIS</translation>
+    </message>
+    <message>
+        <source>CALL STACK</source>
+        <translation>PILHA DE CHAMADAS</translation>
+    </message>
+    <message>
+        <source>Not debugging. Press Ctrl+F5 to debug the current file.</source>
+        <translation>Sem depuração. Pressione Ctrl+F5 para depurar o arquivo atual.</translation>
+    </message>
+    <message>
+        <source>Paused (%1)</source>
+        <translation>Pausado (%1)</translation>
+    </message>
+    <message>
+        <source>Running…</source>
+        <translation>Executando…</translation>
+    </message>
+    <message>
+        <source>Starting the debugger…</source>
+        <translation>Iniciando o depurador…</translation>
+    </message>
+</context>
+<context>
+    <name>DebugSession</name>
+    <message>
+        <source>Could not start the compiler “%1”.</source>
+        <translation>Não foi possível iniciar o compilador “%1”.</translation>
+    </message>
+    <message>
+        <source>Compilation failed:
+
+%1</source>
+        <translation>A compilação falhou:
+
+%1</translation>
+    </message>
+    <message>
+        <source>debugpy is not installed for %1.
+
+Install it with:
+sudo apt install python3-debugpy</source>
+        <translation>O debugpy não está instalado para %1.
+
+Instale com:
+sudo apt install python3-debugpy</translation>
+    </message>
+    <message>
+        <source>gdb is not installed.
+
+Install it with:
+sudo apt install gdb</source>
+        <translation>O gdb não está instalado.
+
+Instale com:
+sudo apt install gdb</translation>
+    </message>
+    <message>
+        <source>Debug: %1</source>
+        <translation>Depuração: %1</translation>
+    </message>
+    <message>
+        <source>Debugger finished.</source>
+        <translation>Depurador encerrado.</translation>
+    </message>
+    <message>
+        <source>Could not start the debugger “%1”.</source>
+        <translation>Não foi possível iniciar o depurador “%1”.</translation>
+    </message>
+    <message>
+        <source>The debugger refused to start: %1</source>
+        <translation>O depurador recusou-se a iniciar: %1</translation>
+    </message>
+    <message>
+        <source>Could not launch the program: %1</source>
+        <translation>Não foi possível iniciar o programa: %1</translation>
+    </message>
+    <message>
+        <source>Program exited with code %1.</source>
+        <translation>O programa terminou com código %1.</translation>
+    </message>
+    <message>
+        <source>Debugging finished.</source>
+        <translation>Depuração concluída.</translation>
+    </message>
+    <message>
+        <source>Debugging stopped.</source>
+        <translation>Depuração interrompida.</translation>
+    </message>
+</context>
+<context>
     <name>Document</name>
     <message>
         <source>Untitled</source>
@@ -762,6 +872,82 @@
     <message>
         <source>Run and stay in the interpreter — Python, JavaScript, Shell (Alt+F5); compiled languages run as usual</source>
         <translation>Executar e continuar no interpretador — Python, JavaScript, Shell (Alt+F5); linguagens compiladas executam normalmente</translation>
+    </message>
+    <message>
+        <source>Debugger</source>
+        <translation>Depurador</translation>
+    </message>
+    <message>
+        <source>&amp;Debug</source>
+        <translation>&amp;Depurar</translation>
+    </message>
+    <message>
+        <source>&amp;Debug Current File</source>
+        <translation>&amp;Depurar arquivo atual</translation>
+    </message>
+    <message>
+        <source>Debug the current file (Ctrl+F5) — Python, C, C++</source>
+        <translation>Depurar o arquivo atual (Ctrl+F5) — Python, C, C++</translation>
+    </message>
+    <message>
+        <source>Step &amp;Over</source>
+        <translation>&amp;Pular</translation>
+    </message>
+    <message>
+        <source>Step &amp;Into</source>
+        <translation>&amp;Entrar</translation>
+    </message>
+    <message>
+        <source>Step O&amp;ut</source>
+        <translation>&amp;Sair</translation>
+    </message>
+    <message>
+        <source>&amp;Continue</source>
+        <translation>&amp;Continuar</translation>
+    </message>
+    <message>
+        <source>&amp;Stop</source>
+        <translation>&amp;Parar</translation>
+    </message>
+    <message>
+        <source>Step over (F6)</source>
+        <translation>Pular (F6)</translation>
+    </message>
+    <message>
+        <source>Step into (F7)</source>
+        <translation>Entrar (F7)</translation>
+    </message>
+    <message>
+        <source>Step out (Shift+F7)</source>
+        <translation>Sair (Shift+F7)</translation>
+    </message>
+    <message>
+        <source>Continue (F8)</source>
+        <translation>Continuar (F8)</translation>
+    </message>
+    <message>
+        <source>Stop debugging (Shift+F5)</source>
+        <translation>Parar a depuração (Shift+F5)</translation>
+    </message>
+    <message>
+        <source>Toggle &amp;Breakpoint</source>
+        <translation>Alternar ponto de &amp;parada</translation>
+    </message>
+    <message>
+        <source>&amp;Remove All Breakpoints</source>
+        <translation>&amp;Remover todos os pontos de parada</translation>
+    </message>
+    <message>
+        <source>Debugger &amp;Panel</source>
+        <translation>&amp;Painel do depurador</translation>
+    </message>
+    <message>
+        <source>The debugger supports Python, C and C++.</source>
+        <translation>O depurador suporta Python, C e C++.</translation>
+    </message>
+    <message>
+        <source>No breakpoints: click left of a line number (or F9) to add one.</source>
+        <translation>Sem pontos de parada: clique à esquerda do número da linha (ou F9) para adicionar.</translation>
     </message>
 </context>
 <context>

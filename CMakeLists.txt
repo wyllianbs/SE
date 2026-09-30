@@ -24,6 +24,7 @@ add_executable(slayer-editor
     src/Icons.cpp src/Icons.h
     src/DapClient.cpp src/DapClient.h
     src/DebugSession.cpp src/DebugSession.h
+    src/DebugPanel.cpp src/DebugPanel.h
     src/HelpDialog.cpp src/HelpDialog.h
     src/LspClient.cpp src/LspClient.h
     src/LspManager.cpp src/LspManager.h

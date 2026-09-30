@@ -2,6 +2,8 @@
 #include "CodeEditor.h"
 #include "FindBar.h"
 #include "Language.h"
+#include "DebugPanel.h"
+#include "DebugSession.h"
 #include "HelpDialog.h"
 #include "LspManager.h"
 #include "SettingsDialog.h"
@@ -82,6 +84,27 @@ MainWindow::MainWindow(QWidget *parent)
 
     addDockWidget(Qt::BottomDockWidgetArea, m_terminal);
 
+    m_debug = new DebugSession(m_terminal, this);
+    m_debugPanel = new DebugPanel(m_debug, this);
+    addDockWidget(Qt::RightDockWidgetArea, m_debugPanel);
+    m_debugPanel->hide();
+    connect(m_debug, &DebugSession::stateChanged, this, [this]() { updateDebugActions(); });
+    connect(m_debug, &DebugSession::stopped, this, [this](const QList<DebugFrame> &frames, const QString &) {
+        if (!frames.isEmpty())
+            showExecutionPoint(frames.first());
+        raise();
+        activateWindow();
+    });
+    connect(m_debugPanel, &DebugPanel::frameActivated, this, &MainWindow::showExecutionPoint);
+    connect(m_debug, &DebugSession::finished, this, [this](const QString &msg) {
+        clearExecutionPoint();
+        statusBar()->showMessage(msg, 5000);
+    });
+    connect(m_debug, &DebugSession::error, this, [this](const QString &msg) {
+        clearExecutionPoint();
+        QMessageBox::warning(this, tr("Debugger"), msg);
+    });
+
     buildStatusBar();
 
     connect(m_languageCombo, &QComboBox::activated, this, [this](int index) {
@@ -99,6 +122,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     createActions();
+    updateDebugActions();
     restoreSession();
     updateEmptyState();
     // Depuração: renderiza a janela (e opcionalmente uma página das configurações) em PNG e sai.
@@ -130,6 +154,11 @@ MainWindow::MainWindow(QWidget *parent)
                 });
                 return;
             }
+            // SLAYER_DEBUG_BREAK: ponto de parada na linha dada (base 1) e inicia o depurador.
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_BREAK") && currentEditor()) {
+                currentEditor()->doc()->toggleBreakpoint(qEnvironmentVariableIntValue("SLAYER_DEBUG_BREAK") - 1);
+                startDebugging();
+            }
             // SLAYER_DEBUG_TERMTABS: abre abas extras de terminal.
             for (int i = 1; i < qEnvironmentVariableIntValue("SLAYER_DEBUG_TERMTABS"); ++i)
                 m_terminal->newTerminal();
@@ -139,7 +168,8 @@ MainWindow::MainWindow(QWidget *parent)
             // SLAYER_DEBUG_SPLIT: sequência de divisões, "h" lado a lado e "v" empilhado.
             for (QChar c : qEnvironmentVariable("SLAYER_DEBUG_SPLIT"))
                 splitSpace(m_activeSpace, c == QLatin1Char('h') ? Qt::Horizontal : Qt::Vertical, false);
-            QTimer::singleShot(300, this, [this, out]() {
+            // SLAYER_DEBUG_AFTER: espera extra antes da captura (ex.: o depurador parar).
+            QTimer::singleShot(300 + qEnvironmentVariableIntValue("SLAYER_DEBUG_AFTER"), this, [this, out]() {
                 grab().save(out);
                 qApp->exit(0);
             });
@@ -265,8 +295,9 @@ void MainWindow::createActions()
         [this]() { splitSpace(m_activeSpace, Qt::Vertical, false); }, Icons::SplitStacked);
     add(split, tr("&Close Current View"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R),
         [this]() { closeSpace(m_activeSpace); }, Icons::Close);
-    add(split, tr("Next View"), QKeySequence(Qt::Key_F8), [this]() { cycleSpace(1); });
-    add(split, tr("Previous View"), QKeySequence(Qt::SHIFT | Qt::Key_F8), [this]() { cycleSpace(-1); });
+    // F8 é "Continuar" do depurador (como no Thonny).
+    add(split, tr("Next View"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Right), [this]() { cycleSpace(1); });
+    add(split, tr("Previous View"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Left), [this]() { cycleSpace(-1); });
     view->addSeparator();
     QMenu *themeMenu = view->addMenu(tr("T&heme"));
     auto *themeGroup = new QActionGroup(themeMenu);
@@ -308,6 +339,44 @@ void MainWindow::createActions()
         statusBar()->showMessage(on ? tr("Language servers enabled") : tr("Language servers disabled"), 3000);
     });
 
+    QMenu *debug = menuBar()->addMenu(tr("&Debug"));
+    m_debugAction = add(debug, tr("&Debug Current File"), QKeySequence(Qt::CTRL | Qt::Key_F5),
+                        [this]() { startDebugging(); }, Icons::Bug);
+    m_debugAction->setToolTip(tr("Debug the current file (Ctrl+F5) — Python, C, C++"));
+    debug->addSeparator();
+    QAction *overA = add(debug, tr("Step &Over"), QKeySequence(Qt::Key_F6), [this]() { m_debug->stepOver(); },
+                         Icons::StepOver);
+    QAction *intoA = add(debug, tr("Step &Into"), QKeySequence(Qt::Key_F7), [this]() { m_debug->stepInto(); },
+                         Icons::StepInto);
+    QAction *outA = add(debug, tr("Step O&ut"), QKeySequence(Qt::SHIFT | Qt::Key_F7), [this]() { m_debug->stepOut(); },
+                        Icons::StepOut);
+    QAction *contA = add(debug, tr("&Continue"), QKeySequence(Qt::Key_F8), [this]() { m_debug->resume(); },
+                         Icons::Continue);
+    m_stopDebugAction = add(debug, tr("&Stop"), QKeySequence(Qt::SHIFT | Qt::Key_F5), [this]() { m_debug->stop(); },
+                            Icons::Stop);
+    overA->setToolTip(tr("Step over (F6)"));
+    intoA->setToolTip(tr("Step into (F7)"));
+    outA->setToolTip(tr("Step out (Shift+F7)"));
+    contA->setToolTip(tr("Continue (F8)"));
+    m_stopDebugAction->setToolTip(tr("Stop debugging (Shift+F5)"));
+    m_stepActions = {overA, intoA, outA, contA};
+    debug->addSeparator();
+    add(debug, tr("Toggle &Breakpoint"), QKeySequence(Qt::Key_F9), [this]() {
+        if (CodeEditor *e = currentEditor())
+            e->doc()->toggleBreakpoint(e->textCursor().blockNumber());
+    });
+    add(debug, tr("&Remove All Breakpoints"), QKeySequence(), [this]() {
+        QSet<Document *> docs;
+        for (CodeEditor *e : allEditors())
+            docs.insert(e->doc());
+        for (Document *d : std::as_const(docs))
+            d->clearBreakpoints();
+    });
+    debug->addSeparator();
+    QAction *panelA = m_debugPanel->toggleViewAction();
+    panelA->setText(tr("Debugger &Panel"));
+    debug->addAction(panelA);
+
     QMenu *help = menuBar()->addMenu(tr("&Help"));
     add(help, tr("Slayer Editor &Help"), QKeySequence(Qt::Key_F1), [this]() { showHelp(); }, Icons::Help);
 
@@ -332,6 +401,10 @@ void MainWindow::createActions()
     connect(m_runToolbarAction, &QAction::triggered, this, [this]() { runCurrent(); });
     m_toolbar->addAction(m_runToolbarAction);
     m_toolbar->addAction(m_runInteractiveAction);
+    m_toolbar->addSeparator();
+    m_toolbar->addAction(m_debugAction);
+    m_toolbar->addActions(m_stepActions);
+    m_toolbar->addAction(m_stopDebugAction);
 
     if (auto *runButton = m_toolbar->widgetForAction(m_runToolbarAction)) {
         runButton->setObjectName(QStringLiteral("RunButton"));
@@ -609,6 +682,13 @@ Document *MainWindow::createDocument()
     connect(doc, &Document::changed, this, [this, doc]() {
         updateDocumentTitles(doc);
         m_lsp->attach(doc);
+    });
+    connect(doc, &Document::breakpointsChanged, this, [this, doc]() {
+        if (m_debug->isActive() && !doc->filePath().isEmpty()) {
+            QList<int> lines = doc->breakpoints().values();
+            std::sort(lines.begin(), lines.end());
+            m_debug->setBreakpoints(doc->filePath(), lines);
+        }
     });
     connect(doc, &Document::diagnosticsChanged, this, [this, doc]() {
         if (CodeEditor *e = currentEditor(); e && e->doc() == doc)
@@ -1133,6 +1213,76 @@ void MainWindow::runCurrent(bool interactive)
     m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags, interactive), info.absolutePath());
 }
 
+QHash<QString, QList<int>> MainWindow::collectBreakpoints() const
+{
+    QHash<QString, QList<int>> out;
+    for (CodeEditor *e : allEditors()) {
+        Document *d = e->doc();
+        if (d->filePath().isEmpty() || d->breakpoints().isEmpty() || out.contains(d->filePath()))
+            continue;
+        QList<int> lines = d->breakpoints().values();
+        std::sort(lines.begin(), lines.end());
+        out.insert(d->filePath(), lines);
+    }
+    return out;
+}
+
+void MainWindow::startDebugging()
+{
+    CodeEditor *editor = currentEditor();
+    if (!editor)
+        return;
+    if (m_debug->isActive()) {
+        // Já depurando: Ctrl+F5 continua, como no Thonny.
+        m_debug->resume();
+        return;
+    }
+    if (!save(editor))
+        return;
+    const QString id = editor->language().id;
+    if (!DebugSession::supports(id)) {
+        statusBar()->showMessage(tr("The debugger supports Python, C and C++."), 5000);
+        return;
+    }
+    const QHash<QString, QList<int>> bps = collectBreakpoints();
+    if (bps.isEmpty())
+        statusBar()->showMessage(tr("No breakpoints: click left of a line number (or F9) to add one."), 6000);
+    m_debugPanel->show();
+    m_debug->start(editor->filePath(), id, m_settings, bps);
+}
+
+void MainWindow::showExecutionPoint(const DebugFrame &frame)
+{
+    if (frame.path.isEmpty() || !QFileInfo::exists(frame.path))
+        return;
+    openFile(frame.path);
+    CodeEditor *editor = currentEditor();
+    if (!editor || editor->filePath() != QFileInfo(frame.path).absoluteFilePath())
+        return;
+    if (m_execDoc && m_execDoc != editor->doc())
+        m_execDoc->setExecutionLine(-1);
+    m_execDoc = editor->doc();
+    m_execDoc->setExecutionLine(frame.line);
+    editor->setFocus();
+}
+
+void MainWindow::clearExecutionPoint()
+{
+    if (m_execDoc)
+        m_execDoc->setExecutionLine(-1);
+    m_execDoc = nullptr;
+}
+
+void MainWindow::updateDebugActions()
+{
+    const DebugSession::State st = m_debug->state();
+    for (QAction *a : std::as_const(m_stepActions))
+        a->setEnabled(st == DebugSession::State::Stopped);
+    m_stopDebugAction->setEnabled(st != DebugSession::State::Idle);
+    if (st == DebugSession::State::Running)
+        clearExecutionPoint();
+}
+
 void MainWindow::goToLine()
 {
     CodeEditor *editor = currentEditor();
@@ -1486,6 +1636,10 @@ QListWidget#ThemeList::item { border-radius: 10px; padding: 6px; }
 QTableWidget#LanguageTable { alternate-background-color: %1; gridline-color: %4; }
 QTableWidget#LanguageTable::item { padding: 4px 6px; }
 QTableWidget#LanguageTable::item:selected { background: %4; color: %3; }
+QTreeWidget#DebugVariables, QListWidget#DebugStack { background: %2; color: %3; border: 1px solid %4;
+    border-radius: 8px; alternate-background-color: %1; outline: 0; }
+QTreeWidget#DebugVariables::item, QListWidget#DebugStack::item { padding: 3px 4px; }
+QTreeWidget#DebugVariables::item:selected, QListWidget#DebugStack::item:selected { background: %4; color: %3; }
 QHeaderView::section { background: %1; color: %7; border: none; border-bottom: 1px solid %4;
                        padding: 6px 8px; font-weight: 600; }
 QSlider::groove:horizontal { height: 4px; background: %4; border-radius: 2px; }

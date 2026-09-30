@@ -6,6 +6,7 @@
 #include "Theme.h"
 
 #include <QMainWindow>
+#include <QPointer>
 
 class CodeEditor;
 class FindBar;
@@ -21,6 +22,9 @@ class QToolBar;
 class QToolButton;
 class TerminalDock;
 class LspManager;
+class DebugSession;
+class DebugPanel;
+struct DebugFrame;
 
 class MainWindow : public QMainWindow
 {
@@ -67,6 +71,11 @@ private:
     bool closeTab(ViewSpace *space, int index);
     bool maybeSave(CodeEditor *editor);
     void runCurrent(bool interactive = false);
+    void startDebugging();
+    void showExecutionPoint(const DebugFrame &frame);
+    void clearExecutionPoint();
+    void updateDebugActions();
+    QHash<QString, QList<int>> collectBreakpoints() const;
     void goToLine();
     void showAbout();
     void showHelp();
@@ -113,6 +122,12 @@ private:
     QAction *m_runAction = nullptr;
     QAction *m_runToolbarAction = nullptr;
     QAction *m_runInteractiveAction = nullptr;
+    DebugSession *m_debug = nullptr;
+    DebugPanel *m_debugPanel = nullptr;
+    QList<QAction *> m_stepActions; //< ativas só com o programa pausado
+    QAction *m_debugAction = nullptr;
+    QAction *m_stopDebugAction = nullptr;
+    QPointer<Document> m_execDoc;
     QAction *m_lspAction = nullptr;
     QList<QPair<QAction *, bool AppSettings::*>> m_settingToggles;
 };
