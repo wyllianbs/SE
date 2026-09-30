@@ -191,9 +191,7 @@ void MainWindow::createActions()
     m_toolbar->addAction(m_runAction);
     if (auto *runButton = m_toolbar->widgetForAction(m_runAction)) {
         runButton->setObjectName(QStringLiteral("RunButton"));
-        static_cast<QToolButton *>(runButton)->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     }
-    m_runAction->setIconText(tr("Run"));
 }
 
 // --------------------------------------------------------------- abas
@@ -465,7 +463,7 @@ QToolBar::separator { background: %4; width: 1px; margin: 6px 6px; }
 QToolButton { border: none; border-radius: 8px; padding: 6px; color: %3; }
 QToolButton:hover { background: %4; }
 QToolButton:pressed { background: %5; }
-QToolButton#RunButton { background: %5; color: %1; font-weight: 600; padding: 6px 14px; }
+QToolButton#RunButton { background: %5; color: %1; padding: 6px 10px; }
 QToolButton#RunButton:hover { background: %6; }
 QToolButton#RunButton:disabled { background: %4; color: %7; }
 QMenuBar { background: %1; color: %3; padding: 2px 4px; }
