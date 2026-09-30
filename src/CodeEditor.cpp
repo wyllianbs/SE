@@ -429,6 +429,12 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
 
     QTextCursor c = textCursor();
 
+    if (event->key() == Qt::Key_Insert && event->modifiers() == Qt::NoModifier) {
+        setOverwriteMode(!overwriteMode());
+        Q_EMIT overwriteModeToggled(overwriteMode());
+        return;
+    }
+
     if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
         if (event->modifiers() == Qt::NoModifier || event->modifiers() == Qt::KeypadModifier) {
             insertNewlineWithIndent();

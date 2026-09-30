@@ -47,6 +47,9 @@ public:
 
     void foldAtCursor(bool fold);
 
+Q_SIGNALS:
+    void overwriteModeToggled(bool overwrite);
+
 protected:
     void resizeEvent(QResizeEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;

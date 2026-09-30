@@ -18,6 +18,7 @@ class QSplitter;
 class Document;
 class ViewSpace;
 class QToolBar;
+class QToolButton;
 class TerminalDock;
 
 class MainWindow : public QMainWindow
@@ -90,6 +91,12 @@ private:
     QToolBar *m_toolbar = nullptr;
     QComboBox *m_languageCombo;
     QLabel *m_cursorLabel;
+    QLabel *m_branchLabel = nullptr;
+    QLabel *m_modeLabel = nullptr;
+    QToolButton *m_tabsButton = nullptr;
+    QLabel *m_encodingLabel = nullptr;
+    void buildStatusBar();
+    QString gitBranchFor(const QString &filePath) const;
     Theme m_theme;
     AppSettings m_settings;
     QString m_lastDir;

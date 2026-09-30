@@ -17,6 +17,7 @@
 #include <QInputDialog>
 #include <QLabel>
 #include <QListWidget>
+#include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSettings>
@@ -66,10 +67,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     addDockWidget(Qt::BottomDockWidgetArea, m_terminal);
 
-    m_languageCombo->setFocusPolicy(Qt::NoFocus);
-    statusBar()->addPermanentWidget(m_cursorLabel);
-    statusBar()->addPermanentWidget(m_languageCombo);
-    statusBar()->setSizeGripEnabled(false);
+    buildStatusBar();
 
     connect(m_languageCombo, &QComboBox::activated, this, [this](int index) {
         if (CodeEditor *ed = currentEditor())
@@ -540,6 +538,7 @@ CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
         if (editor == currentEditor())
             updateStatus();
     });
+    connect(editor, &CodeEditor::overwriteModeToggled, this, [this]() { updateStatus(); });
     updateDocumentTitles(doc);
     updateEmptyState();
     return editor;
@@ -703,18 +702,122 @@ void MainWindow::updateDocumentTitles(Document *doc)
         updateStatus();
 }
 
+/**
+ * Rodapé no estilo do Kate: branch do git à esquerda; à direita linha:coluna,
+ * modo de inserção, tabulação (menu), codificação e linguagem (menu).
+ */
+void MainWindow::buildStatusBar()
+{
+    statusBar()->setSizeGripEnabled(false);
+    m_branchLabel = new QLabel(this);
+    m_branchLabel->setObjectName(QStringLiteral("BranchLabel"));
+    m_branchLabel->setTextFormat(Qt::RichText);
+    statusBar()->addWidget(m_branchLabel);
+
+    m_modeLabel = new QLabel(this);
+    m_modeLabel->setToolTip(tr("Insert key toggles insert/overwrite"));
+    m_encodingLabel = new QLabel(QStringLiteral("UTF-8"), this);
+
+    m_tabsButton = new QToolButton(this);
+    m_tabsButton->setObjectName(QStringLiteral("StatusButton"));
+    m_tabsButton->setPopupMode(QToolButton::InstantPopup);
+    m_tabsButton->setAutoRaise(true);
+    auto *tabsMenu = new QMenu(m_tabsButton);
+    m_tabsButton->setMenu(tabsMenu);
+    connect(tabsMenu, &QMenu::aboutToShow, this, [this, tabsMenu]() {
+        tabsMenu->clear();
+        CodeEditor *editor = currentEditor();
+        if (!editor)
+            return;
+        // Vale para o documento atual (todas as suas visões), como no Kate.
+        const QList<CodeEditor *> views = editorsFor(editor->doc());
+        QAction *soft = tabsMenu->addAction(tr("Insert Spaces (Soft Tabs)"));
+        soft->setCheckable(true);
+        soft->setChecked(editor->insertSpaces());
+        connect(soft, &QAction::toggled, this, [this, views](bool on) {
+            for (CodeEditor *v : views)
+                v->setInsertSpaces(on);
+            updateStatus();
+        });
+        tabsMenu->addSection(tr("Tab Width"));
+        for (int w : {2, 3, 4, 8}) {
+            QAction *a = tabsMenu->addAction(QString::number(w));
+            a->setCheckable(true);
+            a->setChecked(editor->tabWidth() == w);
+            connect(a, &QAction::triggered, this, [this, views, w]() {
+                for (CodeEditor *v : views)
+                    v->setTabWidthSpaces(w);
+                updateStatus();
+            });
+        }
+    });
+
+    m_languageCombo->setFocusPolicy(Qt::NoFocus);
+    m_languageCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingLabel,
+                                                        m_languageCombo})
+        statusBar()->addPermanentWidget(w);
+}
+
+/** Branch atual lendo .git/HEAD (sem executar o git). Vazio fora de repositório. */
+QString MainWindow::gitBranchFor(const QString &filePath) const
+{
+    if (filePath.isEmpty())
+        return QString();
+    QDir dir = QFileInfo(filePath).absoluteDir();
+    for (int depth = 0; depth < 64; ++depth) {
+        const QFileInfo git(dir.filePath(QStringLiteral(".git")));
+        QString gitDir;
+        if (git.isDir()) {
+            gitDir = git.absoluteFilePath();
+        } else if (git.isFile()) {
+            // Worktree/submódulo: ".git" é um arquivo "gitdir: <caminho>".
+            QFile f(git.absoluteFilePath());
+            if (f.open(QIODevice::ReadOnly)) {
+                const QString line = QString::fromUtf8(f.readLine()).trimmed();
+                if (line.startsWith(QLatin1String("gitdir:")))
+                    gitDir = QDir(dir).absoluteFilePath(line.mid(7).trimmed());
+            }
+        }
+        if (!gitDir.isEmpty()) {
+            QFile head(gitDir + QStringLiteral("/HEAD"));
+            if (!head.open(QIODevice::ReadOnly))
+                return QString();
+            const QString ref = QString::fromUtf8(head.readAll()).trimmed();
+            if (ref.startsWith(QLatin1String("ref: refs/heads/")))
+                return ref.mid(16);
+            return ref.left(7); // HEAD destacado: hash curto
+        }
+        if (!dir.cdUp())
+            break;
+    }
+    return QString();
+}
+
 void MainWindow::updateStatus()
 {
+    if (!m_branchLabel) // chamado durante a construção, antes do rodapé existir
+        return;
     CodeEditor *editor = currentEditor();
-    if (!editor) {
-        m_cursorLabel->clear();
-        m_languageCombo->setVisible(false);
+    const bool has = editor != nullptr;
+    for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingLabel,
+                                                        m_languageCombo})
+        w->setVisible(has);
+    if (!has) {
+        m_branchLabel->clear();
         setWindowTitle(QStringLiteral("Slayer Editor"));
         return;
     }
-    m_languageCombo->setVisible(true);
     const QTextCursor c = editor->textCursor();
-    m_cursorLabel->setText(tr("Ln %1, Col %2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
+    m_cursorLabel->setText(QStringLiteral("%1:%2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
+    m_modeLabel->setText(editor->overwriteMode() ? tr("OVERWRITE") : tr("INSERT"));
+    m_tabsButton->setText(editor->insertSpaces() ? tr("Soft Tabs: %1").arg(editor->tabWidth())
+                                                 : tr("Tab Size: %1").arg(editor->tabWidth()));
+    const QString branch = gitBranchFor(editor->filePath());
+    m_branchLabel->setText(branch.isEmpty() ? QString()
+                                            : QStringLiteral("<span style=\"font-family:'%1'\">%2</span>&nbsp;&nbsp;%3")
+                                                  .arg(Icons::symbolFamily(), Icons::glyphText(Icons::GitBranch),
+                                                       branch.toHtmlEscaped()));
     const int idx = m_languageCombo->findData(editor->language().id);
     m_languageCombo->setCurrentIndex(idx);
     const QString title = editor->displayName() + (editor->doc()->isModified() ? QStringLiteral(" ●") : QString());
@@ -988,7 +1091,11 @@ QToolButton#SplitButton { padding: 4px; margin: 2px 6px; border-radius: 6px; }
 QToolButton#TabClose { padding: 2px; border-radius: 5px; margin-left: 4px; }
 QPlainTextEdit { background: %2; color: %3; border: none; selection-background-color: %8; }
 QStatusBar { background: %1; color: %7; border-top: 1px solid %4; }
-QStatusBar QLabel { color: %7; padding: 0 10px; }
+QStatusBar QLabel { color: %7; padding: 0 8px; }
+QStatusBar QLabel#BranchLabel { color: %3; padding-left: 10px; }
+QToolButton#StatusButton { color: %7; padding: 2px 8px; border-radius: 6px; }
+QToolButton#StatusButton:hover { background: %4; color: %3; }
+QToolButton#StatusButton::menu-indicator { image: none; width: 0; }
 QStatusBar::item { border: none; }
 QComboBox { background: transparent; color: %7; border: none; padding: 2px 10px; border-radius: 6px; }
 QComboBox:hover { background: %4; color: %3; }
