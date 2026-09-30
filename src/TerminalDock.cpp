@@ -27,7 +27,26 @@ TerminalDock::TerminalDock(QMainWindow *mainWindow)
     layout->setContentsMargins(6, 0, 6, 6);
     setWidget(m_container);
     setTitleBarWidget(buildTitleBar());
+    registerColorSchemes();
     ensureTerminal();
+}
+
+/**
+ * O QTermWidget lê a lista de esquemas de cores uma única vez, ao criar o
+ * primeiro terminal: diretórios registrados depois são ignorados. Por isso
+ * todos os esquemas são gravados e o diretório registrado antes disso.
+ */
+void TerminalDock::registerColorSchemes()
+{
+    static bool done = false;
+    if (done)
+        return;
+    done = true;
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+                        + QStringLiteral("/color-schemes");
+    for (const Theme &theme : Theme::all())
+        theme.writeTerminalScheme(dir);
+    QTermWidget::addCustomColorSchemeDir(dir);
 }
 
 QString TerminalDock::areaKey(Qt::DockWidgetArea area)
@@ -155,10 +174,7 @@ void TerminalDock::setTheme(const Theme &theme)
     for (const auto &[button, glyph] : std::as_const(m_buttons))
         button->setIcon(Icons::icon(glyph, theme.textSecondary, 16));
     m_titleIcon->setPixmap(Icons::icon(Icons::Terminal, theme.primary, 16).pixmap(16, 16));
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-                        + QStringLiteral("/color-schemes");
-    m_schemeName = theme.writeTerminalScheme(dir);
-    QTermWidget::addCustomColorSchemeDir(dir);
+    m_schemeName = QStringLiteral("SlayerEditor-") + theme.id;
     if (m_term && !m_schemeName.isEmpty())
         m_term->setColorScheme(m_schemeName);
 }

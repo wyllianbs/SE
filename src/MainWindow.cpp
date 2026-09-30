@@ -176,7 +176,7 @@ void MainWindow::createActions()
     m_runAction->setToolTip(tr("Save and run the current file (F5)"));
 
     QMenu *help = menuBar()->addMenu(tr("&Help"));
-    QAction *aboutA = add(help, tr("&About Slayer Editor"), QKeySequence(), [this]() { showAbout(); }, Icons::Info);
+    add(help, tr("&About Slayer Editor"), QKeySequence(), [this]() { showAbout(); }, Icons::Info);
 
     // Barra de ferramentas plana, só ícones.
     m_toolbar = addToolBar(tr("Main Toolbar"));
@@ -188,10 +188,6 @@ void MainWindow::createActions()
     m_toolbar->addActions({undoA, redoA, findA});
     m_toolbar->addSeparator();
     m_toolbar->addAction(termA);
-    auto *spacer = new QWidget(m_toolbar);
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    m_toolbar->addWidget(spacer);
-    m_toolbar->addAction(aboutA);
     m_toolbar->addAction(m_runAction);
     if (auto *runButton = m_toolbar->widgetForAction(m_runAction)) {
         runButton->setObjectName(QStringLiteral("RunButton"));

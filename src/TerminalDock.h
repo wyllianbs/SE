@@ -38,6 +38,7 @@ Q_SIGNALS:
 private:
     QWidget *buildTitleBar();
     void ensureTerminal();
+    static void registerColorSchemes();
 
     QMainWindow *m_mainWindow;
     QWidget *m_container;
