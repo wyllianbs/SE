@@ -67,6 +67,8 @@ private:
     void runCurrent();
     void goToLine();
     void showAbout();
+    void showHelp();
+    void saveAll();
 
     void applySettings(const AppSettings &settings);
     void applyTheme(const QString &themeId);

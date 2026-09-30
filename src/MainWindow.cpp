@@ -2,6 +2,7 @@
 #include "CodeEditor.h"
 #include "FindBar.h"
 #include "Language.h"
+#include "HelpDialog.h"
 #include "LspManager.h"
 #include "SettingsDialog.h"
 #include "TerminalDock.h"
@@ -17,6 +18,7 @@
 #include <QFileInfo>
 #include <QInputDialog>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
@@ -101,6 +103,16 @@ MainWindow::MainWindow(QWidget *parent)
     if (qEnvironmentVariableIsSet("SLAYER_DEBUG_GRAB")) {
         QTimer::singleShot(qEnvironmentVariableIntValue("SLAYER_DEBUG_DELAY") + 900, this, [this]() {
             const QString out = qEnvironmentVariable("SLAYER_DEBUG_GRAB");
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_HELP")) {
+                showHelp();
+                auto *help = findChild<HelpDialog *>();
+                help->findChild<QLineEdit *>()->setText(qEnvironmentVariable("SLAYER_DEBUG_HELP"));
+                QTimer::singleShot(300, this, [help, out]() {
+                    help->grab().save(out);
+                    qApp->exit(0);
+                });
+                return;
+            }
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_SETTINGS")) {
                 showSettings();
                 auto *dialog = findChild<SettingsDialog *>();
@@ -149,7 +161,10 @@ void MainWindow::createActions()
     }, Icons::Open);
     file->addSeparator();
     QAction *saveA = add(file, tr("&Save"), QKeySequence::Save, [this]() { save(currentEditor()); }, Icons::Save);
-    add(file, tr("Save &As…"), QKeySequence::SaveAs, [this]() { saveAs(currentEditor()); }, Icons::SaveAs);
+    QAction *saveAsA = add(file, tr("Save &As…"), QKeySequence::SaveAs, [this]() { saveAs(currentEditor()); }, Icons::SaveAs);
+    QAction *saveAllA = add(file, tr("Save A&ll"), QKeySequence(Qt::CTRL | Qt::Key_L), [this]() { saveAll(); }, Icons::SaveAll);
+    saveAsA->setToolTip(tr("Save As (Ctrl+Shift+S)"));
+    saveAllA->setToolTip(tr("Save All (Ctrl+L)"));
     file->addSeparator();
     add(file, tr("&Close Tab"), QKeySequence(Qt::CTRL | Qt::Key_W), [this]() {
         closeTab(m_activeSpace, m_activeSpace->currentIndex());
@@ -244,14 +259,18 @@ void MainWindow::createActions()
     m_runAction->setToolTip(tr("Save and run the current file (F5)"));
 
     QMenu *help = menuBar()->addMenu(tr("&Help"));
-    add(help, tr("&About Slayer Editor"), QKeySequence(), [this]() { showAbout(); }, Icons::Info);
+    add(help, tr("Slayer Editor &Help"), QKeySequence(Qt::Key_F1), [this]() { showHelp(); }, Icons::Help);
+
+    QMenu *about = menuBar()->addMenu(tr("&About"));
+    add(about, tr("&About Slayer Editor"), QKeySequence(), [this]() { showAbout(); }, Icons::Info);
+    add(about, tr("About &Qt"), QKeySequence(), [this]() { QMessageBox::aboutQt(this); });
 
     // Barra de ferramentas plana, só ícones.
     m_toolbar = addToolBar(tr("Main Toolbar"));
     m_toolbar->setObjectName(QStringLiteral("MainToolbar"));
     m_toolbar->setMovable(false);
     m_toolbar->setIconSize(QSize(18, 18));
-    m_toolbar->addActions({newA, openA, saveA});
+    m_toolbar->addActions({newA, openA, saveA, saveAsA, saveAllA});
     m_toolbar->addSeparator();
     m_toolbar->addActions({undoA, redoA, findA});
     m_toolbar->addSeparator();
@@ -982,6 +1001,29 @@ void MainWindow::goToLine()
                                           editor->blockCount(), 1, &ok);
     if (ok)
         editor->goToLine(line);
+}
+
+void MainWindow::saveAll()
+{
+    QSet<Document *> done;
+    int saved = 0;
+    for (CodeEditor *e : allEditors()) {
+        Document *doc = e->doc();
+        if (done.contains(doc) || !doc->isModified())
+            continue;
+        done.insert(doc);
+        if (!save(e))
+            return; // cancelou o "Salvar como" ou falhou: para aqui
+        ++saved;
+    }
+    statusBar()->showMessage(saved ? tr("Saved %n file(s)", nullptr, saved) : tr("Nothing to save"), 2500);
+}
+
+void MainWindow::showHelp()
+{
+    auto *dialog = new HelpDialog(m_theme, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->show();
 }
 
 void MainWindow::showAbout()

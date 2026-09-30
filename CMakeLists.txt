@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(slayer-editor VERSION 0.2.0 LANGUAGES CXX)
+project(slayer-editor VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +22,7 @@ add_executable(slayer-editor
     src/TerminalDock.cpp src/TerminalDock.h
     src/FindBar.cpp src/FindBar.h
     src/Icons.cpp src/Icons.h
+    src/HelpDialog.cpp src/HelpDialog.h
     src/LspClient.cpp src/LspClient.h
     src/LspManager.cpp src/LspManager.h
     src/Folding.cpp src/Folding.h
@@ -65,4 +66,7 @@ if(BUILD_TESTING)
                    src/Language.cpp src/Theme.cpp src/Settings.cpp src/LspManager.cpp src/LspClient.cpp)
     target_link_libraries(tst_lsp PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME lsp COMMAND tst_lsp)
+    add_executable(tst_help tests/tst_help.cpp src/HelpDialog.cpp src/Icons.cpp resources/resources.qrc)
+    target_link_libraries(tst_help PRIVATE Qt6::Widgets Qt6::Test)
+    add_test(NAME help COMMAND tst_help)
 endif()

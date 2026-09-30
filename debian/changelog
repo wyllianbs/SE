@@ -1,3 +1,18 @@
+slayer-editor (0.3.0) unstable; urgency=medium
+
+  * Kate-style split view with shared documents.
+  * Code folding (braces and Python indentation).
+  * Language Server Protocol: diagnostics and completion (clangd, pylsp,
+    Pyright, Ruff, typescript-language-server, rust-analyzer, gopls, jdtls,
+    bash-language-server), configurable per language.
+  * Kate-style status bar: git branch, cursor, insert mode, tabs, encoding.
+  * Text encoding per document (reload/save with encoding, BOM detection).
+  * Help with keyword search (F1), About menu, Save As / Save All buttons.
+  * Closing the last tab shows a welcome screen; no default project folder.
+  * Removed the destructive command guard (Android only).
+
+ -- Prof. Wyllian <wyllianbs@gmail.com>  Wed, 30 Sep 2026 14:30:00 -0300
+
 slayer-editor (0.2.0) unstable; urgency=medium
 
   * Settings dialog: profiles, editor, appearance, terminal, languages,
