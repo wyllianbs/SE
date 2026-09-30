@@ -196,6 +196,7 @@ ThemeEditor::ThemeEditor(const QList<Theme> &userThemes, const QString &currentI
             return;
         Theme t = m_current;
         t.id = QStringLiteral("user-") + QUuid::createUuid().toString(QUuid::Id128).left(8);
+        t.counterpart.clear(); // tema novo não herda o par do original
         t.name = name;
         m_user.append(t);
         refreshList();

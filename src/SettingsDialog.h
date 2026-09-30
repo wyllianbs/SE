@@ -75,6 +75,11 @@ private:
     // Aparência
     QListWidget *m_themes = nullptr;
     QList<Theme> m_userThemes; //< em edição; vão para AppSettings::userThemes
+    class QPushButton *m_modeDark = nullptr;
+    class QPushButton *m_modeLight = nullptr;
+    QCheckBox *m_followSystem = nullptr;
+    bool m_showDark = true;
+    void setMode(bool dark);
     QSlider *m_buttonScale = nullptr;
     QLabel *m_buttonScaleLabel = nullptr;
     QSlider *m_uiScale = nullptr;

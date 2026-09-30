@@ -30,6 +30,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QStatusBar>
+#include <QStyleHints>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTextBlock>
@@ -119,6 +120,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_languageCombo, &QComboBox::activated, this, [this](int index) {
         if (CodeEditor *ed = currentEditor())
             ed->setLanguage(languageById(m_languageCombo->itemData(index).toString()));
+    });
+    // O desktop trocou entre claro e escuro: reaplica se "seguir o sistema".
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {
+        if (m_settings.themeFollowSystem)
+            applySettings(m_settings);
     });
     // O espaço de visão ativo é o do último widget focado.
     connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *now) {
@@ -1453,6 +1459,12 @@ void MainWindow::applySettings(const AppSettings &settings)
         userThemes << Theme::fromJson(v.toObject());
     Theme::setUserThemes(userThemes);
     m_theme = Theme::byId(m_settings.theme);
+    // Seguir o sistema: variante clara/escura conforme o desktop.
+    if (m_settings.themeFollowSystem) {
+        const Qt::ColorScheme scheme = QGuiApplication::styleHints()->colorScheme();
+        if (scheme != Qt::ColorScheme::Unknown)
+            m_theme = Theme::variant(m_settings.theme, scheme == Qt::ColorScheme::Dark);
+    }
 
     {
         QPalette p;
@@ -1678,6 +1690,11 @@ QLabel#PageSubtitle, QLabel#Hint { color: %7; }
 #Card QLabel { background: transparent; }
 QLabel#CardTitle { color: %5; font-weight: 600; letter-spacing: 0.4px; }
 QPushButton#Danger { color: #f38ba8; }
+QPushButton#SegmentLeft, QPushButton#SegmentRight { padding: 6px 16px; min-width: 70px; border-radius: 0; }
+QPushButton#SegmentLeft { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+QPushButton#SegmentRight { border-top-right-radius: 8px; border-bottom-right-radius: 8px; border-left: none; }
+QPushButton#SegmentLeft:checked, QPushButton#SegmentRight:checked { background: %5; color: %1; border-color: %5;
+    font-weight: 600; }
 QPushButton#Danger:hover { background: #f38ba8; color: %1; border-color: #f38ba8; }
 QPushButton:disabled { color: %7; background: transparent; }
 QSpinBox, QComboBox#Field, QFontComboBox { background: %2; color: %3; border: 1px solid %4; border-radius: 8px;

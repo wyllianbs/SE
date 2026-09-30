@@ -354,7 +354,32 @@ QWidget *SettingsDialog::buildAppearancePage()
     customizeRow->addWidget(customizeHint, 1);
     customizeRow->addWidget(customize);
 
+    // Escuro / Claro: filtra a grade e troca o tema pelo seu par.
+    m_modeDark = new QPushButton(tr("Dark"));
+    m_modeLight = new QPushButton(tr("Light"));
+    m_modeDark->setObjectName(QStringLiteral("SegmentLeft"));
+    m_modeLight->setObjectName(QStringLiteral("SegmentRight"));
+    for (QPushButton *b : {m_modeDark, m_modeLight}) {
+        b->setCheckable(true);
+        b->setAutoDefault(false);
+    }
+    m_modeDark->setIcon(Icons::icon(Icons::Moon, m_theme.textSecondary, 16));
+    m_modeLight->setIcon(Icons::icon(Icons::Sun, m_theme.textSecondary, 16));
+    connect(m_modeDark, &QPushButton::clicked, this, [this]() { setMode(true); });
+    connect(m_modeLight, &QPushButton::clicked, this, [this]() { setMode(false); });
+    m_followSystem = new QCheckBox(tr("Follow the system"));
+    m_followSystem->setToolTip(tr("Use the light or dark variant of the chosen theme according to the desktop, "
+                                  "switching automatically when it changes"));
+    auto *modeRow = new QHBoxLayout;
+    modeRow->setSpacing(0);
+    modeRow->addWidget(m_modeDark);
+    modeRow->addWidget(m_modeLight);
+    modeRow->addSpacing(18);
+    modeRow->addWidget(m_followSystem);
+    modeRow->addStretch(1);
+
     auto *themeBox = new QVBoxLayout;
+    themeBox->addLayout(modeRow);
     themeBox->addWidget(m_themes, 1);
     themeBox->addLayout(customizeRow);
 
@@ -586,11 +611,33 @@ QString SettingsDialog::currentThemeId() const
     return item ? item->data(kIdRole).toString() : Theme::builtIns().first().id;
 }
 
-/** Miniaturas dos temas (do app, personalizados e do usuário) em edição. */
+void SettingsDialog::setMode(bool dark)
+{
+    // O tema atual vai para a variante do modo escolhido (Mocha ↔ Latte…).
+    const QList<Theme> themes = Theme::compose(m_userThemes);
+    QString id = currentThemeId();
+    for (const Theme &t : themes) {
+        if (t.id == id && t.dark != dark && !t.counterpart.isEmpty())
+            id = t.counterpart;
+    }
+    m_showDark = dark;
+    rebuildThemeList(id);
+}
+
+/** Miniaturas dos temas (do app, personalizados e do usuário) do modo atual. */
 void SettingsDialog::rebuildThemeList(const QString &selectId)
 {
+    const QList<Theme> themes = Theme::compose(m_userThemes);
+    for (const Theme &t : themes) {
+        if (t.id == selectId)
+            m_showDark = t.dark; // o tema selecionado define o modo exibido
+    }
+    m_modeDark->setChecked(m_showDark);
+    m_modeLight->setChecked(!m_showDark);
     m_themes->clear();
-    for (const Theme &t : Theme::compose(m_userThemes)) {
+    for (const Theme &t : themes) {
+        if (t.dark != m_showDark)
+            continue;
         // Miniatura: fundo, barra de título e três linhas de "código".
         QPixmap pm(120, 72);
         pm.fill(t.surface);
@@ -691,6 +738,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     for (const QJsonValue &v : s.userThemes)
         m_userThemes << Theme::fromJson(v.toObject());
     rebuildThemeList(s.theme);
+    m_followSystem->setChecked(s.themeFollowSystem);
     m_buttonScale->setValue(s.buttonScale / 10);
     m_uiScale->setValue(s.uiScale / 10);
     m_buttonScaleLabel->setText(QStringLiteral("%1%").arg(m_buttonScale->value() * 10));
@@ -748,6 +796,7 @@ AppSettings SettingsDialog::settings() const
         s.theme = item->data(kIdRole).toString();
     for (const Theme &t : m_userThemes)
         s.userThemes.append(t.toJson());
+    s.themeFollowSystem = m_followSystem->isChecked();
     s.buttonScale = m_buttonScale->value() * 10;
     s.uiScale = m_uiScale->value() * 10;
     s.uiLanguage = m_uiLanguage->currentData().toString();

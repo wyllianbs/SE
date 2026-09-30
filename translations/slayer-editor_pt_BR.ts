@@ -1265,6 +1265,22 @@ sudo apt install gdb</translation>
         <source>✦ your themes   ✎ customized built-in themes</source>
         <translation>✦ seus temas   ✎ temas do app personalizados</translation>
     </message>
+    <message>
+        <source>Dark</source>
+        <translation>Escuro</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>Claro</translation>
+    </message>
+    <message>
+        <source>Follow the system</source>
+        <translation>Seguir o sistema</translation>
+    </message>
+    <message>
+        <source>Use the light or dark variant of the chosen theme according to the desktop, switching automatically when it changes</source>
+        <translation>Usa a variante clara ou escura do tema escolhido conforme a área de trabalho, trocando automaticamente quando ela mudar</translation>
+    </message>
 </context>
 <context>
     <name>TerminalDock</name>

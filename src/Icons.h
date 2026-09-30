@@ -39,6 +39,8 @@ enum Glyph : char32_t {
     Help = 0xEB32,
     Add = 0xEA60,
     Bug = 0xEAAF,
+    Moon = 0xF186,
+    Sun = 0xF185,
     RunInteractive = 0xEBCA,
     StepOver = 0xEAD6,
     StepInto = 0xEAD4,

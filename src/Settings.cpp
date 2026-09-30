@@ -83,6 +83,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("insertSpaces")] = insertSpaces;
     o[QStringLiteral("editorCursorBlink")] = editorCursorBlink;
     o[QStringLiteral("theme")] = theme;
+    o[QStringLiteral("themeFollowSystem")] = themeFollowSystem;
     o[QStringLiteral("buttonScale")] = buttonScale;
     o[QStringLiteral("uiScale")] = uiScale;
     o[QStringLiteral("uiLanguage")] = uiLanguage;
@@ -133,6 +134,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.insertSpaces = flag("insertSpaces", s.insertSpaces);
     s.editorCursorBlink = flag("editorCursorBlink", s.editorCursorBlink);
     s.theme = str("theme", s.theme);
+    s.themeFollowSystem = flag("themeFollowSystem", s.themeFollowSystem);
     s.buttonScale = qBound(80, num("buttonScale", s.buttonScale), 200);
     s.uiScale = qBound(80, num("uiScale", s.uiScale), 200);
     s.uiLanguage = str("uiLanguage", s.uiLanguage);

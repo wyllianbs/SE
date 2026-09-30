@@ -11,6 +11,8 @@ struct Theme
     QString id;
     QString name;
     bool dark = true;
+    /** Variante oposta (clara ↔ escura) do mesmo tema; vazio se não houver. */
+    QString counterpart;
 
     QColor primary;
     QColor window;        //< fundo da janela / painéis
@@ -38,6 +40,8 @@ struct Theme
     /** Temas em uso: os do app (com personalizações) + os criados pelo usuário. */
     static const QList<Theme> &all();
     static const Theme &byId(const QString &id);
+    /** O tema na variante pedida (ele mesmo, ou a variante oposta dele). */
+    static const Theme &variant(const QString &id, bool dark);
     /** Aplica as personalizações (mesmo id de um tema do app) e os temas novos. */
     static void setUserThemes(const QList<Theme> &themes);
     static QList<Theme> compose(const QList<Theme> &userThemes);
