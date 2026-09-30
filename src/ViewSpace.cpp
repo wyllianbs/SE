@@ -77,7 +77,7 @@ ViewSpace::ViewSpace(QWidget *parent)
     connect(tabBar(), &QTabBar::customContextMenuRequested, this, [this](const QPoint &pos) {
         showTabMenu(tabBar()->tabAt(pos), tabBar()->mapToGlobal(pos));
     });
-    // Duplo clique na área vazia da barra cria uma aba, como no Kate.
+    // Duplo clique: na área vazia cria uma aba (como no Kate); sobre uma aba, renomeia.
     tabBar()->installEventFilter(this);
 }
 
@@ -148,10 +148,12 @@ bool ViewSpace::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == tabBar() && event->type() == QEvent::MouseButtonDblClick) {
         const auto *me = static_cast<QMouseEvent *>(event);
-        if (tabBar()->tabAt(me->position().toPoint()) < 0) {
+        const int index = tabBar()->tabAt(me->position().toPoint());
+        if (index < 0)
             Q_EMIT newTabRequested(this);
-            return true;
-        }
+        else
+            Q_EMIT tabActionRequested(this, index, QStringLiteral("rename")); // duplo clique no nome renomeia
+        return true;
     }
     return QTabWidget::eventFilter(watched, event);
 }

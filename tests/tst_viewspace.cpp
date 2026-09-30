@@ -26,16 +26,20 @@ private Q_SLOTS:
         QTest::mouseDClick(target, Qt::LeftButton, {}, target->mapFrom(&vs, empty));
         QCOMPARE(spy.count(), 1);
     }
-    void doubleClickOnTabDoesNot()
+    void doubleClickOnTabRenames()
     {
         ViewSpace vs;
         vs.resize(800, 300);
         vs.addTab(new QLabel("a"), "file.c");
         vs.show();
         QVERIFY(QTest::qWaitForWindowExposed(&vs));
-        QSignalSpy spy(&vs, &ViewSpace::newTabRequested);
+        QSignalSpy created(&vs, &ViewSpace::newTabRequested);
+        QSignalSpy action(&vs, &ViewSpace::tabActionRequested);
         QTest::mouseDClick(vs.tabBar(), Qt::LeftButton, {}, vs.tabBar()->tabRect(0).center());
-        QCOMPARE(spy.count(), 0);
+        QCOMPARE(created.count(), 0);
+        QCOMPARE(action.count(), 1);
+        QCOMPARE(action.first().at(1).toInt(), 0);
+        QCOMPARE(action.first().at(2).toString(), QStringLiteral("rename"));
     }
 };
 
