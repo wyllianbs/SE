@@ -51,6 +51,8 @@ protected:
 
 private:
     QWidget *buildTitleBar();
+    Qt::Edges edgesAt(const QPoint &pos) const;
+    static constexpr int kGrip = 8; //< largura das bordas de redimensionar (destacado)
     QTermWidget *createTerminal();
     void updateTabBar();
     void refreshTabIcons();

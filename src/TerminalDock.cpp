@@ -10,6 +10,7 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QWindow>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QStandardPaths>
@@ -46,6 +47,19 @@ TerminalDock::TerminalDock(QMainWindow *mainWindow)
     setWidget(m_container);
     setTitleBarWidget(buildTitleBar());
     registerColorSchemes();
+
+    // Destacado, o painel vira janela sem moldura (barra de título própria):
+    // bordas e cantos são tratados aqui e repassados ao compositor.
+    for (QWidget *w : {static_cast<QWidget *>(m_container), titleBarWidget()}) {
+        w->setMouseTracking(true);
+        w->installEventFilter(this);
+    }
+    connect(this, &QDockWidget::topLevelChanged, this, [this](bool floating) {
+        m_container->layout()->setContentsMargins(floating ? kGrip : 6, 0, floating ? kGrip : 6,
+                                                  floating ? kGrip : 6);
+        if (!floating)
+            m_container->unsetCursor();
+    });
 }
 
 /**
@@ -299,8 +313,51 @@ void TerminalDock::refreshTabIcons()
     }
 }
 
+/** Bordas (e cantos) sob o ponto, em coordenadas do painel. */
+Qt::Edges TerminalDock::edgesAt(const QPoint &pos) const
+{
+    Qt::Edges edges;
+    if (!isFloating())
+        return edges;
+    const int grip = kGrip + 2;
+    if (pos.x() <= grip) edges |= Qt::LeftEdge;
+    if (pos.x() >= width() - grip) edges |= Qt::RightEdge;
+    if (pos.y() <= 4) edges |= Qt::TopEdge;
+    if (pos.y() >= height() - grip) edges |= Qt::BottomEdge;
+    return edges;
+}
+
+static Qt::CursorShape cursorFor(Qt::Edges e)
+{
+    if (e == (Qt::LeftEdge | Qt::TopEdge) || e == (Qt::RightEdge | Qt::BottomEdge))
+        return Qt::SizeFDiagCursor;
+    if (e == (Qt::RightEdge | Qt::TopEdge) || e == (Qt::LeftEdge | Qt::BottomEdge))
+        return Qt::SizeBDiagCursor;
+    if (e & (Qt::LeftEdge | Qt::RightEdge))
+        return Qt::SizeHorCursor;
+    return Qt::SizeVerCursor;
+}
+
 bool TerminalDock::eventFilter(QObject *watched, QEvent *event)
 {
+    if ((watched == m_container || watched == titleBarWidget()) && isFloating()) {
+        auto *w = static_cast<QWidget *>(watched);
+        if (event->type() == QEvent::MouseMove || event->type() == QEvent::MouseButtonPress) {
+            const auto *me = static_cast<QMouseEvent *>(event);
+            const Qt::Edges edges = edgesAt(w->mapTo(this, me->position().toPoint()));
+            if (event->type() == QEvent::MouseMove && me->buttons() == Qt::NoButton) {
+                if (edges)
+                    w->setCursor(cursorFor(edges));
+                else
+                    w->unsetCursor();
+            } else if (event->type() == QEvent::MouseButtonPress && me->button() == Qt::LeftButton && edges) {
+                if (QWindow *win = window()->windowHandle(); win && win->startSystemResize(edges))
+                    return true;
+            }
+        } else if (event->type() == QEvent::Leave) {
+            w->unsetCursor();
+        }
+    }
     if (watched == m_tabs->tabBar() && event->type() == QEvent::MouseButtonRelease) {
         const auto *me = static_cast<QMouseEvent *>(event);
         const int i = m_tabs->tabBar()->tabAt(me->position().toPoint());
