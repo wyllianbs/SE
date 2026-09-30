@@ -4,7 +4,5 @@
         <file>icons/slayer-editor.png</file>
         <file>fonts/JetBrainsMonoNerdFont-Regular.ttf</file>
         <file>fonts/SymbolsNerdFontMono-Regular.ttf</file>
-        <file>shell/guard.sh</file>
-        <file>shell/bashrc</file>
     </qresource>
 </RCC>

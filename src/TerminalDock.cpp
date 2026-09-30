@@ -132,34 +132,6 @@ QWidget *TerminalDock::buildTitleBar()
     return bar;
 }
 
-QString TerminalDock::guardDir()
-{
-    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/shell");
-}
-
-/** Copia o guard e o rcfile e sincroniza o arquivo que liga/desliga o bloqueio. */
-void TerminalDock::writeGuardFiles() const
-{
-    const QString dir = guardDir();
-    QDir().mkpath(dir);
-    for (const QString &name : {QStringLiteral("guard.sh"), QStringLiteral("bashrc")}) {
-        QFile::remove(dir + QLatin1Char('/') + name);
-        QFile::copy(QStringLiteral(":/shell/") + name, dir + QLatin1Char('/') + name);
-        QFile::setPermissions(dir + QLatin1Char('/') + name, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
-    }
-    QFile message(dir + QStringLiteral("/blocked_message"));
-    if (message.open(QIODevice::WriteOnly | QIODevice::Truncate))
-        message.write(tr("Destructive command blocked by Slayer Editor (Settings → Security).").toUtf8());
-
-    const QString flag = dir + QStringLiteral("/guard_enabled");
-    if (m_guardEnabled) {
-        QFile f(flag);
-        f.open(QIODevice::WriteOnly);
-    } else {
-        QFile::remove(flag);
-    }
-}
-
 QString TerminalDock::effectiveShell() const
 {
     if (!m_shell.trimmed().isEmpty())
@@ -167,13 +139,11 @@ QString TerminalDock::effectiveShell() const
     return qEnvironmentVariable("SHELL", QStringLiteral("/bin/bash"));
 }
 
-void TerminalDock::configure(const QString &shell, bool cursorBlink, bool guardEnabled)
+void TerminalDock::configure(const QString &shell, bool cursorBlink)
 {
     const bool shellChanged = (shell != m_shell);
     m_shell = shell;
     m_cursorBlink = cursorBlink;
-    m_guardEnabled = guardEnabled;
-    writeGuardFiles();
     if (m_term) {
         m_term->setBlinkingCursor(cursorBlink);
         if (shellChanged)
@@ -201,11 +171,8 @@ void TerminalDock::ensureTerminal()
     m_term = new QTermWidget(0, m_container);
     const QString shell = effectiveShell();
     m_term->setShellProgram(shell);
-    // No bash, o rcfile próprio carrega o ~/.bashrc do usuário e depois o guard.
-    if (QFileInfo(shell).fileName() == QLatin1String("bash"))
-        m_term->setArgs({QStringLiteral("--rcfile"), guardDir() + QStringLiteral("/bashrc"), QStringLiteral("-i")});
     QStringList env = QProcessEnvironment::systemEnvironment().toStringList();
-    env << QStringLiteral("SLAYER_GUARD_DIR=") + guardDir() << QStringLiteral("TERM=xterm-256color");
+    env << QStringLiteral("TERM=xterm-256color");
     m_term->setEnvironment(env);
     m_term->setWorkingDirectory(m_workingDir.isEmpty() ? QDir::homePath() : m_workingDir);
     m_term->setScrollBarPosition(QTermWidget::ScrollBarRight);

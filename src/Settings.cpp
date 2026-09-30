@@ -69,7 +69,6 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("terminalFontSize")] = terminalFontSize;
     o[QStringLiteral("shell")] = shell;
     o[QStringLiteral("terminalCursorBlink")] = terminalCursorBlink;
-    o[QStringLiteral("blockDestructiveCommands")] = blockDestructiveCommands;
 
     QJsonObject langs;
     for (auto it = languages.cbegin(); it != languages.cend(); ++it) {
@@ -109,7 +108,6 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.terminalFontSize = qBound(6, num("terminalFontSize", s.terminalFontSize), 48);
     s.shell = str("shell", s.shell);
     s.terminalCursorBlink = flag("terminalCursorBlink", s.terminalCursorBlink);
-    s.blockDestructiveCommands = flag("blockDestructiveCommands", s.blockDestructiveCommands);
 
     const QJsonObject langs = o.value(QStringLiteral("languages")).toObject();
     for (auto it = langs.begin(); it != langs.end(); ++it) {

@@ -1,5 +1,0 @@
-# Slayer Editor — rcfile of the embedded terminal (regenerated on every start).
-# Loads the user's normal bash configuration, then the destructive command guard.
-[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
-[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
-[ -f "$SLAYER_GUARD_DIR/guard.sh" ] && . "$SLAYER_GUARD_DIR/guard.sh"

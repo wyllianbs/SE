@@ -28,11 +28,10 @@ public:
     void setTerminalFont(const QFont &font);
     void moveToArea(Qt::DockWidgetArea area);
     void focusTerminal();
-    /** Shell (vazio = $SHELL), cursor piscante e bloqueio de comandos destrutivos. */
-    void configure(const QString &shell, bool cursorBlink, bool guardEnabled);
+    /** Shell (vazio = $SHELL) e cursor piscante. */
+    void configure(const QString &shell, bool cursorBlink);
     void setWorkingDirectory(const QString &dir);
     void restartShell();
-    static QString guardDir();
 
     static QString areaKey(Qt::DockWidgetArea area);
     static Qt::DockWidgetArea areaFromKey(const QString &key);
@@ -43,7 +42,6 @@ Q_SIGNALS:
 private:
     QWidget *buildTitleBar();
     void ensureTerminal();
-    void writeGuardFiles() const;
     QString effectiveShell() const;
     static void registerColorSchemes();
 
@@ -55,7 +53,6 @@ private:
     QString m_shell;
     QString m_workingDir;
     bool m_cursorBlink = true;
-    bool m_guardEnabled = true;
     QLabel *m_titleIcon = nullptr;
     QList<QPair<QToolButton *, Icons::Glyph>> m_buttons;
 };

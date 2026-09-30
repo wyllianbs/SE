@@ -53,9 +53,6 @@ struct AppSettings
     QString shell;               //< vazio = $SHELL
     bool terminalCursorBlink = true;
 
-    // Segurança
-    bool blockDestructiveCommands = true;
-
     // Linguagens
     QMap<QString, LanguageConfig> languages; //< id da linguagem embutida → config
     QList<CustomLanguage> customLanguages;

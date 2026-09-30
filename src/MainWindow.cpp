@@ -859,7 +859,7 @@ void MainWindow::applySettings(const AppSettings &settings)
 
     m_terminal->setTheme(m_theme);
     m_terminal->setTerminalFont(terminalFont());
-    m_terminal->configure(m_settings.shell, m_settings.terminalCursorBlink, m_settings.blockDestructiveCommands);
+    m_terminal->configure(m_settings.shell, m_settings.terminalCursorBlink);
     refreshIcons();
     updateStatus();
 }

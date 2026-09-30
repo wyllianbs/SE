@@ -116,7 +116,6 @@ SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, 
     addPage(tr("Appearance"), Icons::Palette, buildAppearancePage());
     addPage(tr("Terminal"), Icons::Terminal, buildTerminalPage());
     addPage(tr("Languages"), Icons::Languages, buildLanguagesPage());
-    addPage(tr("Security"), Icons::Shield, buildSecurityPage());
     connect(m_nav, &QListWidget::currentRowChanged, m_pages, &QStackedWidget::setCurrentIndex);
     m_nav->setCurrentRow(1);
 
@@ -465,32 +464,6 @@ QWidget *SettingsDialog::buildLanguagesPage()
                     layout);
 }
 
-QWidget *SettingsDialog::buildSecurityPage()
-{
-    m_guard = new QCheckBox(tr("Block destructive commands in the embedded terminal"));
-    connect(m_guard, &QCheckBox::clicked, this, [this](bool checked) {
-        if (!checked
-            && QMessageBox::warning(this, tr("Security"),
-                                    tr("Without the guard, commands such as “rm -rf ~” run without any warning. "
-                                       "Disable it anyway?"),
-                                    QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
-                   != QMessageBox::Yes)
-            m_guard->setChecked(true);
-    });
-    auto *hint = new QLabel(tr("Blocks commands like <code>rm -rf /</code>, <code>rm -rf ~</code>, "
-                               "<code>mkfs</code>, <code>dd of=/dev/sda</code>, <code>chmod -R 777 /</code> — "
-                               "typed at the prompt or inside bash scripts started from it. Works with bash; "
-                               "other shells run without the guard."));
-    hint->setObjectName(QStringLiteral("Hint"));
-    hint->setWordWrap(true);
-    auto *box = new QVBoxLayout;
-    box->addWidget(m_guard);
-    box->addWidget(hint);
-    auto *layout = new QVBoxLayout;
-    layout->addWidget(card(QString(), box));
-    return makePage(tr("Security"), QString(), layout);
-}
-
 // ---------------------------------------------------------- formulário
 
 void SettingsDialog::refreshProfiles()
@@ -568,7 +541,6 @@ void SettingsDialog::setForm(const AppSettings &s)
     for (const CustomLanguage &c : s.customLanguages)
         addLanguageRow(QString(), c.name, {c.tool, c.flags, c.extensions}, true);
 
-    m_guard->setChecked(s.blockDestructiveCommands);
 }
 
 AppSettings SettingsDialog::settings() const
@@ -616,6 +588,5 @@ AppSettings SettingsDialog::settings() const
         }
     }
 
-    s.blockDestructiveCommands = m_guard->isChecked();
     return s;
 }
