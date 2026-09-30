@@ -22,6 +22,8 @@ add_executable(slayer-editor
     src/TerminalDock.cpp src/TerminalDock.h
     src/FindBar.cpp src/FindBar.h
     src/Icons.cpp src/Icons.h
+    src/Document.cpp src/Document.h
+    src/ViewSpace.cpp src/ViewSpace.h
     src/Settings.cpp src/Settings.h
     src/SettingsDialog.cpp src/SettingsDialog.h
     resources/resources.qrc

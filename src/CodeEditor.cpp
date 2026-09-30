@@ -1,5 +1,4 @@
 #include "CodeEditor.h"
-#include "SyntaxHighlighter.h"
 
 #include <QAbstractItemView>
 #include <QCompleter>
@@ -37,15 +36,15 @@ const QHash<QChar, QChar> &pairs()
 
 } // namespace
 
-CodeEditor::CodeEditor(QWidget *parent)
+CodeEditor::CodeEditor(Document *document, QWidget *parent)
     : QPlainTextEdit(parent)
     , m_lineNumberArea(new LineNumberArea(this))
-    , m_highlighter(new SyntaxHighlighter(document()))
-    , m_language(Language::plainText())
+    , m_doc(document)
     , m_theme(Theme::all().first())
     , m_completer(new QCompleter(this))
     , m_completionModel(new QStringListModel(this))
 {
+    setDocument(document->text());
     setLineWrapMode(QPlainTextEdit::NoWrap);
     m_completer->setModel(m_completionModel);
     m_completer->setWidget(this);
@@ -64,20 +63,9 @@ CodeEditor::CodeEditor(QWidget *parent)
     highlightCurrentLine();
 }
 
-void CodeEditor::setFilePath(const QString &path)
-{
-    m_filePath = path;
-}
-
-QString CodeEditor::displayName() const
-{
-    return m_filePath.isEmpty() ? tr("Untitled") : QFileInfo(m_filePath).fileName();
-}
-
 void CodeEditor::setLanguage(const Language &language)
 {
-    m_language = language;
-    m_highlighter->setLanguage(language);
+    m_doc->setLanguage(language);
 }
 
 void CodeEditor::setTheme(const Theme &theme)
@@ -89,7 +77,7 @@ void CodeEditor::setTheme(const Theme &theme)
     p.setColor(QPalette::Highlight, theme.selection);
     p.setColor(QPalette::HighlightedText, theme.text);
     setPalette(p);
-    m_highlighter->setTheme(theme);
+    m_doc->setTheme(theme);
     highlightCurrentLine();
     m_lineNumberArea->update();
 }
@@ -109,43 +97,17 @@ void CodeEditor::setTabWidthSpaces(int spaces)
 
 bool CodeEditor::loadFile(const QString &path, QString *error)
 {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        if (error)
-            *error = file.errorString();
-        return false;
-    }
-    QTextStream in(&file);
-    setPlainText(in.readAll());
-    document()->setModified(false);
-    setFilePath(path);
-    return true;
+    return m_doc->load(path, error);
 }
 
 bool CodeEditor::saveFile(const QString &path, QString *error)
 {
-    QSaveFile file(path);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        if (error)
-            *error = file.errorString();
-        return false;
-    }
-    QTextStream out(&file);
-    out << toPlainText();
-    out.flush();
-    if (!file.commit()) {
-        if (error)
-            *error = file.errorString();
-        return false;
-    }
-    document()->setModified(false);
-    setFilePath(path);
-    return true;
+    return m_doc->save(path, error);
 }
 
 void CodeEditor::toggleComment()
 {
-    const QString marker = m_language.lineComment;
+    const QString marker = language().lineComment;
     if (marker.isEmpty())
         return;
 
@@ -305,7 +267,7 @@ void CodeEditor::insertNewlineWithIndent()
     const QString trimmed = before.trimmed();
     const bool opens = trimmed.endsWith(QLatin1Char('{')) || trimmed.endsWith(QLatin1Char('['))
                        || trimmed.endsWith(QLatin1Char('('))
-                       || (m_language.id == QLatin1String("python") && trimmed.endsWith(QLatin1Char(':')));
+                       || (language().id == QLatin1String("python") && trimmed.endsWith(QLatin1Char(':')));
     const QString step(m_indentSpaces, QLatin1Char(' '));
 
     c.beginEditBlock();
@@ -498,8 +460,8 @@ void CodeEditor::updateCompletion()
             candidates << w;
         }
     };
-    for (const QString &k : m_language.keywords) consider(k);
-    for (const QString &t : m_language.types) consider(t);
+    for (const QString &k : language().keywords) consider(k);
+    for (const QString &t : language().types) consider(t);
     static const QRegularExpression wordRe(QStringLiteral("[A-Za-z_][A-Za-z0-9_]{2,}"));
     auto it = wordRe.globalMatch(toPlainText());
     int scanned = 0;

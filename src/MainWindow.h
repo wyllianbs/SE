@@ -14,7 +14,9 @@ class QComboBox;
 class QLabel;
 class QPushButton;
 class QStackedWidget;
-class QTabWidget;
+class QSplitter;
+class Document;
+class ViewSpace;
 class QToolBar;
 class TerminalDock;
 
@@ -38,11 +40,27 @@ private:
     QWidget *buildEmptyState();
     void updateEmptyState();
     CodeEditor *currentEditor() const;
-    CodeEditor *editorAt(int index) const;
+
+    // Split view
+    ViewSpace *createViewSpace();
+    QList<ViewSpace *> viewSpaces() const;
+    QList<CodeEditor *> allEditors() const;
+    QList<CodeEditor *> editorsFor(Document *doc) const;
+    void setActiveSpace(ViewSpace *space);
+    void splitSpace(ViewSpace *space, Qt::Orientation orientation, bool moveDocument);
+    bool closeSpace(ViewSpace *space);
+    void removeSpace(ViewSpace *space);
+    void cycleSpace(int step);
+    void updateSpaceActions();
+
+    Document *createDocument();
+    CodeEditor *openView(Document *doc, ViewSpace *space);
+    void releaseView(CodeEditor *editor);
+    void updateDocumentTitles(Document *doc);
     void openFile(const QString &path);
     bool save(CodeEditor *editor);
     bool saveAs(CodeEditor *editor);
-    bool closeTab(int index);
+    bool closeTab(ViewSpace *space, int index);
     bool maybeSave(CodeEditor *editor);
     void runCurrent();
     void goToLine();
@@ -59,11 +77,12 @@ private:
     QFont editorFont() const;
     QFont terminalFont() const;
     void refreshIcons();
-    void updateTabTitle(CodeEditor *editor);
     void updateStatus();
     QString styleSheetFor(const Theme &theme) const;
 
-    QTabWidget *m_tabs;
+    QSplitter *m_rootSplitter = nullptr;
+    ViewSpace *m_activeSpace = nullptr;
+    bool m_inactiveHidden = false;
     QStackedWidget *m_stack = nullptr;
     QList<QPair<QPushButton *, Icons::Glyph>> m_emptyButtons;
     FindBar *m_findBar;

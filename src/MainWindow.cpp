@@ -4,6 +4,7 @@
 #include "Language.h"
 #include "SettingsDialog.h"
 #include "TerminalDock.h"
+#include "ViewSpace.h"
 
 #include <QAction>
 #include <QActionGroup>
@@ -25,6 +26,8 @@
 #include <QTextBlock>
 #include <QTimer>
 #include <QPushButton>
+#include <QSet>
+#include <QSplitter>
 #include <QStackedWidget>
 #include <QToolBar>
 #include <QToolButton>
@@ -32,7 +35,6 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , m_tabs(new QTabWidget(this))
     , m_findBar(new FindBar(this))
     , m_terminal(new TerminalDock(this))
     , m_languageCombo(new QComboBox(this))
@@ -46,23 +48,21 @@ MainWindow::MainWindow(QWidget *parent)
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
     setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
 
-    m_tabs->setDocumentMode(true);
-    m_tabs->setTabsClosable(true);
-    m_tabs->setMovable(true);
-    m_tabs->tabBar()->setExpanding(false);
-    m_tabs->tabBar()->setElideMode(Qt::ElideMiddle);
-
     auto *central = new QWidget(this);
     central->setObjectName(QStringLiteral("Central"));
     auto *layout = new QVBoxLayout(central);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
+    m_rootSplitter = new QSplitter(Qt::Horizontal, central);
+    m_rootSplitter->setChildrenCollapsible(false);
     m_stack = new QStackedWidget(central);
-    m_stack->addWidget(m_tabs);
+    m_stack->addWidget(m_rootSplitter);
     m_stack->addWidget(buildEmptyState());
     layout->addWidget(m_stack, 1);
     layout->addWidget(m_findBar);
     setCentralWidget(central);
+    setActiveSpace(createViewSpace());
+    m_rootSplitter->addWidget(m_activeSpace);
 
     addDockWidget(Qt::BottomDockWidgetArea, m_terminal);
 
@@ -72,16 +72,17 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar()->setSizeGripEnabled(false);
 
     connect(m_languageCombo, &QComboBox::activated, this, [this](int index) {
-        if (CodeEditor *ed = currentEditor()) {
+        if (CodeEditor *ed = currentEditor())
             ed->setLanguage(languageById(m_languageCombo->itemData(index).toString()));
-            updateTabTitle(ed);
-            updateStatus();
-        }
     });
-    connect(m_tabs, &QTabWidget::tabCloseRequested, this, &MainWindow::closeTab);
-    connect(m_tabs, &QTabWidget::currentChanged, this, [this]() {
-        m_findBar->setEditor(currentEditor());
-        updateStatus();
+    // O espaço de visão ativo é o do último widget focado.
+    connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *now) {
+        for (QWidget *w = now; w; w = w->parentWidget()) {
+            if (auto *space = qobject_cast<ViewSpace *>(w)) {
+                setActiveSpace(space);
+                return;
+            }
+        }
     });
 
     createActions();
@@ -102,8 +103,13 @@ MainWindow::MainWindow(QWidget *parent)
                 });
                 return;
             }
-            grab().save(out);
-            qApp->exit(0);
+            // SLAYER_DEBUG_SPLIT: sequência de divisões, "h" lado a lado e "v" empilhado.
+            for (QChar c : qEnvironmentVariable("SLAYER_DEBUG_SPLIT"))
+                splitSpace(m_activeSpace, c == QLatin1Char('h') ? Qt::Horizontal : Qt::Vertical, false);
+            QTimer::singleShot(300, this, [this, out]() {
+                grab().save(out);
+                qApp->exit(0);
+            });
         });
     }
 }
@@ -134,7 +140,7 @@ void MainWindow::createActions()
     add(file, tr("Save &As…"), QKeySequence::SaveAs, [this]() { saveAs(currentEditor()); }, Icons::SaveAs);
     file->addSeparator();
     add(file, tr("&Close Tab"), QKeySequence(Qt::CTRL | Qt::Key_W), [this]() {
-        closeTab(m_tabs->currentIndex());
+        closeTab(m_activeSpace, m_activeSpace->currentIndex());
     }, Icons::Close);
     add(file, tr("&Quit"), QKeySequence::Quit, [this]() { close(); });
 
@@ -177,6 +183,16 @@ void MainWindow::createActions()
         connect(pos->addAction(label), &QAction::triggered, this,
                 [this, k]() { m_terminal->moveToArea(TerminalDock::areaFromKey(k)); });
     }
+    view->addSeparator();
+    QMenu *split = view->addMenu(tr("&Split View"));
+    add(split, tr("Split &Vertical"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_L),
+        [this]() { splitSpace(m_activeSpace, Qt::Horizontal, false); }, Icons::SplitSideBySide);
+    add(split, tr("Split &Horizontal"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_T),
+        [this]() { splitSpace(m_activeSpace, Qt::Vertical, false); }, Icons::SplitStacked);
+    add(split, tr("&Close Current View"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R),
+        [this]() { closeSpace(m_activeSpace); }, Icons::Close);
+    add(split, tr("Next View"), QKeySequence(Qt::Key_F8), [this]() { cycleSpace(1); });
+    add(split, tr("Previous View"), QKeySequence(Qt::SHIFT | Qt::Key_F8), [this]() { cycleSpace(-1); });
     view->addSeparator();
     QMenu *themeMenu = view->addMenu(tr("T&heme"));
     auto *themeGroup = new QActionGroup(themeMenu);
@@ -278,7 +294,7 @@ QWidget *MainWindow::buildEmptyState()
 
 void MainWindow::updateEmptyState()
 {
-    const bool empty = m_tabs->count() == 0;
+    const bool empty = allEditors().isEmpty();
     m_stack->setCurrentIndex(empty ? 1 : 0);
     if (empty) {
         m_findBar->hide();
@@ -287,40 +303,243 @@ void MainWindow::updateEmptyState()
     updateStatus();
 }
 
-CodeEditor *MainWindow::newTab()
+// ------------------------------------------------------- espaços de visão
+
+ViewSpace *MainWindow::createViewSpace()
 {
-    auto *editor = new CodeEditor(m_tabs);
+    auto *space = new ViewSpace;
+    space->setTheme(m_theme);
+    connect(space, &QTabWidget::tabCloseRequested, this, [this, space](int i) { closeTab(space, i); });
+    connect(space, &QTabWidget::currentChanged, this, [this, space]() {
+        if (space == m_activeSpace) {
+            m_findBar->setEditor(currentEditor());
+            updateStatus();
+        }
+    });
+    connect(space, &ViewSpace::splitRequested, this, &MainWindow::splitSpace);
+    connect(space, &ViewSpace::closeViewRequested, this, &MainWindow::closeSpace);
+    connect(space, &ViewSpace::closeInactiveViewsRequested, this, [this](ViewSpace *keep) {
+        for (ViewSpace *s : viewSpaces()) {
+            if (s != keep && !closeSpace(s))
+                return;
+        }
+    });
+    connect(space, &ViewSpace::hideInactiveViewsToggled, this, [this](ViewSpace *keep, bool hide) {
+        m_inactiveHidden = hide;
+        for (ViewSpace *s : viewSpaces())
+            s->setVisible(!hide || s == keep);
+        updateSpaceActions();
+    });
+    return space;
+}
+
+QList<ViewSpace *> MainWindow::viewSpaces() const
+{
+    return m_rootSplitter->findChildren<ViewSpace *>();
+}
+
+QList<CodeEditor *> MainWindow::allEditors() const
+{
+    QList<CodeEditor *> list;
+    for (ViewSpace *s : viewSpaces())
+        list += s->editors();
+    return list;
+}
+
+QList<CodeEditor *> MainWindow::editorsFor(Document *doc) const
+{
+    QList<CodeEditor *> list;
+    for (CodeEditor *e : allEditors()) {
+        if (e->doc() == doc)
+            list << e;
+    }
+    return list;
+}
+
+void MainWindow::setActiveSpace(ViewSpace *space)
+{
+    if (!space || space == m_activeSpace)
+        return;
+    if (m_activeSpace)
+        m_activeSpace->setActive(false);
+    m_activeSpace = space;
+    space->setActive(true);
+    m_findBar->setEditor(currentEditor());
+    updateStatus();
+}
+
+void MainWindow::updateSpaceActions()
+{
+    const QList<ViewSpace *> spaces = viewSpaces();
+    for (ViewSpace *s : spaces)
+        s->setMultipleViews(spaces.size() > 1, m_inactiveHidden);
+}
+
+/**
+ * Divide o espaço de visão. Qt::Horizontal põe as visões lado a lado ("Split
+ * Vertical" no Kate); Qt::Vertical as empilha. Com moveDocument, a aba atual
+ * sai do espaço original em vez de ser duplicada.
+ */
+void MainWindow::splitSpace(ViewSpace *space, Qt::Orientation orientation, bool moveDocument)
+{
+    CodeEditor *source = space ? space->currentEditor() : nullptr;
+    if (!source)
+        return;
+    if (m_inactiveHidden) {
+        m_inactiveHidden = false;
+        for (ViewSpace *s : viewSpaces())
+            s->show();
+    }
+
+    auto *parent = qobject_cast<QSplitter *>(space->parentWidget());
+    ViewSpace *fresh = createViewSpace();
+    const int index = parent->indexOf(space);
+    if (parent->count() == 1 || parent->orientation() == orientation) {
+        parent->setOrientation(orientation);
+        parent->insertWidget(index + 1, fresh);
+        QList<int> sizes;
+        const int each = (orientation == Qt::Horizontal ? parent->width() : parent->height()) / parent->count();
+        for (int i = 0; i < parent->count(); ++i)
+            sizes << each;
+        parent->setSizes(sizes);
+    } else {
+        // Direção diferente: um novo divisor ocupa o lugar do espaço original.
+        const QList<int> sizes = parent->sizes();
+        auto *child = new QSplitter(orientation);
+        child->setChildrenCollapsible(false);
+        parent->replaceWidget(index, child);
+        child->addWidget(space);
+        child->addWidget(fresh);
+        parent->setSizes(sizes);
+        const int half = (orientation == Qt::Horizontal ? space->width() : space->height()) / 2;
+        child->setSizes({half, half});
+    }
+
+    CodeEditor *view = openView(source->doc(), fresh);
+    view->setTextCursor(source->textCursor());
+    view->centerCursor();
+    if (moveDocument)
+        closeTab(space, space->indexOf(source));
+    setActiveSpace(fresh);
+    view->setFocus();
+    updateSpaceActions();
+}
+
+/** Fecha um espaço de visão; documentos sem outra visão pedem para salvar. */
+bool MainWindow::closeSpace(ViewSpace *space)
+{
+    if (!space || viewSpaces().size() < 2)
+        return false;
+    for (CodeEditor *e : space->editors()) {
+        if (editorsFor(e->doc()).size() == 1 && !maybeSave(e))
+            return false;
+    }
+    for (CodeEditor *e : space->editors())
+        releaseView(e);
+    removeSpace(space);
+    return true;
+}
+
+/** Retira o espaço da árvore de divisores e desfaz divisores com um só filho. */
+void MainWindow::removeSpace(ViewSpace *space)
+{
+    auto *parent = qobject_cast<QSplitter *>(space->parentWidget());
+    const bool wasActive = (space == m_activeSpace);
+    space->hide();
+    space->setParent(nullptr);
+    space->deleteLater();
+    if (wasActive)
+        m_activeSpace = nullptr;
+
+    while (parent && parent != m_rootSplitter && parent->count() == 1) {
+        auto *grand = qobject_cast<QSplitter *>(parent->parentWidget());
+        QWidget *only = parent->widget(0);
+        const int idx = grand->indexOf(parent);
+        grand->replaceWidget(idx, only);
+        parent->deleteLater();
+        parent = grand;
+    }
+    if (m_rootSplitter->count() == 1) {
+        if (auto *inner = qobject_cast<QSplitter *>(m_rootSplitter->widget(0))) {
+            // A raiz herda a orientação e os filhos do único divisor restante.
+            m_rootSplitter->setOrientation(inner->orientation());
+            const QList<int> sizes = inner->sizes();
+            while (inner->count() > 0)
+                m_rootSplitter->addWidget(inner->widget(0));
+            inner->deleteLater();
+            m_rootSplitter->setSizes(sizes);
+        }
+    }
+    if (!m_activeSpace) {
+        const QList<ViewSpace *> spaces = viewSpaces();
+        setActiveSpace(spaces.isEmpty() ? nullptr : spaces.first());
+        if (CodeEditor *e = currentEditor())
+            e->setFocus();
+    }
+    m_inactiveHidden = false;
+    for (ViewSpace *s : viewSpaces())
+        s->show();
+    updateSpaceActions();
+    updateEmptyState();
+}
+
+void MainWindow::cycleSpace(int step)
+{
+    const QList<ViewSpace *> spaces = viewSpaces();
+    if (spaces.size() < 2)
+        return;
+    const int i = (spaces.indexOf(m_activeSpace) + step + spaces.size()) % spaces.size();
+    setActiveSpace(spaces[i]);
+    if (CodeEditor *e = currentEditor())
+        e->setFocus();
+}
+
+// --------------------------------------------------------------- abas
+
+Document *MainWindow::createDocument()
+{
+    auto *doc = new Document(this);
+    doc->setTheme(m_theme);
+    connect(doc, &Document::changed, this, [this, doc]() { updateDocumentTitles(doc); });
+    return doc;
+}
+
+CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
+{
+    auto *editor = new CodeEditor(doc, space);
     configureEditor(editor);
-    const int index = m_tabs->addTab(editor, QString());
-    auto *closeButton = new QToolButton(m_tabs->tabBar());
+    const int index = space->addTab(editor, QString());
+    auto *closeButton = new QToolButton(space->tabBar());
     closeButton->setObjectName(QStringLiteral("TabClose"));
     closeButton->setAutoRaise(true);
     closeButton->setIconSize(QSize(12, 12));
     closeButton->setIcon(Icons::icon(Icons::Close, m_theme.textSecondary, 12));
     closeButton->setToolTip(tr("Close tab"));
-    connect(closeButton, &QToolButton::clicked, this, [this, editor]() { closeTab(m_tabs->indexOf(editor)); });
-    m_tabs->tabBar()->setTabButton(index, QTabBar::RightSide, closeButton);
-    m_tabs->setCurrentIndex(index);
-    updateEmptyState();
-    connect(editor->document(), &QTextDocument::modificationChanged, this,
-            [this, editor]() { updateTabTitle(editor); });
+    connect(closeButton, &QToolButton::clicked, this,
+            [this, space, editor]() { closeTab(space, space->indexOf(editor)); });
+    space->tabBar()->setTabButton(index, QTabBar::RightSide, closeButton);
+    space->setCurrentIndex(index);
     connect(editor, &QPlainTextEdit::cursorPositionChanged, this, [this, editor]() {
         if (editor == currentEditor())
             updateStatus();
     });
-    updateTabTitle(editor);
+    updateDocumentTitles(doc);
+    updateEmptyState();
+    return editor;
+}
+
+CodeEditor *MainWindow::newTab()
+{
+    if (!m_activeSpace)
+        setActiveSpace(viewSpaces().first());
+    CodeEditor *editor = openView(createDocument(), m_activeSpace);
     editor->setFocus();
     return editor;
 }
 
 CodeEditor *MainWindow::currentEditor() const
 {
-    return qobject_cast<CodeEditor *>(m_tabs->currentWidget());
-}
-
-CodeEditor *MainWindow::editorAt(int index) const
-{
-    return qobject_cast<CodeEditor *>(m_tabs->widget(index));
+    return m_activeSpace ? m_activeSpace->currentEditor() : nullptr;
 }
 
 void MainWindow::openFiles(const QStringList &paths)
@@ -332,17 +551,25 @@ void MainWindow::openFiles(const QStringList &paths)
 void MainWindow::openFile(const QString &path)
 {
     const QString abs = QFileInfo(path).absoluteFilePath();
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        if (editorAt(i)->filePath() == abs) {
-            m_tabs->setCurrentIndex(i);
-            return;
+
+    // Já aberto: mostra no espaço ativo (criando uma visão, se preciso).
+    for (CodeEditor *e : allEditors()) {
+        if (e->filePath() != abs)
+            continue;
+        for (CodeEditor *mine : m_activeSpace->editors()) {
+            if (mine->doc() == e->doc()) {
+                m_activeSpace->setCurrentWidget(mine);
+                mine->setFocus();
+                return;
+            }
         }
+        openView(e->doc(), m_activeSpace)->setFocus();
+        return;
     }
 
     // Reaproveita a aba "Sem título" vazia.
     CodeEditor *editor = currentEditor();
-    if (!editor || !editor->filePath().isEmpty() || editor->document()->isModified()
-        || !editor->toPlainText().isEmpty())
+    if (!editor || !editor->doc()->isUntitledAndEmpty() || editorsFor(editor->doc()).size() > 1)
         editor = newTab();
 
     if (QFileInfo::exists(abs)) {
@@ -356,7 +583,6 @@ void MainWindow::openFile(const QString &path)
     }
     editor->setLanguage(languageForPath(abs));
     m_lastDir = QFileInfo(abs).absolutePath();
-    updateTabTitle(editor);
     updateStatus();
 }
 
@@ -390,16 +616,18 @@ bool MainWindow::saveAs(CodeEditor *editor)
     }
     m_lastDir = QFileInfo(path).absolutePath();
     editor->setLanguage(languageForPath(path));
-    updateTabTitle(editor);
     updateStatus();
     return true;
 }
 
 bool MainWindow::maybeSave(CodeEditor *editor)
 {
-    if (!editor || !editor->document()->isModified())
+    if (!editor || !editor->doc()->isModified())
         return true;
-    m_tabs->setCurrentWidget(editor);
+    if (auto *space = qobject_cast<ViewSpace *>(editor->parentWidget()->parentWidget())) {
+        space->setCurrentWidget(editor);
+        setActiveSpace(space);
+    }
     const auto answer = QMessageBox::question(
         this, tr("Unsaved Changes"),
         tr("“%1” has unsaved changes. Save them?").arg(editor->displayName()),
@@ -409,28 +637,52 @@ bool MainWindow::maybeSave(CodeEditor *editor)
     return answer == QMessageBox::Discard;
 }
 
-bool MainWindow::closeTab(int index)
+/** Tira a visão da aba; o documento é destruído quando não sobra visão dele. */
+void MainWindow::releaseView(CodeEditor *editor)
 {
-    CodeEditor *editor = editorAt(index);
-    if (!editor || !maybeSave(editor))
-        return false;
-    m_tabs->removeTab(index);
+    Document *doc = editor->doc();
+    const bool last = editorsFor(doc).size() == 1;
+    for (ViewSpace *s : viewSpaces()) {
+        const int i = s->indexOf(editor);
+        if (i >= 0)
+            s->removeTab(i);
+    }
     editor->deleteLater();
-    updateEmptyState();
+    if (last)
+        doc->deleteLater();
+}
+
+bool MainWindow::closeTab(ViewSpace *space, int index)
+{
+    CodeEditor *editor = space ? space->editorAt(index) : nullptr;
+    if (!editor)
+        return false;
+    if (editorsFor(editor->doc()).size() == 1 && !maybeSave(editor))
+        return false;
+    releaseView(editor);
+    // Espaço dividido que ficou vazio é fechado, como no Kate.
+    if (space->count() == 0 && viewSpaces().size() > 1)
+        removeSpace(space);
+    else
+        updateEmptyState();
     return true;
 }
 
-void MainWindow::updateTabTitle(CodeEditor *editor)
+void MainWindow::updateDocumentTitles(Document *doc)
 {
-    const int index = m_tabs->indexOf(editor);
-    if (index < 0)
-        return;
-    const QString modified = editor->document()->isModified() ? QStringLiteral("  ●") : QString();
-    m_tabs->setTabText(index, editor->displayName() + modified);
-    m_tabs->setTabToolTip(index, editor->filePath());
-    const QString lang = editor->language().id;
-    m_tabs->setTabIcon(index, Icons::icon(Icons::forLanguage(lang), Icons::colorForLanguage(lang), 16));
-    if (editor == currentEditor())
+    const QString modified = doc->isModified() ? QStringLiteral("  ●") : QString();
+    const QString lang = doc->language().id;
+    const QIcon icon = Icons::icon(Icons::forLanguage(lang), Icons::colorForLanguage(lang), 16);
+    for (ViewSpace *s : viewSpaces()) {
+        for (int i = 0; i < s->count(); ++i) {
+            if (s->editorAt(i)->doc() != doc)
+                continue;
+            s->setTabText(i, doc->displayName() + modified);
+            s->setTabToolTip(i, doc->filePath());
+            s->setTabIcon(i, icon);
+        }
+    }
+    if (CodeEditor *e = currentEditor(); e && e->doc() == doc)
         updateStatus();
 }
 
@@ -448,7 +700,7 @@ void MainWindow::updateStatus()
     m_cursorLabel->setText(tr("Ln %1, Col %2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
     const int idx = m_languageCombo->findData(editor->language().id);
     m_languageCombo->setCurrentIndex(idx);
-    const QString title = editor->displayName() + (editor->document()->isModified() ? QStringLiteral(" ●") : QString());
+    const QString title = editor->displayName() + (editor->doc()->isModified() ? QStringLiteral(" ●") : QString());
     setWindowTitle(title + QStringLiteral(" — Slayer Editor"));
 }
 
@@ -590,14 +842,19 @@ void MainWindow::applySettings(const AppSettings &settings)
     const int iconSize = qRound(18 * m_settings.buttonScale / 100.0);
     m_toolbar->setIconSize(QSize(iconSize, iconSize));
 
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        CodeEditor *ed = editorAt(i);
+    QSet<Document *> docs;
+    for (CodeEditor *ed : allEditors()) {
         configureEditor(ed);
-        // Extensões e linguagens personalizadas podem ter mudado.
-        if (!ed->filePath().isEmpty())
-            ed->setLanguage(languageForPath(ed->filePath()));
-        updateTabTitle(ed);
+        docs.insert(ed->doc());
     }
+    for (Document *doc : std::as_const(docs)) {
+        doc->setTheme(m_theme);
+        // Extensões e linguagens personalizadas podem ter mudado.
+        if (!doc->filePath().isEmpty())
+            doc->setLanguage(languageForPath(doc->filePath()));
+    }
+    for (ViewSpace *s : viewSpaces())
+        s->setTheme(m_theme);
     rebuildLanguageCombo();
 
     m_terminal->setTheme(m_theme);
@@ -668,9 +925,11 @@ void MainWindow::refreshIcons()
     const int size = m_toolbar->iconSize().width();
     for (const auto &[action, glyph] : std::as_const(m_iconActions))
         action->setIcon(Icons::icon(glyph, action == m_runAction ? m_theme.window : m_theme.textSecondary, size));
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        if (auto *b = qobject_cast<QToolButton *>(m_tabs->tabBar()->tabButton(i, QTabBar::RightSide)))
-            b->setIcon(Icons::icon(Icons::Close, m_theme.textSecondary, 12));
+    for (ViewSpace *s : viewSpaces()) {
+        for (int i = 0; i < s->count(); ++i) {
+            if (auto *b = qobject_cast<QToolButton *>(s->tabBar()->tabButton(i, QTabBar::RightSide)))
+                b->setIcon(Icons::icon(Icons::Close, m_theme.textSecondary, 12));
+        }
     }
 }
 
@@ -700,6 +959,13 @@ QTabBar::tab { background: transparent; color: %7; padding: 8px 14px; margin: 4p
                border-top-left-radius: 10px; border-top-right-radius: 10px; min-width: 60px; }
 QTabBar::tab:selected { background: %2; color: %3; }
 QTabBar::tab:hover:!selected { background: %4; color: %3; }
+QTabBar[activeSpace="true"]::tab:selected { border-top: 2px solid %5; }
+QSplitter::handle { background: %4; }
+QSplitter::handle:horizontal { width: 1px; }
+QSplitter::handle:vertical { height: 1px; }
+QSplitter::handle:hover { background: %5; }
+#SplitCorner { background: %1; }
+QToolButton#SplitButton { padding: 4px; margin: 2px 6px; border-radius: 6px; }
 QToolButton#TabClose { padding: 2px; border-radius: 5px; margin-left: 4px; }
 QPlainTextEdit { background: %2; color: %3; border: none; selection-background-color: %8; }
 QStatusBar { background: %1; color: %7; border-top: 1px solid %4; }
@@ -805,8 +1071,8 @@ void MainWindow::restoreSession()
             openFile(f);
     }
     const int current = s.value(QStringLiteral("session/current"), 0).toInt();
-    if (current >= 0 && current < m_tabs->count())
-        m_tabs->setCurrentIndex(current);
+    if (current >= 0 && current < m_activeSpace->count())
+        m_activeSpace->setCurrentIndex(current);
 }
 
 void MainWindow::saveSession()
@@ -817,18 +1083,22 @@ void MainWindow::saveSession()
     s.setValue(QStringLiteral("ui/geometry"), saveGeometry());
     s.setValue(QStringLiteral("ui/state"), saveState());
     QStringList files;
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        if (!editorAt(i)->filePath().isEmpty())
-            files << editorAt(i)->filePath();
+    for (CodeEditor *e : allEditors()) {
+        if (!e->filePath().isEmpty() && !files.contains(e->filePath()))
+            files << e->filePath();
     }
     s.setValue(QStringLiteral("session/files"), files);
-    s.setValue(QStringLiteral("session/current"), m_tabs->currentIndex());
+    s.setValue(QStringLiteral("session/current"), m_activeSpace ? m_activeSpace->currentIndex() : 0);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        if (!maybeSave(editorAt(i))) {
+    QSet<Document *> asked;
+    for (CodeEditor *e : allEditors()) {
+        if (asked.contains(e->doc()))
+            continue;
+        asked.insert(e->doc());
+        if (!maybeSave(e)) {
             event->ignore();
             return;
         }

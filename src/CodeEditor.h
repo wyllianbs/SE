@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Document.h"
 #include "Language.h"
 #include "Theme.h"
 
@@ -7,20 +8,20 @@
 
 class QCompleter;
 class QStringListModel;
-class SyntaxHighlighter;
 
 /** Editor de código: numeração de linhas, realce, indentação e pares automáticos. */
 class CodeEditor : public QPlainTextEdit
 {
     Q_OBJECT
 public:
-    explicit CodeEditor(QWidget *parent = nullptr);
+    explicit CodeEditor(Document *document, QWidget *parent = nullptr);
 
-    QString filePath() const { return m_filePath; }
-    void setFilePath(const QString &path);
-    QString displayName() const;
+    Document *doc() const { return m_doc; }
+    QString filePath() const { return m_doc->filePath(); }
+    void setFilePath(const QString &path) { m_doc->setFilePath(path); }
+    QString displayName() const { return m_doc->displayName(); }
 
-    const Language &language() const { return m_language; }
+    const Language &language() const { return m_doc->language(); }
     void setLanguage(const Language &language);
     void setTheme(const Theme &theme);
     void setEditorFont(const QFont &font);
@@ -56,10 +57,8 @@ private:
     void insertCompletion(const QString &word);
 
     QWidget *m_lineNumberArea;
-    SyntaxHighlighter *m_highlighter;
-    Language m_language;
+    Document *m_doc;
     Theme m_theme;
-    QString m_filePath;
     bool m_autoClosePairs = true;
     int m_indentSpaces = 4;
     bool m_lineNumbers = true;
