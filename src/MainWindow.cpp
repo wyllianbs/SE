@@ -56,6 +56,13 @@ MainWindow::MainWindow(QWidget *parent)
         updateStatus();
     });
     connect(m_lsp, &LspManager::message, this, [this](const QString &text) { statusBar()->showMessage(text, 6000); });
+    // Terminal transparente: a janela precisa nascer com fundo translúcido (o
+    // atributo só vale antes de ela ser criada). Todas as outras áreas pintam
+    // o próprio fundo pela folha de estilo, então só o terminal fica vazado.
+    if (AppSettings::load().terminalTransparency > 0) {
+        setAttribute(Qt::WA_TranslucentBackground);
+        m_translucent = true;
+    }
     setWindowTitle(QStringLiteral("Slayer Editor"));
     setWindowIcon(QIcon(QStringLiteral(":/icons/slayer-editor.png")));
     setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowTabbedDocks);
@@ -1157,6 +1164,7 @@ void MainWindow::applySettings(const AppSettings &settings)
     m_terminal->setTheme(m_theme);
     m_terminal->setTerminalFont(terminalFont());
     m_terminal->configure(m_settings.shell, m_settings.terminalCursorBlink);
+    m_terminal->setTransparency(m_settings.terminalTransparency);
     refreshIcons();
     updateStatus();
 }
@@ -1166,7 +1174,9 @@ void MainWindow::showSettings()
     auto *dialog = new SettingsDialog(m_settings, m_theme, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &SettingsDialog::applied, this, [this](const AppSettings &s) {
-        if (s.uiScale != m_settings.uiScale || s.uiLanguage != m_settings.uiLanguage)
+        if (s.terminalTransparency > 0 && !m_translucent)
+            statusBar()->showMessage(tr("Restart Slayer Editor to see the desktop through the terminal."), 6000);
+        else if (s.uiScale != m_settings.uiScale || s.uiLanguage != m_settings.uiLanguage)
             statusBar()->showMessage(tr("Interface scale and language apply after restarting Slayer Editor."), 5000);
         applySettings(s);
     });
@@ -1234,7 +1244,8 @@ QString MainWindow::styleSheetFor(const Theme &t) const
 {
     const QString hover = t.divider.name();
     return QStringLiteral(R"(
-QMainWindow, #Central { background: %1; }
+QMainWindow { background: %12; }
+#Central { background: %1; }
 QToolBar#MainToolbar { background: %1; border: none; padding: 6px 8px; spacing: 4px; }
 QToolBar::separator { background: %4; width: 1px; margin: 6px 6px; }
 QToolButton { border: none; border-radius: 8px; padding: 6px; color: %3; }
@@ -1350,7 +1361,8 @@ QComboBox::drop-down { border: none; width: 22px; background: transparent; }
              t.primary.lighter(115).name(), t.textSecondary.name(), t.selection.name(),
              Icons::glyphFile(Icons::Check, t.window, 14),
              Icons::glyphFile(Icons::ChevronUp, t.textSecondary, 12),
-             Icons::glyphFile(Icons::ChevronDown, t.textSecondary, 12));
+             Icons::glyphFile(Icons::ChevronDown, t.textSecondary, 12),
+             m_translucent ? QStringLiteral("transparent") : t.window.name());
 }
 
 // ------------------------------------------------------------ sessão

@@ -63,6 +63,7 @@ struct AppSettings
     int terminalFontSize = 11;
     QString shell;               //< vazio = $SHELL
     bool terminalCursorBlink = true;
+    int terminalTransparency = 0; //< % (0 = opaco, máx. 90)
 
     // Linguagens
     QMap<QString, LanguageConfig> languages; //< id da linguagem embutida → config

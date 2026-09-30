@@ -87,6 +87,7 @@ private:
     QSplitter *m_rootSplitter = nullptr;
     ViewSpace *m_activeSpace = nullptr;
     bool m_inactiveHidden = false;
+    bool m_translucent = false; //< janela criada com fundo translúcido
     QStackedWidget *m_stack = nullptr;
     QList<QPair<QPushButton *, Icons::Glyph>> m_emptyButtons;
     FindBar *m_findBar;

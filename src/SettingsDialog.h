@@ -83,6 +83,8 @@ private:
     QSpinBox *m_terminalFontSize = nullptr;
     QComboBox *m_shell = nullptr;
     QCheckBox *m_terminalBlink = nullptr;
+    QSlider *m_terminalTransparency = nullptr;
+    QLabel *m_terminalTransparencyLabel = nullptr;
 
     // Linguagens
     QTableWidget *m_languages = nullptr;

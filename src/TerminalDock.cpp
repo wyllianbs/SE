@@ -22,6 +22,8 @@ TerminalDock::TerminalDock(QMainWindow *mainWindow)
     , m_mainWindow(mainWindow)
     , m_container(new QWidget(this))
 {
+    m_container->setObjectName(QStringLiteral("TerminalContainer"));
+    m_container->setAttribute(Qt::WA_StyledBackground);
     setObjectName(QStringLiteral("TerminalDock"));
     setAllowedAreas(Qt::AllDockWidgetAreas);
     setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable
@@ -182,6 +184,7 @@ void TerminalDock::ensureTerminal()
         m_term->setColorScheme(m_schemeName);
     if (m_font != QFont())
         m_term->setTerminalFont(m_font);
+    m_term->setTerminalOpacity(1.0 - m_transparency / 100.0);
     m_container->layout()->addWidget(m_term);
 
     // "exit" encerra o shell: recria um novo terminal.
@@ -213,8 +216,27 @@ void TerminalDock::setTheme(const Theme &theme)
         button->setIcon(Icons::icon(glyph, theme.textSecondary, 16));
     m_titleIcon->setPixmap(Icons::icon(Icons::Terminal, theme.primary, 16).pixmap(16, 16));
     m_schemeName = QStringLiteral("SlayerEditor-") + theme.id;
+    m_background = theme.terminalBackground;
+    updateContainerBackground();
     if (m_term && !m_schemeName.isEmpty())
         m_term->setColorScheme(m_schemeName);
+}
+
+/** Margens em volta do terminal com a mesma opacidade dele. */
+void TerminalDock::updateContainerBackground()
+{
+    QColor c = m_background;
+    c.setAlphaF(1.0 - m_transparency / 100.0);
+    m_container->setStyleSheet(QStringLiteral("#TerminalContainer { background: rgba(%1,%2,%3,%4); }")
+                                   .arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alpha()));
+}
+
+void TerminalDock::setTransparency(int percent)
+{
+    m_transparency = qBound(0, percent, 90);
+    updateContainerBackground();
+    if (m_term)
+        m_term->setTerminalOpacity(1.0 - m_transparency / 100.0);
 }
 
 void TerminalDock::setTerminalFont(const QFont &font)

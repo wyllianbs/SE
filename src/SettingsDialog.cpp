@@ -391,8 +391,24 @@ QWidget *SettingsDialog::buildTerminalPage()
     form->addRow(tr("Shell"), m_shell);
     form->addRow(QString(), m_terminalBlink);
 
+    m_terminalTransparency = new QSlider(Qt::Horizontal);
+    m_terminalTransparency->setRange(0, 90);
+    m_terminalTransparency->setSingleStep(5);
+    m_terminalTransparency->setPageStep(10);
+    m_terminalTransparencyLabel = new QLabel;
+    m_terminalTransparencyLabel->setMinimumWidth(48);
+    connect(m_terminalTransparency, &QSlider::valueChanged, this, [this](int v) {
+        m_terminalTransparencyLabel->setText(v == 0 ? tr("Off") : QStringLiteral("%1%").arg(v));
+    });
+    auto *transparencyRow = new QHBoxLayout;
+    transparencyRow->addWidget(m_terminalTransparency, 1);
+    transparencyRow->addWidget(m_terminalTransparencyLabel);
+    form->addRow(tr("Transparency"), transparencyRow);
+
     auto *hint = new QLabel(tr("Move the terminal to the left, top, right or bottom with the ▥ button on its "
-                               "title bar, or drag it by the title. Typing “exit” starts a new shell."));
+                               "title bar, or drag it by the title. Typing “exit” starts a new shell.<br><br>"
+                               "Transparency shows the desktop behind the terminal. The first time it is turned "
+                               "on, restart Slayer Editor; later changes apply immediately."));
     hint->setObjectName(QStringLiteral("Hint"));
     hint->setWordWrap(true);
     auto *tips = new QVBoxLayout;
@@ -648,6 +664,9 @@ void SettingsDialog::setForm(const AppSettings &s)
     else
         m_shell->setEditText(s.shell);
     m_terminalBlink->setChecked(s.terminalCursorBlink);
+    m_terminalTransparency->setValue(s.terminalTransparency);
+    m_terminalTransparencyLabel->setText(s.terminalTransparency == 0 ? tr("Off")
+                                                                      : QStringLiteral("%1%").arg(s.terminalTransparency));
 
     m_languages->setRowCount(0);
     for (const Language &lang : Language::all())
@@ -698,6 +717,7 @@ AppSettings SettingsDialog::settings() const
                   ? m_shell->itemData(shellIndex).toString()
                   : m_shell->currentText().trimmed();
     s.terminalCursorBlink = m_terminalBlink->isChecked();
+    s.terminalTransparency = m_terminalTransparency->value();
 
     for (int row = 0; row < m_languages->rowCount(); ++row) {
         const QTableWidgetItem *nameItem = m_languages->item(row, 0);

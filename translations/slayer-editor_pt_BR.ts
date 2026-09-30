@@ -663,6 +663,10 @@
         <source>Interface scale and language apply after restarting Slayer Editor.</source>
         <translation>A escala e o idioma da interface valem após reiniciar o Slayer Editor.</translation>
     </message>
+    <message>
+        <source>Restart Slayer Editor to see the desktop through the terminal.</source>
+        <translation>Reinicie o Slayer Editor para ver a área de trabalho através do terminal.</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -835,10 +839,6 @@
         <translation>Shell</translation>
     </message>
     <message>
-        <source>Move the terminal to the left, top, right or bottom with the ▥ button on its title bar, or drag it by the title. Typing “exit” starts a new shell.</source>
-        <translation>Mova o terminal para a esquerda, o topo, a direita ou a base com o botão ▥ da barra de título, ou arraste-o pelo título. Digitar “exit” inicia um novo shell.</translation>
-    </message>
-    <message>
         <source>Tip</source>
         <translation>Dica</translation>
     </message>
@@ -943,6 +943,18 @@
     <message>
         <source>Interface language (restart)</source>
         <translation>Idioma da interface (reiniciar)</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>Desligada</translation>
+    </message>
+    <message>
+        <source>Transparency</source>
+        <translation>Transparência</translation>
+    </message>
+    <message>
+        <source>Move the terminal to the left, top, right or bottom with the ▥ button on its title bar, or drag it by the title. Typing “exit” starts a new shell.&lt;br&gt;&lt;br&gt;Transparency shows the desktop behind the terminal. The first time it is turned on, restart Slayer Editor; later changes apply immediately.</source>
+        <translation>Mova o terminal para a esquerda, o topo, a direita ou a base com o botão ▥ da barra de título, ou arraste-o pelo título. Digitar “exit” inicia um novo shell.&lt;br&gt;&lt;br&gt;A transparência mostra a área de trabalho por trás do terminal. Na primeira vez que for ligada, reinicie o Slayer Editor; depois, as mudanças valem na hora.</translation>
     </message>
 </context>
 <context>

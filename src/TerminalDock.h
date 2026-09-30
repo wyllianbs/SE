@@ -32,6 +32,8 @@ public:
     void configure(const QString &shell, bool cursorBlink);
     void setWorkingDirectory(const QString &dir);
     void restartShell();
+    /** 0 = opaco … 90 = quase invisível. */
+    void setTransparency(int percent);
 
     static QString areaKey(Qt::DockWidgetArea area);
     static Qt::DockWidgetArea areaFromKey(const QString &key);
@@ -53,6 +55,9 @@ private:
     QString m_shell;
     QString m_workingDir;
     bool m_cursorBlink = true;
+    int m_transparency = 0;
+    QColor m_background;
+    void updateContainerBackground();
     QLabel *m_titleIcon = nullptr;
     QList<QPair<QToolButton *, Icons::Glyph>> m_buttons;
 };
