@@ -110,5 +110,7 @@ private:
     QString m_lastDir;
     QList<QPair<QAction *, Icons::Glyph>> m_iconActions;
     QAction *m_runAction = nullptr;
+    QAction *m_runToolbarAction = nullptr;
     QAction *m_lspAction = nullptr;
+    QList<QPair<QAction *, bool AppSettings::*>> m_settingToggles;
 };

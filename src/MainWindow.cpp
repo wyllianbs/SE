@@ -213,6 +213,27 @@ void MainWindow::createActions()
         if (auto *e = currentEditor()) e->doc()->unfoldAll();
     });
     edit->addSeparator();
+    // Chaves rápidas das opções de Settings → Editor → Features.
+    auto toggle = [this, edit](const QString &text, bool AppSettings::*field, const QString &on, const QString &off) {
+        QAction *a = edit->addAction(text);
+        a->setCheckable(true);
+        connect(a, &QAction::toggled, this, [this, field, on, off](bool checked) {
+            if (m_settings.*field == checked)
+                return;
+            AppSettings s = m_settings;
+            s.*field = checked;
+            applySettings(s);
+            statusBar()->showMessage(checked ? on : off, 3000);
+        });
+        m_settingToggles.append({a, field});
+    };
+    toggle(tr("Code Com&pletion"), &AppSettings::codeCompletion, tr("Code completion enabled"),
+           tr("Code completion disabled"));
+    toggle(tr("Auto-Close &Brackets and Quotes"), &AppSettings::autoClosePairs, tr("Auto-closing pairs enabled"),
+           tr("Auto-closing pairs disabled"));
+    toggle(tr("Code F&olding Markers"), &AppSettings::codeFolding, tr("Code folding enabled"),
+           tr("Code folding disabled"));
+    edit->addSeparator();
     add(edit, tr("&Settings…"), QKeySequence(Qt::CTRL | Qt::Key_Comma),
                              [this]() { showSettings(); }, Icons::Settings);
 
@@ -298,9 +319,14 @@ void MainWindow::createActions()
     m_toolbar->addActions({undoA, redoA, findA});
     m_toolbar->addSeparator();
     m_toolbar->addAction(termA);
-    m_toolbar->addAction(m_runAction);
+    // Ação própria para o botão da barra: ícone escuro sobre o fundo azul; no
+    // menu, o ícone de Run usa a cor dos demais.
+    m_runToolbarAction = new QAction(tr("Run"), this);
+    m_runToolbarAction->setToolTip(m_runAction->toolTip());
+    connect(m_runToolbarAction, &QAction::triggered, this, [this]() { runCurrent(); });
+    m_toolbar->addAction(m_runToolbarAction);
 
-    if (auto *runButton = m_toolbar->widgetForAction(m_runAction)) {
+    if (auto *runButton = m_toolbar->widgetForAction(m_runToolbarAction)) {
         runButton->setObjectName(QStringLiteral("RunButton"));
     }
 }
@@ -1161,6 +1187,10 @@ void MainWindow::applySettings(const AppSettings &settings)
         const QSignalBlocker blocker(m_lspAction);
         m_lspAction->setChecked(m_settings.lspEnabled);
     }
+    for (const auto &[action, field] : std::as_const(m_settingToggles)) {
+        const QSignalBlocker blocker(action);
+        action->setChecked(m_settings.*field);
+    }
     QSet<Document *> docs;
     for (CodeEditor *ed : allEditors()) {
         configureEditor(ed);
@@ -1247,7 +1277,8 @@ void MainWindow::refreshIcons()
         button->setIcon(Icons::icon(glyph, m_theme.primary, 18));
     const int size = m_toolbar->iconSize().width();
     for (const auto &[action, glyph] : std::as_const(m_iconActions))
-        action->setIcon(Icons::icon(glyph, action == m_runAction ? m_theme.window : m_theme.textSecondary, size));
+        action->setIcon(Icons::icon(glyph, m_theme.textSecondary, size));
+    m_runToolbarAction->setIcon(Icons::icon(Icons::Run, m_theme.window, size));
     for (ViewSpace *s : viewSpaces()) {
         for (int i = 0; i < s->count(); ++i) {
             if (auto *b = qobject_cast<QToolButton *>(s->tabBar()->tabButton(i, QTabBar::RightSide)))
