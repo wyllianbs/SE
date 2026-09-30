@@ -90,7 +90,8 @@ QString Icons::glyphFile(Glyph glyph, const QColor &color, int size)
 {
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/glyphs");
     QDir().mkpath(dir);
-    const QString path = QStringLiteral("%1/%2-%3-%4.png")
+    // "@2x": o Qt lê como imagem de densidade 2 e desenha no tamanho lógico.
+    const QString path = QStringLiteral("%1/%2-%3-%4@2x.png")
                              .arg(dir, QString::number(uint(glyph), 16), color.name().mid(1), QString::number(size));
     if (!QFile::exists(path))
         render(glyph, color, size, 2.0).save(path);

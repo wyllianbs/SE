@@ -116,6 +116,10 @@ MainWindow::MainWindow(QWidget *parent)
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_SETTINGS")) {
                 showSettings();
                 auto *dialog = findChild<SettingsDialog *>();
+                if (qEnvironmentVariableIsSet("SLAYER_DEBUG_SIZE")) {
+                    const QStringList wh = qEnvironmentVariable("SLAYER_DEBUG_SIZE").split(QLatin1Char('x'));
+                    dialog->resize(wh.value(0).toInt(), wh.value(1).toInt());
+                }
                 if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
                     nav->setCurrentRow(qEnvironmentVariableIntValue("SLAYER_DEBUG_SETTINGS"));
                 QTimer::singleShot(300, this, [dialog, out]() {
@@ -1333,13 +1337,13 @@ QSlider::groove:horizontal { height: 4px; background: %4; border-radius: 2px; }
 QSlider::sub-page:horizontal { background: %5; border-radius: 2px; }
 QSlider::handle:horizontal { background: %5; width: 16px; height: 16px; margin: -6px 0; border-radius: 8px; }
 QCheckBox::indicator { width: 16px; height: 16px; border-radius: 5px; border: 1px solid %7; background: %2; }
-QCheckBox::indicator:checked { background: %5; border-color: %5; image: url(%9); }
+QCheckBox::indicator:checked { background: %5; border-color: %5; image: url("%9"); }
 QSpinBox::up-button, QSpinBox::down-button { subcontrol-origin: border; width: 18px; border: none;
                                              background: transparent; }
 QSpinBox::up-button { subcontrol-position: top right; }
 QSpinBox::down-button { subcontrol-position: bottom right; }
-QSpinBox::up-arrow { image: url(%10); width: 10px; height: 10px; }
-QSpinBox::down-arrow, QComboBox::down-arrow { image: url(%11); width: 10px; height: 10px; }
+QSpinBox::up-arrow { image: url("%10"); width: 10px; height: 10px; }
+QSpinBox::down-arrow, QComboBox::down-arrow { image: url("%11"); width: 10px; height: 10px; }
 QComboBox::drop-down { border: none; width: 22px; background: transparent; }
 )")
         .arg(t.window.name(), t.surface.name(), t.text.name(), hover, t.primary.name(),

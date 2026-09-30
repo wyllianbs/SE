@@ -35,8 +35,12 @@ namespace {
 constexpr int kIdRole = Qt::UserRole;
 constexpr int kCustomRole = Qt::UserRole + 1;
 
-/** Página com título, descrição e conteúdo rolável. */
-QWidget *makePage(const QString &title, const QString &subtitle, QLayout *content)
+/**
+ * Página com título, descrição e conteúdo rolável. Com expand, o conteúdo
+ * ocupa a altura disponível (páginas com tabela ou lista crescem junto com a
+ * janela); sem ele, fica no topo.
+ */
+QWidget *makePage(const QString &title, const QString &subtitle, QLayout *content, bool expand = false)
 {
     auto *inner = new QWidget;
     auto *v = new QVBoxLayout(inner);
@@ -51,8 +55,9 @@ QWidget *makePage(const QString &title, const QString &subtitle, QLayout *conten
         s->setWordWrap(true);
         v->addWidget(s);
     }
-    v->addLayout(content);
-    v->addStretch(1);
+    v->addLayout(content, expand ? 1 : 0);
+    if (!expand)
+        v->addStretch(1);
 
     auto *scroll = new QScrollArea;
     scroll->setWidgetResizable(true);
@@ -75,7 +80,7 @@ QWidget *card(const QString &title, QLayout *content)
         l->setObjectName(QStringLiteral("CardTitle"));
         v->addWidget(l);
     }
-    v->addLayout(content);
+    v->addLayout(content, 1);
     return box;
 }
 
@@ -166,7 +171,7 @@ QWidget *SettingsDialog::buildProfilesPage()
 {
     m_profiles = new QListWidget;
     m_profiles->setObjectName(QStringLiteral("ProfileList"));
-    m_profiles->setMinimumHeight(180);
+    m_profiles->setMinimumHeight(140);
     m_profileName = new QLineEdit;
     m_profileName->setPlaceholderText(tr("Profile name"));
     m_activeProfile = new QLabel;
@@ -233,18 +238,18 @@ QWidget *SettingsDialog::buildProfilesPage()
     actions->addWidget(load);
     actions->addWidget(remove);
     auto *listBox = new QVBoxLayout;
-    listBox->addWidget(m_profiles);
+    listBox->addWidget(m_profiles, 1);
     listBox->addLayout(actions);
 
     auto *layout = new QVBoxLayout;
     layout->setSpacing(14);
     layout->addWidget(card(tr("New profile"), saveBox));
-    layout->addWidget(card(tr("Saved profiles"), listBox));
+    layout->addWidget(card(tr("Saved profiles"), listBox), 1);
     refreshProfiles();
     return makePage(tr("Profiles"),
                     tr("A profile stores every setting under a name, so you can switch setups in one click "
                        "(for example “Class”, “Presentation”, “Home”)."),
-                    layout);
+                    layout, true);
 }
 
 QWidget *SettingsDialog::buildEditorPage()
@@ -302,7 +307,7 @@ QWidget *SettingsDialog::buildAppearancePage()
     m_themes->setGridSize(QSize(150, 110));
     m_themes->setMovement(QListView::Static);
     m_themes->setResizeMode(QListView::Adjust);
-    m_themes->setMinimumHeight(345);
+    m_themes->setMinimumHeight(240);
     m_themes->setSpacing(6);
     for (const Theme &t : Theme::all()) {
         // Miniatura: fundo, barra lateral e três linhas de "código".
@@ -347,13 +352,13 @@ QWidget *SettingsDialog::buildAppearancePage()
     scale->addRow(tr("Interface (restart)"), makeSlider(m_uiScale, m_uiScaleLabel, 80, 200));
 
     auto *themeBox = new QVBoxLayout;
-    themeBox->addWidget(m_themes);
+    themeBox->addWidget(m_themes, 1);
 
     auto *layout = new QVBoxLayout;
     layout->setSpacing(14);
-    layout->addWidget(card(tr("Theme"), themeBox));
+    layout->addWidget(card(tr("Theme"), themeBox), 1);
     layout->addWidget(card(tr("Scale"), scale));
-    return makePage(tr("Appearance"), tr("The theme colors the interface, the editor and the terminal."), layout);
+    return makePage(tr("Appearance"), tr("The theme colors the interface, the editor and the terminal."), layout, true);
 }
 
 QWidget *SettingsDialog::buildTerminalPage()
@@ -405,7 +410,7 @@ QWidget *SettingsDialog::buildLanguagesPage()
     m_languages->setSelectionMode(QAbstractItemView::SingleSelection);
     m_languages->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed
                                  | QAbstractItemView::AnyKeyPressed);
-    m_languages->setMinimumHeight(330);
+    m_languages->setMinimumHeight(220);
     m_languages->setShowGrid(false);
     m_languages->setAlternatingRowColors(true);
 
@@ -461,15 +466,15 @@ QWidget *SettingsDialog::buildLanguagesPage()
     buttons->addWidget(remove);
 
     auto *box = new QVBoxLayout;
-    box->addWidget(m_languages);
+    box->addWidget(m_languages, 1);
     box->addLayout(buttons);
 
     auto *layout = new QVBoxLayout;
-    layout->addWidget(card(QString(), box));
+    layout->addWidget(card(QString(), box), 1);
     return makePage(tr("Languages"),
                     tr("Run (F5) saves the file and runs “tool flags file” in the terminal. C, C++ and Rust are "
                        "compiled to /tmp/slayer_out and then executed. Double-click a cell to edit it."),
-                    layout);
+                    layout, true);
 }
 
 QWidget *SettingsDialog::buildServersPage()
@@ -479,14 +484,15 @@ QWidget *SettingsDialog::buildServersPage()
     m_servers->setHorizontalHeaderLabels({tr("Language"), tr("On"), tr("Server command"), tr("Status")});
     m_servers->verticalHeader()->hide();
     m_servers->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    m_servers->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    m_servers->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+    m_servers->setColumnWidth(1, 56);
     m_servers->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     m_servers->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     m_servers->setSelectionMode(QAbstractItemView::NoSelection);
     m_servers->setFocusPolicy(Qt::NoFocus);
     m_servers->setShowGrid(false);
     m_servers->setAlternatingRowColors(true);
-    m_servers->setMinimumHeight(330);
+    m_servers->setMinimumHeight(220);
     m_servers->verticalHeader()->setDefaultSectionSize(38);
 
     for (const QString &id : LspManager::languages()) {
@@ -500,8 +506,11 @@ QWidget *SettingsDialog::buildServersPage()
 
         auto *enabledHolder = new QWidget;
         auto *enabledLayout = new QHBoxLayout(enabledHolder);
-        enabledLayout->setContentsMargins(8, 0, 8, 0);
-        enabledLayout->addWidget(new QCheckBox);
+        enabledLayout->setContentsMargins(0, 0, 0, 0);
+        enabledLayout->setAlignment(Qt::AlignCenter);
+        auto *enabledBox = new QCheckBox;
+        enabledBox->setToolTip(tr("Use a language server for %1").arg(Language::byId(id).displayName));
+        enabledLayout->addWidget(enabledBox);
         m_servers->setCellWidget(row, 1, enabledHolder);
 
         // Servidores conhecidos + campo livre para outro comando.
@@ -520,14 +529,14 @@ QWidget *SettingsDialog::buildServersPage()
     hint->setObjectName(QStringLiteral("Hint"));
     hint->setWordWrap(true);
     auto *box = new QVBoxLayout;
-    box->addWidget(m_servers);
+    box->addWidget(m_servers, 1);
     box->addWidget(hint);
     auto *layout = new QVBoxLayout;
-    layout->addWidget(card(QString(), box));
+    layout->addWidget(card(QString(), box), 1);
     return makePage(tr("Language Servers"),
                     tr("Diagnostics (wavy underlines) and completion from a Language Server Protocol server. "
                        "Turn all servers on or off in Settings → Editor."),
-                    layout);
+                    layout, true);
 }
 
 void SettingsDialog::refreshServerStatus()
