@@ -268,6 +268,18 @@ void MainWindow::createActions()
     QMenu *run = menuBar()->addMenu(tr("&Run"));
     m_runAction = add(run, tr("&Run File"), QKeySequence(Qt::Key_F5), [this]() { runCurrent(); }, Icons::Run);
     m_runAction->setToolTip(tr("Save and run the current file (F5)"));
+    run->addSeparator();
+    // Atalho para a chave geral de Settings → Editor → Features.
+    m_lspAction = run->addAction(tr("Language Servers (&LSP)"));
+    m_lspAction->setCheckable(true);
+    connect(m_lspAction, &QAction::toggled, this, [this](bool on) {
+        if (on == m_settings.lspEnabled)
+            return;
+        AppSettings s = m_settings;
+        s.lspEnabled = on;
+        applySettings(s);
+        statusBar()->showMessage(on ? tr("Language servers enabled") : tr("Language servers disabled"), 3000);
+    });
 
     QMenu *help = menuBar()->addMenu(tr("&Help"));
     add(help, tr("Slayer Editor &Help"), QKeySequence(Qt::Key_F1), [this]() { showHelp(); }, Icons::Help);
@@ -1145,6 +1157,10 @@ void MainWindow::applySettings(const AppSettings &settings)
     m_toolbar->setIconSize(QSize(iconSize, iconSize));
 
     m_lsp->setSettings(m_settings);
+    if (m_lspAction) {
+        const QSignalBlocker blocker(m_lspAction);
+        m_lspAction->setChecked(m_settings.lspEnabled);
+    }
     QSet<Document *> docs;
     for (CodeEditor *ed : allEditors()) {
         configureEditor(ed);

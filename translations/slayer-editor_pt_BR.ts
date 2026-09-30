@@ -667,6 +667,18 @@
         <source>Restart Slayer Editor to see the desktop through the terminal.</source>
         <translation>Reinicie o Slayer Editor para ver a área de trabalho através do terminal.</translation>
     </message>
+    <message>
+        <source>Language Servers (&amp;LSP)</source>
+        <translation>Servidores de linguagem (&amp;LSP)</translation>
+    </message>
+    <message>
+        <source>Language servers enabled</source>
+        <translation>Servidores de linguagem ativados</translation>
+    </message>
+    <message>
+        <source>Language servers disabled</source>
+        <translation>Servidores de linguagem desativados</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
