@@ -32,6 +32,7 @@ enum Glyph : char32_t {
     Check = 0xEAB2,
     ChevronUp = 0xEAB7,
     ChevronDown = 0xEAB4,
+    ChevronRight = 0xEAB6,
     SplitSideBySide = 0xEB56,
     SplitStacked = 0xEB57,
     CloseAll = 0xEAC1,

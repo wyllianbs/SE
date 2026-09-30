@@ -262,6 +262,8 @@ QWidget *SettingsDialog::buildEditorPage()
     font->addRow(tr("Font"), m_editorFont);
     font->addRow(tr("Size"), m_editorFontSize);
     font->addRow(tr("Tab width"), m_tabWidth);
+    m_insertSpaces = new QCheckBox(tr("Insert spaces instead of tab characters"));
+    font->addRow(QString(), m_insertSpaces);
 
     m_lineNumbers = new QCheckBox(tr("Show line numbers"));
     m_wordWrap = new QCheckBox(tr("Wrap long lines"));
@@ -273,15 +275,17 @@ QWidget *SettingsDialog::buildEditorPage()
 
     m_autoPairs = new QCheckBox(tr("Auto-close brackets and quotes  ( )  [ ]  { }  \" \"  ' '"));
     m_completion = new QCheckBox(tr("Code completion (words in the file + language keywords, Ctrl+Space)"));
+    m_folding = new QCheckBox(tr("Code folding (arrows next to the line numbers, Ctrl+Shift+[ / ])"));
     auto *typing = new QVBoxLayout;
     typing->addWidget(m_autoPairs);
     typing->addWidget(m_completion);
+    typing->addWidget(m_folding);
 
     auto *layout = new QVBoxLayout;
     layout->setSpacing(14);
     layout->addWidget(card(tr("Font"), font));
     layout->addWidget(card(tr("Display"), display));
-    layout->addWidget(card(tr("Typing"), typing));
+    layout->addWidget(card(tr("Features"), typing));
     return makePage(tr("Editor"), QString(), layout);
 }
 
@@ -515,6 +519,8 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_highlightLine->setChecked(s.highlightCurrentLine);
     m_autoPairs->setChecked(s.autoClosePairs);
     m_completion->setChecked(s.codeCompletion);
+    m_folding->setChecked(s.codeFolding);
+    m_insertSpaces->setChecked(s.insertSpaces);
     m_editorBlink->setChecked(s.editorCursorBlink);
 
     for (int i = 0; i < m_themes->count(); ++i) {
@@ -555,6 +561,8 @@ AppSettings SettingsDialog::settings() const
     s.highlightCurrentLine = m_highlightLine->isChecked();
     s.autoClosePairs = m_autoPairs->isChecked();
     s.codeCompletion = m_completion->isChecked();
+    s.codeFolding = m_folding->isChecked();
+    s.insertSpaces = m_insertSpaces->isChecked();
     s.editorCursorBlink = m_editorBlink->isChecked();
 
     if (auto *item = m_themes->currentItem())

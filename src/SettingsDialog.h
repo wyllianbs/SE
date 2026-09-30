@@ -62,6 +62,8 @@ private:
     QCheckBox *m_highlightLine = nullptr;
     QCheckBox *m_autoPairs = nullptr;
     QCheckBox *m_completion = nullptr;
+    QCheckBox *m_folding = nullptr;
+    QCheckBox *m_insertSpaces = nullptr;
     QCheckBox *m_editorBlink = nullptr;
 
     // Aparência

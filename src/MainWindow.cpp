@@ -90,7 +90,7 @@ MainWindow::MainWindow(QWidget *parent)
     updateEmptyState();
     // Depuração: renderiza a janela (e opcionalmente uma página das configurações) em PNG e sai.
     if (qEnvironmentVariableIsSet("SLAYER_DEBUG_GRAB")) {
-        QTimer::singleShot(800, this, [this]() {
+        QTimer::singleShot(900, this, [this]() {
             const QString out = qEnvironmentVariable("SLAYER_DEBUG_GRAB");
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_SETTINGS")) {
                 showSettings();
@@ -103,6 +103,9 @@ MainWindow::MainWindow(QWidget *parent)
                 });
                 return;
             }
+            // SLAYER_DEBUG_FOLD: dobra o bloco que começa na linha dada (base 1).
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_FOLD") && currentEditor())
+                currentEditor()->doc()->setFolded(qEnvironmentVariableIntValue("SLAYER_DEBUG_FOLD") - 1, true);
             // SLAYER_DEBUG_SPLIT: sequência de divisões, "h" lado a lado e "v" empilhado.
             for (QChar c : qEnvironmentVariable("SLAYER_DEBUG_SPLIT"))
                 splitSpace(m_activeSpace, c == QLatin1Char('h') ? Qt::Horizontal : Qt::Vertical, false);
@@ -161,6 +164,19 @@ void MainWindow::createActions()
         if (auto *e = currentEditor()) e->toggleComment();
     });
     add(edit, tr("&Go to Line…"), QKeySequence(Qt::CTRL | Qt::Key_G), [this]() { goToLine(); });
+    QMenu *folding = edit->addMenu(tr("Code &Folding"));
+    add(folding, tr("&Fold Block"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_BracketLeft), [this]() {
+        if (auto *e = currentEditor()) e->foldAtCursor(true);
+    });
+    add(folding, tr("&Unfold Block"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_BracketRight), [this]() {
+        if (auto *e = currentEditor()) e->foldAtCursor(false);
+    });
+    add(folding, tr("Fold &All"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_BracketLeft), [this]() {
+        if (auto *e = currentEditor()) e->doc()->foldAll();
+    });
+    add(folding, tr("Unfold A&ll"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_BracketRight), [this]() {
+        if (auto *e = currentEditor()) e->doc()->unfoldAll();
+    });
     edit->addSeparator();
     add(edit, tr("&Settings…"), QKeySequence(Qt::CTRL | Qt::Key_Comma),
                              [this]() { showSettings(); }, Icons::Settings);
@@ -500,6 +516,7 @@ Document *MainWindow::createDocument()
 {
     auto *doc = new Document(this);
     doc->setTheme(m_theme);
+    doc->setFoldingEnabled(m_settings.codeFolding);
     connect(doc, &Document::changed, this, [this, doc]() { updateDocumentTitles(doc); });
     return doc;
 }
@@ -808,6 +825,7 @@ void MainWindow::configureEditor(CodeEditor *editor) const
     editor->setHighlightCurrentLine(m_settings.highlightCurrentLine);
     editor->setAutoClosePairs(m_settings.autoClosePairs);
     editor->setCodeCompletion(m_settings.codeCompletion);
+    editor->setInsertSpaces(m_settings.insertSpaces);
 }
 
 void MainWindow::applySettings(const AppSettings &settings)
@@ -849,6 +867,7 @@ void MainWindow::applySettings(const AppSettings &settings)
     }
     for (Document *doc : std::as_const(docs)) {
         doc->setTheme(m_theme);
+        doc->setFoldingEnabled(m_settings.codeFolding);
         // Extensões e linguagens personalizadas podem ter mudado.
         if (!doc->filePath().isEmpty())
             doc->setLanguage(languageForPath(doc->filePath()));

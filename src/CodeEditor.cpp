@@ -1,4 +1,5 @@
 #include "CodeEditor.h"
+#include "Icons.h"
 
 #include <QAbstractItemView>
 #include <QCompleter>
@@ -6,6 +7,7 @@
 #include <QScrollBar>
 #include <QStringListModel>
 #include <QFileInfo>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QSaveFile>
 #include <QTextBlock>
@@ -22,6 +24,7 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *event) override { m_editor->lineNumberAreaPaintEvent(event); }
+    void mousePressEvent(QMouseEvent *event) override { m_editor->lineNumberAreaClicked(event->pos()); }
 
 private:
     CodeEditor *m_editor;
@@ -45,6 +48,7 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
     , m_completionModel(new QStringListModel(this))
 {
     setDocument(document->text());
+    connect(document, &Document::foldingChanged, this, &CodeEditor::onFoldingChanged);
     setLineWrapMode(QPlainTextEdit::NoWrap);
     m_completer->setModel(m_completionModel);
     m_completer->setWidget(this);
@@ -58,6 +62,11 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
     connect(this, &QPlainTextEdit::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
     connect(this, &QPlainTextEdit::updateRequest, this, &CodeEditor::updateLineNumberArea);
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, &CodeEditor::highlightCurrentLine);
+    // O cursor nunca fica numa linha escondida: desdobra o bloco.
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
+        if (!textCursor().block().isVisible())
+            m_doc->revealLine(textCursor().blockNumber());
+    });
 
     updateLineNumberAreaWidth();
     highlightCurrentLine();
@@ -87,6 +96,11 @@ void CodeEditor::setEditorFont(const QFont &font)
     setFont(font);
     setTabWidthSpaces(m_indentSpaces);
     updateLineNumberAreaWidth();
+}
+
+QString CodeEditor::indentUnit() const
+{
+    return m_insertSpaces ? QString(m_indentSpaces, QLatin1Char(' ')) : QStringLiteral("\t");
 }
 
 void CodeEditor::setTabWidthSpaces(int spaces)
@@ -162,12 +176,58 @@ void CodeEditor::goToLine(int line)
     setFocus();
 }
 
+int CodeEditor::foldMarkerWidth() const
+{
+    return m_doc->foldingEnabled() && Folding::supports(language().id) ? fontMetrics().height() + 2 : 0;
+}
+
 int CodeEditor::lineNumberAreaWidth() const
 {
-    if (!m_lineNumbers)
-        return 0;
-    int digits = QString::number(qMax(1, blockCount())).length();
-    return 16 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(3, digits);
+    const int numbers = m_lineNumbers
+        ? 12 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(3, int(QString::number(qMax(1, blockCount())).length()))
+        : 0;
+    const int fold = foldMarkerWidth();
+    return numbers + fold + (numbers || fold ? 4 : 0);
+}
+
+void CodeEditor::onFoldingChanged()
+{
+    updateLineNumberAreaWidth();
+    resizeEvent(nullptr);
+    m_lineNumberArea->update();
+    viewport()->update();
+}
+
+void CodeEditor::lineNumberAreaClicked(const QPoint &pos)
+{
+    const int markerLeft = m_lineNumberArea->width() - foldMarkerWidth() - 4;
+    if (foldMarkerWidth() == 0 || pos.x() < markerLeft)
+        return;
+    const QTextCursor c = cursorForPosition(QPoint(0, pos.y()));
+    const int line = c.blockNumber();
+    if (m_doc->regionAt(line))
+        m_doc->toggleFold(line);
+}
+
+void CodeEditor::foldAtCursor(bool fold)
+{
+    const int line = textCursor().blockNumber();
+    // A dobra mais interna que contém a linha do cursor.
+    const FoldRegion *best = nullptr;
+    for (const FoldRegion &r : m_doc->foldRegions()) {
+        if (line >= r.headerLine && line <= r.lastLine && (!best || r.headerLine > best->headerLine)
+            && (fold ? !m_doc->isFolded(r.headerLine) : m_doc->isFolded(r.headerLine)))
+            best = &r;
+    }
+    if (!best)
+        return;
+    const int header = best->headerLine;
+    m_doc->setFolded(header, fold);
+    if (fold) {
+        QTextCursor c(document()->findBlockByNumber(header));
+        c.movePosition(QTextCursor::EndOfBlock);
+        setTextCursor(c);
+    }
 }
 
 void CodeEditor::updateLineNumberAreaWidth()
@@ -240,11 +300,24 @@ void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
     int top = qRound(blockBoundingGeometry(block).translated(contentOffset()).top());
     int bottom = top + qRound(blockBoundingRect(block).height());
 
+    const int fold = foldMarkerWidth();
+    const int markerSize = qMax(10, fontMetrics().height() - 4);
+    const QPixmap open = fold ? Icons::icon(Icons::ChevronDown, m_theme.textSecondary, markerSize).pixmap(markerSize) : QPixmap();
+    const QPixmap closed = fold ? Icons::icon(Icons::ChevronRight, m_theme.primary, markerSize).pixmap(markerSize) : QPixmap();
+    const int numbersRight = m_lineNumberArea->width() - fold - 6;
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
-            painter.setPen(number == currentBlock ? m_theme.primary : m_theme.textSecondary);
-            painter.drawText(0, top, m_lineNumberArea->width() - 8, fontMetrics().height(),
-                             Qt::AlignRight, QString::number(number + 1));
+            if (m_lineNumbers) {
+                painter.setPen(number == currentBlock ? m_theme.primary : m_theme.textSecondary);
+                painter.drawText(0, top, numbersRight, fontMetrics().height(), Qt::AlignRight,
+                                 QString::number(number + 1));
+            }
+            if (fold && m_doc->regionAt(number)) {
+                const bool folded = m_doc->isFolded(number);
+                const int x = m_lineNumberArea->width() - fold - 2 + (fold - markerSize) / 2;
+                const int y = top + (fontMetrics().height() - markerSize) / 2;
+                painter.drawPixmap(x, y, folded ? closed : open);
+            }
         }
         block = block.next();
         top = bottom;
@@ -268,7 +341,7 @@ void CodeEditor::insertNewlineWithIndent()
     const bool opens = trimmed.endsWith(QLatin1Char('{')) || trimmed.endsWith(QLatin1Char('['))
                        || trimmed.endsWith(QLatin1Char('('))
                        || (language().id == QLatin1String("python") && trimmed.endsWith(QLatin1Char(':')));
-    const QString step(m_indentSpaces, QLatin1Char(' '));
+    const QString step = indentUnit();
 
     c.beginEditBlock();
     const QChar next = c.positionInBlock() < line.length() ? line.at(c.positionInBlock()) : QChar();
@@ -370,14 +443,15 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
             const QTextBlock last = document()->findBlock(c.selectionEnd());
             c.beginEditBlock();
             for (; b.isValid(); b = b.next()) {
-                QTextCursor(b).insertText(QString(m_indentSpaces, QLatin1Char(' ')));
+                QTextCursor(b).insertText(indentUnit());
                 if (b == last)
                     break;
             }
             c.endEditBlock();
         } else {
             const int col = c.positionInBlock();
-            c.insertText(QString(m_indentSpaces - col % m_indentSpaces, QLatin1Char(' ')));
+            c.insertText(m_insertSpaces ? QString(m_indentSpaces - col % m_indentSpaces, QLatin1Char(' '))
+                                        : QStringLiteral("\t"));
         }
         return;
     }
@@ -389,8 +463,11 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
         for (; b.isValid(); b = b.next()) {
             const QString t = b.text();
             int n = 0;
-            while (n < m_indentSpaces && n < t.length() && t.at(n) == QLatin1Char(' '))
-                ++n;
+            if (!t.isEmpty() && t.at(0) == QLatin1Char('\t'))
+                n = 1;
+            else
+                while (n < m_indentSpaces && n < t.length() && t.at(n) == QLatin1Char(' '))
+                    ++n;
             QTextCursor bc(b);
             bc.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, n);
             bc.removeSelectedText();
@@ -498,6 +575,33 @@ void CodeEditor::insertCompletion(const QString &word)
     c.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, prefix.length());
     c.insertText(word);
     setTextCursor(c);
+}
+
+/** Marcador "⋯" no fim das linhas cujo bloco está dobrado. */
+void CodeEditor::paintEvent(QPaintEvent *event)
+{
+    QPlainTextEdit::paintEvent(event);
+    if (!m_doc->foldingEnabled())
+        return;
+    QPainter p(viewport());
+    p.setRenderHint(QPainter::Antialiasing);
+    const QFontMetrics fm(font());
+    for (QTextBlock b = firstVisibleBlock(); b.isValid(); b = b.next()) {
+        const QRectF geo = blockBoundingGeometry(b).translated(contentOffset());
+        if (geo.top() > viewport()->height())
+            break;
+        if (!b.isVisible() || !m_doc->isFolded(b.blockNumber()))
+            continue;
+        const QTextLine lastLine = b.layout()->lineAt(b.layout()->lineCount() - 1);
+        const qreal x = geo.left() + lastLine.naturalTextWidth() + fm.horizontalAdvance(QLatin1Char(' ')) + 4;
+        const qreal y = geo.top() + lastLine.y() + 2;
+        const QRectF pill(x, y, fm.horizontalAdvance(QStringLiteral(" ⋯ ")) + 6, lastLine.height() - 4);
+        p.setPen(Qt::NoPen);
+        p.setBrush(m_theme.selection);
+        p.drawRoundedRect(pill, 5, 5);
+        p.setPen(m_theme.text);
+        p.drawText(pill, Qt::AlignCenter, QStringLiteral("⋯"));
+    }
 }
 
 void CodeEditor::wheelEvent(QWheelEvent *event)

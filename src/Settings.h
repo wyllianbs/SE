@@ -40,6 +40,8 @@ struct AppSettings
     bool highlightCurrentLine = true;
     bool autoClosePairs = true;
     bool codeCompletion = true;
+    bool codeFolding = true;
+    bool insertSpaces = true;    //< Tab insere espaços (tabulações emuladas)
     bool editorCursorBlink = true;
 
     // Aparência

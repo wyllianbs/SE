@@ -61,6 +61,8 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("highlightCurrentLine")] = highlightCurrentLine;
     o[QStringLiteral("autoClosePairs")] = autoClosePairs;
     o[QStringLiteral("codeCompletion")] = codeCompletion;
+    o[QStringLiteral("codeFolding")] = codeFolding;
+    o[QStringLiteral("insertSpaces")] = insertSpaces;
     o[QStringLiteral("editorCursorBlink")] = editorCursorBlink;
     o[QStringLiteral("theme")] = theme;
     o[QStringLiteral("buttonScale")] = buttonScale;
@@ -100,6 +102,8 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.highlightCurrentLine = flag("highlightCurrentLine", s.highlightCurrentLine);
     s.autoClosePairs = flag("autoClosePairs", s.autoClosePairs);
     s.codeCompletion = flag("codeCompletion", s.codeCompletion);
+    s.codeFolding = flag("codeFolding", s.codeFolding);
+    s.insertSpaces = flag("insertSpaces", s.insertSpaces);
     s.editorCursorBlink = flag("editorCursorBlink", s.editorCursorBlink);
     s.theme = str("theme", s.theme);
     s.buttonScale = qBound(80, num("buttonScale", s.buttonScale), 200);

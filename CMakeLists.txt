@@ -22,6 +22,7 @@ add_executable(slayer-editor
     src/TerminalDock.cpp src/TerminalDock.h
     src/FindBar.cpp src/FindBar.h
     src/Icons.cpp src/Icons.h
+    src/Folding.cpp src/Folding.h
     src/Document.cpp src/Document.h
     src/ViewSpace.cpp src/ViewSpace.h
     src/Settings.cpp src/Settings.h
@@ -45,3 +46,13 @@ foreach(size 16 22 24 32 48 64 128 256 512)
             DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/${size}x${size}/apps
             RENAME slayer-editor.png)
 endforeach()
+
+# Testes (ctest). Desligue com -DBUILD_TESTING=OFF.
+option(BUILD_TESTING "Build the unit tests" ON)
+if(BUILD_TESTING)
+    enable_testing()
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    add_executable(tst_folding tests/tst_folding.cpp src/Folding.cpp)
+    target_link_libraries(tst_folding PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME folding COMMAND tst_folding)
+endif()

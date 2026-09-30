@@ -31,6 +31,9 @@ public:
     void setWordWrap(bool wrap);
     void setHighlightCurrentLine(bool enabled);
     void setCodeCompletion(bool enabled) { m_completionEnabled = enabled; }
+    void setInsertSpaces(bool spaces) { m_insertSpaces = spaces; }
+    bool insertSpaces() const { return m_insertSpaces; }
+    int tabWidth() const { return m_indentSpaces; }
 
     bool loadFile(const QString &path, QString *error = nullptr);
     bool saveFile(const QString &path, QString *error = nullptr);
@@ -40,11 +43,15 @@ public:
 
     int lineNumberAreaWidth() const;
     void lineNumberAreaPaintEvent(QPaintEvent *event);
+    void lineNumberAreaClicked(const QPoint &pos);
+
+    void foldAtCursor(bool fold);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     void updateLineNumberAreaWidth();
@@ -53,6 +60,8 @@ private:
     bool handleAutoPair(QKeyEvent *event);
     void insertNewlineWithIndent();
     QString wordUnderCursor() const;
+    int foldMarkerWidth() const;
+    void onFoldingChanged();
     void updateCompletion();
     void insertCompletion(const QString &word);
 
@@ -64,6 +73,8 @@ private:
     bool m_lineNumbers = true;
     bool m_highlightLine = true;
     bool m_completionEnabled = true;
+    bool m_insertSpaces = true;
+    QString indentUnit() const;
     QCompleter *m_completer;
     QStringListModel *m_completionModel;
 };

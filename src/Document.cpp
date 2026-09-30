@@ -6,14 +6,35 @@
 #include <QPlainTextDocumentLayout>
 #include <QSaveFile>
 #include <QTextDocument>
+#include <QTextBlock>
 #include <QTextStream>
+#include <QTimer>
 
 Document::Document(QObject *parent)
     : QObject(parent)
     , m_text(new QTextDocument(this))
     , m_highlighter(nullptr)
     , m_language(Language::plainText())
+    , m_foldTimer(new QTimer(this))
 {
+    m_foldTimer->setSingleShot(true);
+    m_foldTimer->setInterval(200);
+    connect(m_foldTimer, &QTimer::timeout, this, &Document::recomputeFolds);
+    connect(m_text, &QTextDocument::contentsChange, this, [this](int pos, int, int) {
+        // Linhas inseridas/removidas deslocam os cabeçalhos dobrados abaixo delas.
+        if (!m_folded.isEmpty()) {
+            const int line = m_text->findBlock(pos).blockNumber();
+            const int delta = m_text->blockCount() - m_lastBlockCount;
+            if (delta != 0) {
+                QSet<int> moved;
+                for (int h : std::as_const(m_folded))
+                    moved.insert(h > line ? h + delta : h);
+                m_folded = moved;
+            }
+        }
+        m_lastBlockCount = m_text->blockCount();
+        m_foldTimer->start();
+    });
     // Necessário para o documento ser compartilhado por QPlainTextEdits.
     m_text->setDocumentLayout(new QPlainTextDocumentLayout(m_text));
     m_highlighter = new SyntaxHighlighter(m_text);
@@ -45,7 +66,108 @@ void Document::setLanguage(const Language &language)
 {
     m_language = language;
     m_highlighter->setLanguage(language);
+    m_folded.clear();
+    recomputeFolds();
     Q_EMIT changed();
+}
+
+void Document::setFoldingEnabled(bool enabled)
+{
+    if (m_foldingEnabled == enabled)
+        return;
+    m_foldingEnabled = enabled;
+    if (!enabled)
+        m_folded.clear();
+    recomputeFolds();
+}
+
+const FoldRegion *Document::regionAt(int headerLine) const
+{
+    for (const FoldRegion &r : m_regions) {
+        if (r.headerLine == headerLine)
+            return &r;
+    }
+    return nullptr;
+}
+
+void Document::toggleFold(int headerLine)
+{
+    setFolded(headerLine, !isFolded(headerLine));
+}
+
+void Document::setFolded(int headerLine, bool folded)
+{
+    if (!regionAt(headerLine) || isFolded(headerLine) == folded)
+        return;
+    if (folded)
+        m_folded.insert(headerLine);
+    else
+        m_folded.remove(headerLine);
+    applyFolding();
+}
+
+void Document::foldAll()
+{
+    for (const FoldRegion &r : std::as_const(m_regions))
+        m_folded.insert(r.headerLine);
+    applyFolding();
+}
+
+void Document::unfoldAll()
+{
+    if (m_folded.isEmpty())
+        return;
+    m_folded.clear();
+    applyFolding();
+}
+
+void Document::revealLine(int line)
+{
+    bool changed = false;
+    for (const FoldRegion &r : std::as_const(m_regions)) {
+        if (m_folded.contains(r.headerLine) && line > r.headerLine && line <= r.lastLine) {
+            m_folded.remove(r.headerLine);
+            changed = true;
+        }
+    }
+    if (changed)
+        applyFolding();
+}
+
+void Document::recomputeFolds()
+{
+    m_regions = m_foldingEnabled ? Folding::detect(m_text->toPlainText(), m_language.id) : QList<FoldRegion>();
+    // Mantém só as dobras cujo cabeçalho ainda abre um bloco.
+    QSet<int> kept;
+    for (int h : std::as_const(m_folded)) {
+        if (regionAt(h))
+            kept.insert(h);
+    }
+    m_folded = kept;
+    applyFolding();
+}
+
+void Document::applyFolding()
+{
+    QList<bool> hidden(m_text->blockCount(), false);
+    for (const FoldRegion &r : std::as_const(m_regions)) {
+        if (!m_folded.contains(r.headerLine))
+            continue;
+        for (int l = r.headerLine + 1; l <= r.lastLine && l < hidden.size(); ++l)
+            hidden[l] = true;
+    }
+    bool any = false;
+    for (QTextBlock b = m_text->begin(); b.isValid(); b = b.next()) {
+        const bool visible = !hidden.value(b.blockNumber());
+        if (b.isVisible() != visible) {
+            b.setVisible(visible);
+            b.setLineCount(visible ? qMax(1, b.layout()->lineCount()) : 0);
+            any = true;
+        }
+    }
+    if (any)
+        m_text->markContentsDirty(0, m_text->characterCount());
+    Q_EMIT foldingChanged();
 }
 
 void Document::setTheme(const Theme &theme)
