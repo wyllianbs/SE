@@ -747,6 +747,10 @@
         <source>Renamed to %1</source>
         <translation>Renomeado para %1</translation>
     </message>
+    <message>
+        <source>New Terminal Ta&amp;b</source>
+        <translation>Nova a&amp;ba de terminal</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -1078,6 +1082,18 @@
     <message>
         <source>Hide panel</source>
         <translation>Ocultar painel</translation>
+    </message>
+    <message>
+        <source>New terminal tab (Ctrl+Shift+`)</source>
+        <translation>Nova aba de terminal (Ctrl+Shift+`)</translation>
+    </message>
+    <message>
+        <source>Terminal %1</source>
+        <translation>Terminal %1</translation>
+    </message>
+    <message>
+        <source>Close terminal tab</source>
+        <translation>Fechar aba do terminal</translation>
     </message>
 </context>
 <context>

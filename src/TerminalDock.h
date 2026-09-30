@@ -4,7 +4,6 @@
 #include "Theme.h"
 
 #include <QDockWidget>
-#include <QPointer>
 
 class QMainWindow;
 class QTermWidget;
@@ -35,21 +34,34 @@ public:
     /** 0 = opaco … 90 = quase invisível. */
     void setTransparency(int percent);
 
+    /** Abre uma aba de terminal nova e a torna a atual. */
+    QTermWidget *newTerminal();
+    void closeTerminal(int index);
+    QTermWidget *current() const;
+    QList<QTermWidget *> terminals() const;
+
     static QString areaKey(Qt::DockWidgetArea area);
     static Qt::DockWidgetArea areaFromKey(const QString &key);
 
 Q_SIGNALS:
     void areaChangeRequested(Qt::DockWidgetArea area);
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     QWidget *buildTitleBar();
-    void ensureTerminal();
+    QTermWidget *createTerminal();
+    void updateTabBar();
+    void refreshTabIcons();
     QString effectiveShell() const;
     static void registerColorSchemes();
 
     QMainWindow *m_mainWindow;
     QWidget *m_container;
-    QPointer<QTermWidget> m_term;
+    class QTabWidget *m_tabs = nullptr;
+    int m_counter = 0;
+    QColor m_iconColor;
     QString m_schemeName;
     QFont m_font;
     QString m_shell;

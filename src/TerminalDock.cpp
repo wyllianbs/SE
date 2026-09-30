@@ -9,6 +9,9 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <QMenu>
+#include <QMouseEvent>
+#include <QTabBar>
+#include <QTabWidget>
 #include <QStandardPaths>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -30,6 +33,16 @@ TerminalDock::TerminalDock(QMainWindow *mainWindow)
                 | QDockWidget::DockWidgetClosable);
     auto *layout = new QVBoxLayout(m_container);
     layout->setContentsMargins(6, 0, 6, 6);
+    m_tabs = new QTabWidget(m_container);
+    m_tabs->setObjectName(QStringLiteral("TerminalTabs"));
+    m_tabs->setDocumentMode(true);
+    m_tabs->setMovable(true);
+    m_tabs->tabBar()->setExpanding(false);
+    m_tabs->tabBar()->setDrawBase(false);
+    m_tabs->tabBar()->setElideMode(Qt::ElideMiddle);
+    // Botão do meio fecha a aba (como no Konsole); duplo clique no vazio abre uma.
+    m_tabs->tabBar()->installEventFilter(this);
+    layout->addWidget(m_tabs);
     setWidget(m_container);
     setTitleBarWidget(buildTitleBar());
     registerColorSchemes();
@@ -96,6 +109,9 @@ QWidget *TerminalDock::buildTitleBar()
         return b;
     };
 
+    connect(makeButton(Icons::Add, tr("New terminal tab (Ctrl+Shift+`)")), &QToolButton::clicked, this,
+            [this]() { newTerminal(); });
+
     // Menu de posição: esquerda, topo, direita, base.
     auto *posButton = makeButton(Icons::Layout, tr("Panel position"));
     posButton->setPopupMode(QToolButton::InstantPopup);
@@ -124,8 +140,8 @@ QWidget *TerminalDock::buildTitleBar()
 
     connect(makeButton(Icons::Clear, tr("Clear")),
             &QToolButton::clicked, this, [this]() {
-                if (m_term)
-                    m_term->clear();
+                if (QTermWidget *t = current())
+                    t->clear();
             });
     connect(makeButton(Icons::Float, tr("Detach or re-dock")),
             &QToolButton::clicked, this, [this]() { setFloating(!isFloating()); });
@@ -141,55 +157,166 @@ QString TerminalDock::effectiveShell() const
     return qEnvironmentVariable("SHELL", QStringLiteral("/bin/bash"));
 }
 
+QTermWidget *TerminalDock::current() const
+{
+    return qobject_cast<QTermWidget *>(m_tabs->currentWidget());
+}
+
+QList<QTermWidget *> TerminalDock::terminals() const
+{
+    QList<QTermWidget *> list;
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (auto *t = qobject_cast<QTermWidget *>(m_tabs->widget(i)))
+            list << t;
+    }
+    return list;
+}
+
 void TerminalDock::configure(const QString &shell, bool cursorBlink)
 {
     const bool shellChanged = (shell != m_shell);
     m_shell = shell;
     m_cursorBlink = cursorBlink;
-    if (m_term) {
-        m_term->setBlinkingCursor(cursorBlink);
-        if (shellChanged)
-            restartShell();
-    } else {
-        ensureTerminal();
+    for (QTermWidget *t : terminals())
+        t->setBlinkingCursor(cursorBlink);
+    if (m_tabs->count() == 0)
+        newTerminal();
+    else if (shellChanged)
+        restartShell();
+}
+
+/** Troca o shell de todas as abas (Settings → Terminal → Shell mudou). */
+void TerminalDock::restartShell()
+{
+    const int count = qMax(1, m_tabs->count());
+    const QList<QTermWidget *> old = terminals();
+    for (QTermWidget *t : old) {
+        t->disconnect(this);
+        m_tabs->removeTab(m_tabs->indexOf(t));
+        t->deleteLater();
+    }
+    for (int i = 0; i < count; ++i)
+        newTerminal();
+}
+
+QTermWidget *TerminalDock::createTerminal()
+{
+    auto *term = new QTermWidget(0, m_tabs);
+    term->setShellProgram(effectiveShell());
+    QStringList env = QProcessEnvironment::systemEnvironment().toStringList();
+    env << QStringLiteral("TERM=xterm-256color");
+    term->setEnvironment(env);
+    // Nova aba abre na pasta da aba atual, quando se sabe qual é.
+    QString dir = m_workingDir.isEmpty() ? QDir::homePath() : m_workingDir;
+    if (QTermWidget *cur = current()) {
+        const QString cwd = cur->workingDirectory();
+        if (!cwd.isEmpty() && QFileInfo(cwd).isDir())
+            dir = cwd;
+    }
+    term->setWorkingDirectory(dir);
+    term->setScrollBarPosition(QTermWidget::ScrollBarRight);
+    term->setTerminalSizeHint(false);
+    term->setBlinkingCursor(m_cursorBlink);
+    if (!m_schemeName.isEmpty())
+        term->setColorScheme(m_schemeName);
+    if (m_font != QFont())
+        term->setTerminalFont(m_font);
+    term->setTerminalOpacity(1.0 - m_transparency / 100.0);
+    return term;
+}
+
+QTermWidget *TerminalDock::newTerminal()
+{
+    QTermWidget *term = createTerminal();
+    const int index = m_tabs->addTab(term, tr("Terminal %1").arg(++m_counter));
+    auto *close = new QToolButton(m_tabs->tabBar());
+    close->setObjectName(QStringLiteral("TabClose"));
+    close->setAutoRaise(true);
+    close->setIconSize(QSize(12, 12));
+    close->setToolTip(tr("Close terminal tab"));
+    connect(close, &QToolButton::clicked, this, [this, term]() { closeTerminal(m_tabs->indexOf(term)); });
+    m_tabs->tabBar()->setTabButton(index, QTabBar::RightSide, close);
+    m_tabs->setCurrentIndex(index);
+    connect(term, &QTermWidget::titleChanged, this, [this, term]() {
+        const int i = m_tabs->indexOf(term);
+        const QString title = term->title().trimmed();
+        if (i >= 0 && !title.isEmpty()) {
+            m_tabs->setTabText(i, title.length() > 32 ? QStringLiteral("…") + title.right(31) : title);
+            m_tabs->setTabToolTip(i, title);
+        }
+    });
+    // "exit": numa aba extra, fecha a aba; na última, abre um shell novo.
+    connect(term, &QTermWidget::finished, this, [this, term]() {
+        const int i = m_tabs->indexOf(term);
+        if (i < 0)
+            return;
+        if (m_tabs->count() > 1) {
+            m_tabs->removeTab(i);
+            term->deleteLater();
+        } else {
+            m_tabs->removeTab(i);
+            term->deleteLater();
+            newTerminal();
+        }
+        updateTabBar();
+    });
+    term->startShellProgram();
+    updateTabBar();
+    term->setFocus();
+    return term;
+}
+
+void TerminalDock::closeTerminal(int index)
+{
+    auto *term = qobject_cast<QTermWidget *>(m_tabs->widget(index));
+    if (!term)
+        return;
+    term->disconnect(this);
+    m_tabs->removeTab(index);
+    term->deleteLater(); // encerra o shell (SIGHUP)
+    if (m_tabs->count() == 0)
+        newTerminal();
+    updateTabBar();
+    focusTerminal();
+}
+
+void TerminalDock::updateTabBar()
+{
+    // Com uma aba só não há ✕: fechá-la apenas recriaria outra igual.
+    const bool closable = m_tabs->count() > 1;
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (QWidget *b = m_tabs->tabBar()->tabButton(i, QTabBar::RightSide))
+            b->setVisible(closable);
+    }
+    refreshTabIcons();
+}
+
+void TerminalDock::refreshTabIcons()
+{
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (auto *b = qobject_cast<QToolButton *>(m_tabs->tabBar()->tabButton(i, QTabBar::RightSide)))
+            b->setIcon(Icons::icon(Icons::Close, m_iconColor, 12));
     }
 }
 
-void TerminalDock::restartShell()
+bool TerminalDock::eventFilter(QObject *watched, QEvent *event)
 {
-    if (!m_term)
-        return;
-    QTermWidget *old = m_term;
-    m_term = nullptr;
-    old->disconnect(this);
-    old->deleteLater();
-    ensureTerminal();
-}
-
-void TerminalDock::ensureTerminal()
-{
-    if (m_term)
-        return;
-    m_term = new QTermWidget(0, m_container);
-    const QString shell = effectiveShell();
-    m_term->setShellProgram(shell);
-    QStringList env = QProcessEnvironment::systemEnvironment().toStringList();
-    env << QStringLiteral("TERM=xterm-256color");
-    m_term->setEnvironment(env);
-    m_term->setWorkingDirectory(m_workingDir.isEmpty() ? QDir::homePath() : m_workingDir);
-    m_term->setScrollBarPosition(QTermWidget::ScrollBarRight);
-    m_term->setTerminalSizeHint(false);
-    m_term->setBlinkingCursor(m_cursorBlink);
-    if (!m_schemeName.isEmpty())
-        m_term->setColorScheme(m_schemeName);
-    if (m_font != QFont())
-        m_term->setTerminalFont(m_font);
-    m_term->setTerminalOpacity(1.0 - m_transparency / 100.0);
-    m_container->layout()->addWidget(m_term);
-
-    // "exit" encerra o shell: recria um novo terminal.
-    connect(m_term, &QTermWidget::finished, this, [this]() { restartShell(); });
-    m_term->startShellProgram();
+    if (watched == m_tabs->tabBar() && event->type() == QEvent::MouseButtonRelease) {
+        const auto *me = static_cast<QMouseEvent *>(event);
+        const int i = m_tabs->tabBar()->tabAt(me->position().toPoint());
+        if (me->button() == Qt::MiddleButton && i >= 0 && m_tabs->count() > 1) {
+            closeTerminal(i);
+            return true;
+        }
+    }
+    if (watched == m_tabs->tabBar() && event->type() == QEvent::MouseButtonDblClick) {
+        const auto *me = static_cast<QMouseEvent *>(event);
+        if (m_tabs->tabBar()->tabAt(me->position().toPoint()) < 0) {
+            newTerminal();
+            return true;
+        }
+    }
+    return QDockWidget::eventFilter(watched, event);
 }
 
 void TerminalDock::setWorkingDirectory(const QString &dir)
@@ -199,14 +326,15 @@ void TerminalDock::setWorkingDirectory(const QString &dir)
 
 void TerminalDock::runCommand(const QString &command, const QString &workingDir)
 {
-    ensureTerminal();
+    if (m_tabs->count() == 0)
+        newTerminal();
     show();
     raise();
     QString dir = workingDir;
     dir.replace(QLatin1Char('\''), QLatin1String("'\\''"));
     // Ctrl+U limpa o que houver digitado no prompt antes do comando.
-    m_term->sendText(QStringLiteral("\x15") + QStringLiteral("cd '") + dir + QStringLiteral("' && clear && ")
-                     + command + QLatin1Char('\r'));
+    current()->sendText(QStringLiteral("\x15") + QStringLiteral("cd '") + dir + QStringLiteral("' && clear && ")
+                        + command + QLatin1Char('\r'));
     focusTerminal();
 }
 
@@ -215,11 +343,13 @@ void TerminalDock::setTheme(const Theme &theme)
     for (const auto &[button, glyph] : std::as_const(m_buttons))
         button->setIcon(Icons::icon(glyph, theme.textSecondary, 16));
     m_titleIcon->setPixmap(Icons::icon(Icons::Terminal, theme.primary, 16).pixmap(16, 16));
+    m_iconColor = theme.textSecondary;
+    refreshTabIcons();
     m_schemeName = QStringLiteral("SlayerEditor-") + theme.id;
     m_background = theme.terminalBackground;
     updateContainerBackground();
-    if (m_term && !m_schemeName.isEmpty())
-        m_term->setColorScheme(m_schemeName);
+    for (QTermWidget *t : terminals())
+        t->setColorScheme(m_schemeName);
 }
 
 /** Margens em volta do terminal com a mesma opacidade dele. */
@@ -235,15 +365,15 @@ void TerminalDock::setTransparency(int percent)
 {
     m_transparency = qBound(0, percent, 90);
     updateContainerBackground();
-    if (m_term)
-        m_term->setTerminalOpacity(1.0 - m_transparency / 100.0);
+    for (QTermWidget *t : terminals())
+        t->setTerminalOpacity(1.0 - m_transparency / 100.0);
 }
 
 void TerminalDock::setTerminalFont(const QFont &font)
 {
     m_font = font;
-    if (m_term)
-        m_term->setTerminalFont(font);
+    for (QTermWidget *t : terminals())
+        t->setTerminalFont(font);
 }
 
 void TerminalDock::moveToArea(Qt::DockWidgetArea area)
@@ -261,6 +391,6 @@ void TerminalDock::moveToArea(Qt::DockWidgetArea area)
 
 void TerminalDock::focusTerminal()
 {
-    if (m_term)
-        m_term->setFocus();
+    if (QTermWidget *t = current())
+        t->setFocus();
 }

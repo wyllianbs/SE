@@ -137,6 +137,9 @@ MainWindow::MainWindow(QWidget *parent)
                 });
                 return;
             }
+            // SLAYER_DEBUG_TERMTABS: abre abas extras de terminal.
+            for (int i = 1; i < qEnvironmentVariableIntValue("SLAYER_DEBUG_TERMTABS"); ++i)
+                m_terminal->newTerminal();
             // SLAYER_DEBUG_FOLD: dobra o bloco que começa na linha dada (base 1).
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_FOLD") && currentEditor())
                 currentEditor()->doc()->setFolded(qEnvironmentVariableIntValue("SLAYER_DEBUG_FOLD") - 1, true);
@@ -249,6 +252,10 @@ void MainWindow::createActions()
             m_terminal->focusTerminal();
         }
     }, Icons::Terminal);
+    add(view, tr("New Terminal Ta&b"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_QuoteLeft), [this]() {
+        m_terminal->show();
+        m_terminal->newTerminal();
+    }, Icons::Add);
     QMenu *pos = view->addMenu(tr("Terminal &Position"));
     const QList<QPair<QString, QString>> positions{
         {tr("Left"), "left"}, {tr("Top"), "top"}, {tr("Right"), "right"}, {tr("Bottom"), "bottom"}};
@@ -1389,6 +1396,7 @@ QSplitter::handle:hover { background: %5; }
 #SplitCorner { background: %1; }
 QToolButton#SplitButton { padding: 4px; margin: 2px 6px; border-radius: 6px; }
 QToolButton#TabClose { padding: 2px; border-radius: 5px; margin-left: 4px; }
+QTabWidget#TerminalTabs QTabBar::tab { padding: 5px 12px; margin: 2px 2px 0 2px; }
 QPlainTextEdit { background: %2; color: %3; border: none; selection-background-color: %8; }
 QStatusBar { background: %1; color: %7; border-top: 1px solid %4; }
 QStatusBar QLabel { color: %7; padding: 0 8px; }

@@ -37,6 +37,7 @@ enum Glyph : char32_t {
     Server = 0xEB50,
     SaveAll = 0xEB49,
     Help = 0xEB32,
+    Add = 0xEA60,
     SplitSideBySide = 0xEB56,
     SplitStacked = 0xEB57,
     CloseAll = 0xEAC1,
