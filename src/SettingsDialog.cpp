@@ -349,7 +349,7 @@ QWidget *SettingsDialog::buildAppearancePage()
     auto *scale = new QFormLayout;
     scale->setHorizontalSpacing(24);
     scale->addRow(tr("Toolbar buttons"), makeSlider(m_buttonScale, m_buttonScaleLabel, 80, 200));
-    scale->addRow(tr("Interface (restart)"), makeSlider(m_uiScale, m_uiScaleLabel, 80, 200));
+    scale->addRow(tr("Interface"), makeSlider(m_uiScale, m_uiScaleLabel, 80, 200));
 
     m_uiLanguage = new QComboBox;
     m_uiLanguage->addItem(tr("Automatic (system language)"), QStringLiteral("auto"));
@@ -357,7 +357,7 @@ QWidget *SettingsDialog::buildAppearancePage()
     m_uiLanguage->addItem(QStringLiteral("Português (Brasil)"), QStringLiteral("pt_BR"));
     auto *languageForm = new QFormLayout;
     languageForm->setHorizontalSpacing(24);
-    languageForm->addRow(tr("Interface language (restart)"), m_uiLanguage);
+    languageForm->addRow(tr("Interface language"), m_uiLanguage);
 
     auto *themeBox = new QVBoxLayout;
     themeBox->addWidget(m_themes, 1);

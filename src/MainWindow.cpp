@@ -33,6 +33,7 @@
 #include <QTabWidget>
 #include <QTextBlock>
 #include <QTimer>
+#include <QProcess>
 #include <QPushButton>
 #include <QSet>
 #include <QStringConverter>
@@ -1296,6 +1297,18 @@ void MainWindow::goToLine()
         editor->goToLine(line);
 }
 
+/**
+ * Fecha (pedindo para salvar o que for preciso e gravando a sessão) e abre de
+ * novo: os arquivos, o layout e as divisões voltam como estavam.
+ */
+void MainWindow::restartApplication()
+{
+    if (!close())
+        return; // o usuário cancelou em "alterações não salvas"
+    QProcess::startDetached(QCoreApplication::applicationFilePath(), {});
+    qApp->quit();
+}
+
 void MainWindow::saveAll()
 {
     QSet<Document *> done;
@@ -1464,9 +1477,11 @@ void MainWindow::showSettings()
     auto *dialog = new SettingsDialog(m_settings, m_theme, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &SettingsDialog::applied, this, [this](const AppSettings &s) {
-        if (s.uiScale != m_settings.uiScale || s.uiLanguage != m_settings.uiLanguage)
-            statusBar()->showMessage(tr("Interface scale and language apply after restarting Slayer Editor."), 5000);
+        const bool restart = s.uiScale != m_settings.uiScale || s.uiLanguage != m_settings.uiLanguage;
         applySettings(s);
+        // Idioma e escala valem desde a criação da janela: reabre o app na hora.
+        if (restart)
+            QTimer::singleShot(0, this, &MainWindow::restartApplication);
     });
     dialog->open();
 }

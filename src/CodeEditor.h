@@ -53,6 +53,7 @@ public:
     int lineNumberAreaWidth() const;
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     void lineNumberAreaClicked(const QPoint &pos);
+    void lineNumberAreaHovered(const QPoint &pos);
 
     void foldAtCursor(bool fold);
 
@@ -91,6 +92,7 @@ private:
     bool m_highlightLine = true;
     bool m_completionEnabled = true;
     bool m_insertSpaces = true;
+    int m_hoverBreakpointLine = -1;
     QString indentUnit() const;
     QCompleter *m_completer;
     QStringListModel *m_completionModel;

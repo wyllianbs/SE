@@ -22,12 +22,14 @@ class LineNumberArea : public QWidget
 {
 public:
     explicit LineNumberArea(CodeEditor *editor)
-        : QWidget(editor), m_editor(editor) {}
+        : QWidget(editor), m_editor(editor) { setMouseTracking(true); }
     QSize sizeHint() const override { return {m_editor->lineNumberAreaWidth(), 0}; }
 
 protected:
     void paintEvent(QPaintEvent *event) override { m_editor->lineNumberAreaPaintEvent(event); }
     void mousePressEvent(QMouseEvent *event) override { m_editor->lineNumberAreaClicked(event->pos()); }
+    void mouseMoveEvent(QMouseEvent *event) override { m_editor->lineNumberAreaHovered(event->pos()); }
+    void leaveEvent(QEvent *) override { m_editor->lineNumberAreaHovered(QPoint(-1, -1)); }
 
 private:
     CodeEditor *m_editor;
@@ -220,6 +222,21 @@ void CodeEditor::onFoldingChanged()
     resizeEvent(nullptr);
     m_lineNumberArea->update();
     viewport()->update();
+}
+
+/** Prévia do ponto de parada sob o mouse, na coluna da esquerda. */
+void CodeEditor::lineNumberAreaHovered(const QPoint &pos)
+{
+    const int line = (pos.x() >= 0 && pos.x() < breakpointWidth())
+                         ? cursorForPosition(QPoint(0, pos.y())).blockNumber() : -1;
+    if (line == m_hoverBreakpointLine)
+        return;
+    m_hoverBreakpointLine = line;
+    m_lineNumberArea->setCursor(line >= 0 ? Qt::PointingHandCursor : Qt::ArrowCursor);
+    m_lineNumberArea->setToolTip(line < 0 ? QString()
+                                 : m_doc->breakpoints().contains(line) ? tr("Click to remove the breakpoint")
+                                                                       : tr("Click to add a breakpoint (F9)"));
+    m_lineNumberArea->update();
 }
 
 void CodeEditor::lineNumberAreaClicked(const QPoint &pos)
@@ -417,10 +434,14 @@ void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
             const int h = fontMetrics().height();
-            if (m_doc->breakpoints().contains(number)) {
+            const bool hasBreakpoint = m_doc->breakpoints().contains(number);
+            if (hasBreakpoint || number == m_hoverBreakpointLine) {
                 const int d = qMax(8, h - 6);
+                QColor c("#f38ba8");
+                if (!hasBreakpoint)
+                    c.setAlpha(90); // prévia ao passar o mouse
                 painter.setPen(Qt::NoPen);
-                painter.setBrush(QColor("#f38ba8"));
+                painter.setBrush(c);
                 painter.drawEllipse(QRectF((bpw - d) / 2.0 + 1, top + (h - d) / 2.0, d, d));
             }
             if (number == execLine)

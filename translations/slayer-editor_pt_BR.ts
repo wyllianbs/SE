@@ -1,6 +1,17 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="pt_BR">
 <context>
+    <name>CodeEditor</name>
+    <message>
+        <source>Click to remove the breakpoint</source>
+        <translation>Clique para remover o ponto de parada</translation>
+    </message>
+    <message>
+        <source>Click to add a breakpoint (F9)</source>
+        <translation>Clique para adicionar um ponto de parada (F9)</translation>
+    </message>
+</context>
+<context>
     <name>DebugPanel</name>
     <message>
         <source>Debugger</source>
@@ -766,10 +777,6 @@ sudo apt install gdb</translation>
         <translation>Um editor de código leve com terminal embutido.&lt;br&gt;© Prof. Wyllian</translation>
     </message>
     <message>
-        <source>Interface scale and language apply after restarting Slayer Editor.</source>
-        <translation>A escala e o idioma da interface valem após reiniciar o Slayer Editor.</translation>
-    </message>
-    <message>
         <source>Language Servers (&amp;LSP)</source>
         <translation>Servidores de linguagem (&amp;LSP)</translation>
     </message>
@@ -1097,10 +1104,6 @@ sudo apt install gdb</translation>
         <translation>Botões da barra</translation>
     </message>
     <message>
-        <source>Interface (restart)</source>
-        <translation>Interface (reiniciar)</translation>
-    </message>
-    <message>
         <source>Theme</source>
         <translation>Tema</translation>
     </message>
@@ -1223,10 +1226,6 @@ sudo apt install gdb</translation>
         <translation>Automático (idioma do sistema)</translation>
     </message>
     <message>
-        <source>Interface language (restart)</source>
-        <translation>Idioma da interface (reiniciar)</translation>
-    </message>
-    <message>
         <source>Off</source>
         <translation>Desligada</translation>
     </message>
@@ -1237,6 +1236,14 @@ sudo apt install gdb</translation>
     <message>
         <source>Move the terminal to the left, top, right or bottom with the ▥ button on its title bar, or drag it by the title. Typing “exit” starts a new shell.&lt;br&gt;&lt;br&gt;Transparency applies to the detached terminal (❐ button): the desktop shows through it. Docked, the terminal stays opaque.</source>
         <translation>Mova o terminal para a esquerda, o topo, a direita ou a base com o botão ▥ da barra de título, ou arraste-o pelo título. Digitar “exit” inicia um novo shell.&lt;br&gt;&lt;br&gt;A transparência vale para o terminal destacado (botão ❐): a área de trabalho aparece através dele. Acoplado, o terminal fica opaco.</translation>
+    </message>
+    <message>
+        <source>Interface</source>
+        <translation>Interface</translation>
+    </message>
+    <message>
+        <source>Interface language</source>
+        <translation>Idioma da interface</translation>
     </message>
 </context>
 <context>

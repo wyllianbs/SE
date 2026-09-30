@@ -80,6 +80,7 @@ private:
     void showAbout();
     void showHelp();
     void saveAll();
+    void restartApplication();
 
     void applySettings(const AppSettings &settings);
     void applyTheme(const QString &themeId);
