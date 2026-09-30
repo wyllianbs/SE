@@ -442,7 +442,10 @@ void TerminalDock::sendWhenIdle(QTermWidget *term, const QString &line, int atte
         return;
     const int shell = term->getShellPID();
     const int fg = term->getForegroundProcessId();
-    if (fg <= 0 || fg == shell || attempt >= 6) {
+    // O terminal pode informar um grupo de primeiro plano que já não existe
+    // (ex.: o lançador do debugpy): só conta como ocupado se o processo vive.
+    const bool busy = fg > 0 && fg != shell && QFileInfo::exists(QStringLiteral("/proc/%1").arg(fg));
+    if (!busy || attempt >= 6) {
         // Ctrl+U limpa o que houver digitado no prompt antes do comando.
         term->sendText(QStringLiteral("\x15") + line);
         return;

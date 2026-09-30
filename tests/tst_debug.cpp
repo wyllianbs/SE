@@ -104,7 +104,8 @@ private Q_SLOTS:
         // Espera o REPL assumir o terminal.
         QVERIFY(QTest::qWaitFor([&]() {
             auto *t = m_terminal->current();
-            return t && t->getForegroundProcessId() > 0 && t->getForegroundProcessId() != t->getShellPID();
+            const int fg = t ? t->getForegroundProcessId() : 0;
+            return fg > 0 && fg != t->getShellPID() && QFileInfo::exists(QStringLiteral("/proc/%1").arg(fg));
         }, 10000));
         m_terminal->runCommand("echo ok > '" + marker + "'", m_dir.path());
         QVERIFY(QTest::qWaitFor([&]() { return QFile::exists(marker); }, 10000));
