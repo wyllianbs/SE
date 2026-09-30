@@ -4,7 +4,10 @@
 #include "Language.h"
 #include "Theme.h"
 
+#include <QHash>
 #include <QPlainTextEdit>
+
+#include <functional>
 
 class QCompleter;
 class QStringListModel;
@@ -32,6 +35,12 @@ public:
     void setHighlightCurrentLine(bool enabled);
     void setCodeCompletion(bool enabled) { m_completionEnabled = enabled; }
     void setInsertSpaces(bool spaces) { m_insertSpaces = spaces; }
+
+    /** Sugestão do servidor: rótulo exibido e texto inserido. */
+    struct ServerItem { QString label; QString insert; };
+    using CompletionProvider = std::function<void(int line, int column, std::function<void(QList<ServerItem>)>)>;
+    /** Fonte assíncrona de sugestões (LSP) e caracteres que a disparam ("." "->"…). */
+    void setCompletionProvider(CompletionProvider provider, const QStringList &triggers);
     bool insertSpaces() const { return m_insertSpaces; }
     int tabWidth() const { return m_indentSpaces; }
 
@@ -55,17 +64,21 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    bool viewportEvent(QEvent *event) override;
 
 private:
     void updateLineNumberAreaWidth();
     void updateLineNumberArea(const QRect &rect, int dy);
-    void highlightCurrentLine();
+    void highlightCurrentLine() { updateExtraSelections(); }
     bool handleAutoPair(QKeyEvent *event);
     void insertNewlineWithIndent();
     QString wordUnderCursor() const;
     int foldMarkerWidth() const;
     void onFoldingChanged();
-    void updateCompletion();
+    void updateCompletion(bool fromTrigger = false);
+    void showCompletions(const QString &prefix, QStringList words, const QList<ServerItem> &server);
+    void updateExtraSelections();
+    QString diagnosticTextAt(const QPoint &viewportPos) const;
     void insertCompletion(const QString &word);
 
     QWidget *m_lineNumberArea;
@@ -80,4 +93,8 @@ private:
     QString indentUnit() const;
     QCompleter *m_completer;
     QStringListModel *m_completionModel;
+    CompletionProvider m_provider;
+    QStringList m_triggers;
+    QHash<QString, QString> m_insertFor; //< rótulo → texto a inserir
+    int m_completionRequest = 0;
 };

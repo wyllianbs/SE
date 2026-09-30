@@ -16,6 +16,13 @@ struct LanguageConfig
     QString extensions; //< separadas por espaço ou vírgula
 };
 
+/** Servidor LSP de uma linguagem. */
+struct LspConfig
+{
+    bool enabled = true;
+    QString command; //< vazio = primeiro servidor conhecido
+};
+
 /** Linguagem definida pelo usuário: "<tool> <flags> arquivo". */
 struct CustomLanguage
 {
@@ -41,6 +48,7 @@ struct AppSettings
     bool autoClosePairs = true;
     bool codeCompletion = true;
     bool codeFolding = true;
+    bool lspEnabled = true;      //< chave geral dos servidores de linguagem
     bool insertSpaces = true;    //< Tab insere espaços (tabulações emuladas)
     bool editorCursorBlink = true;
 
@@ -58,12 +66,15 @@ struct AppSettings
     // Linguagens
     QMap<QString, LanguageConfig> languages; //< id da linguagem embutida → config
     QList<CustomLanguage> customLanguages;
+    QMap<QString, LspConfig> lsp;           //< id da linguagem → servidor
 
     static AppSettings defaults();
     static LanguageConfig defaultLanguageConfig(const QString &languageId);
 
     /** Config efetiva de uma linguagem embutida (com os padrões preenchidos). */
     LanguageConfig languageConfig(const QString &languageId) const;
+    /** Config efetiva do LSP (comando padrão preenchido). */
+    LspConfig lspConfig(const QString &languageId) const;
 
     QJsonObject toJson() const;
     static AppSettings fromJson(const QJsonObject &json);

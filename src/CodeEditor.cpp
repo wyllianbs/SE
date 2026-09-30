@@ -7,7 +7,10 @@
 #include <QScrollBar>
 #include <QStringListModel>
 #include <QFileInfo>
+#include <QHelpEvent>
 #include <QMouseEvent>
+#include <QPointer>
+#include <QToolTip>
 #include <QPainter>
 #include <QSaveFile>
 #include <QTextBlock>
@@ -49,6 +52,10 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
 {
     setDocument(document->text());
     connect(document, &Document::foldingChanged, this, &CodeEditor::onFoldingChanged);
+    connect(document, &Document::diagnosticsChanged, this, [this]() {
+        updateExtraSelections();
+        m_lineNumberArea->update();
+    });
     setLineWrapMode(QPlainTextEdit::NoWrap);
     m_completer->setModel(m_completionModel);
     m_completer->setWidget(this);
@@ -272,20 +279,83 @@ void CodeEditor::setHighlightCurrentLine(bool enabled)
     highlightCurrentLine();
 }
 
-void CodeEditor::highlightCurrentLine()
+static QColor severityColor(int severity)
+{
+    switch (severity) {
+    case 1: return QColor("#f38ba8"); // erro
+    case 2: return QColor("#f9e2af"); // aviso
+    case 3: return QColor("#89b4fa"); // informação
+    default: return QColor("#94e2d5"); // dica
+    }
+}
+
+/** Linha atual + sublinhado ondulado dos diagnósticos (do menos para o mais grave). */
+void CodeEditor::updateExtraSelections()
 {
     QList<QTextEdit::ExtraSelection> extra;
-    if (!m_highlightLine) {
-        setExtraSelections(extra);
-        return;
+    if (m_highlightLine) {
+        QTextEdit::ExtraSelection sel;
+        sel.format.setBackground(m_theme.currentLine);
+        sel.format.setProperty(QTextFormat::FullWidthSelection, true);
+        sel.cursor = textCursor();
+        sel.cursor.clearSelection();
+        extra.append(sel);
     }
-    QTextEdit::ExtraSelection sel;
-    sel.format.setBackground(m_theme.currentLine);
-    sel.format.setProperty(QTextFormat::FullWidthSelection, true);
-    sel.cursor = textCursor();
-    sel.cursor.clearSelection();
-    extra.append(sel);
+    QList<Diagnostic> diags = m_doc->diagnostics();
+    std::stable_sort(diags.begin(), diags.end(), [](const Diagnostic &a, const Diagnostic &b) { return a.severity > b.severity; });
+    for (const Diagnostic &d : std::as_const(diags)) {
+        const QTextBlock start = document()->findBlockByNumber(d.line);
+        const QTextBlock end = document()->findBlockByNumber(d.endLine);
+        if (!start.isValid())
+            continue;
+        QTextCursor c(document());
+        c.setPosition(start.position() + qMin(d.column, start.length() - 1));
+        int endPos = end.isValid() ? end.position() + qMin(d.endColumn, end.length() - 1) : c.position();
+        if (endPos <= c.position()) {
+            // Faixa vazia: sublinha a palavra (ou o caractere) na posição.
+            QTextCursor w = c;
+            w.select(QTextCursor::WordUnderCursor);
+            endPos = w.hasSelection() ? qMax(w.selectionEnd(), c.position() + 1) : c.position() + 1;
+            endPos = qMin(endPos, start.position() + start.length() - 1);
+            if (endPos <= c.position() && c.position() > start.position())
+                c.setPosition(c.position() - 1);
+        }
+        c.setPosition(endPos, QTextCursor::KeepAnchor);
+        QTextEdit::ExtraSelection sel;
+        sel.cursor = c;
+        sel.format.setUnderlineStyle(QTextCharFormat::WaveUnderline);
+        sel.format.setUnderlineColor(severityColor(d.severity));
+        extra.append(sel);
+    }
     setExtraSelections(extra);
+}
+
+QString CodeEditor::diagnosticTextAt(const QPoint &viewportPos) const
+{
+    const QTextCursor c = cursorForPosition(viewportPos);
+    const int line = c.blockNumber();
+    const int col = c.positionInBlock();
+    QStringList lines;
+    for (const Diagnostic &d : m_doc->diagnosticsAt(line)) {
+        const bool inside = (line > d.line || col >= d.column - 1) && (line < d.endLine || col <= qMax(d.endColumn, d.column + 1));
+        if (inside)
+            lines << (d.source.isEmpty() ? d.message : QStringLiteral("%1: %2").arg(d.source, d.message)).toHtmlEscaped();
+    }
+    return lines.join(QStringLiteral("<br>"));
+}
+
+bool CodeEditor::viewportEvent(QEvent *event)
+{
+    if (event->type() == QEvent::ToolTip) {
+        auto *help = static_cast<QHelpEvent *>(event);
+        const QString text = diagnosticTextAt(help->pos());
+        if (text.isEmpty())
+            QToolTip::hideText();
+        else
+            QToolTip::showText(help->globalPos(), text, viewport());
+        return true;
+    }
+    return QPlainTextEdit::viewportEvent(event);
 }
 
 void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
@@ -308,7 +378,11 @@ void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
             if (m_lineNumbers) {
-                painter.setPen(number == currentBlock ? m_theme.primary : m_theme.textSecondary);
+                const QList<Diagnostic> here = m_doc->diagnosticsAt(number);
+                QColor pen = number == currentBlock ? m_theme.primary : m_theme.textSecondary;
+                if (!here.isEmpty())
+                    pen = severityColor(here.first().severity);
+                painter.setPen(pen);
                 painter.drawText(0, top, numbersRight, fontMetrics().height(), Qt::AlignRight,
                                  QString::number(number + 1));
             }
@@ -506,6 +580,18 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
         QPlainTextEdit::keyPressEvent(event);
 
     const QString typed = event->text();
+    if (m_completionEnabled && m_provider && !typed.isEmpty() && !manual) {
+        // Só acesso a membro: "<", "/" e aspas (também anunciados pelo clangd)
+        // abririam a lista em qualquer comparação ou #include.
+        const QString before = textCursor().block().text().left(textCursor().positionInBlock());
+        const bool member = (typed == QLatin1String(".") && !before.endsWith(QLatin1String("..")))
+                            || (typed == QLatin1String(">") && before.endsWith(QLatin1String("->")))
+                            || (typed == QLatin1String(":") && before.endsWith(QLatin1String("::")));
+        if (member && m_triggers.contains(typed)) {
+            updateCompletion(true);
+            return;
+        }
+    }
     if (manual || (m_completionEnabled && !typed.isEmpty()
                    && (typed.at(0).isLetterOrNumber() || typed.at(0) == QLatin1Char('_')))) {
         updateCompletion();
@@ -514,6 +600,12 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
     } else if (!typed.isEmpty()) {
         m_completer->popup()->hide();
     }
+}
+
+void CodeEditor::setCompletionProvider(CompletionProvider provider, const QStringList &triggers)
+{
+    m_provider = std::move(provider);
+    m_triggers = triggers;
 }
 
 QString CodeEditor::wordUnderCursor() const
@@ -526,56 +618,107 @@ QString CodeEditor::wordUnderCursor() const
     return line.mid(start, c.positionInBlock() - start);
 }
 
-/** Sugestões: palavras-chave e tipos da linguagem + palavras do próprio arquivo. */
-void CodeEditor::updateCompletion()
+/**
+ * Sugestões: palavras-chave e tipos da linguagem + palavras do arquivo, logo;
+ * as do servidor LSP chegam depois e vão para o topo da lista.
+ */
+void CodeEditor::updateCompletion(bool fromTrigger)
 {
     const QString prefix = wordUnderCursor();
-    if (prefix.length() < 2 || prefix.at(0).isDigit()) {
+    if (!fromTrigger && (prefix.length() < 2 || prefix.at(0).isDigit())) {
         m_completer->popup()->hide();
         return;
     }
 
-    QStringList candidates;
+    QStringList words;
+    if (!prefix.isEmpty()) {
+        QSet<QString> seen;
+        auto consider = [&](const QString &w) {
+            if (w.length() > prefix.length() && w.startsWith(prefix, Qt::CaseInsensitive) && !seen.contains(w)) {
+                seen.insert(w);
+                words << w;
+            }
+        };
+        for (const QString &k : language().keywords) consider(k);
+        for (const QString &t : language().types) consider(t);
+        static const QRegularExpression wordRe(QStringLiteral("[A-Za-z_][A-Za-z0-9_]{2,}"));
+        auto it = wordRe.globalMatch(toPlainText());
+        int scanned = 0;
+        while (it.hasNext() && scanned++ < 20000)
+            consider(it.next().captured());
+    }
+    showCompletions(prefix, words, {});
+
+    if (!m_provider)
+        return;
+    const int request = ++m_completionRequest;
+    const int position = textCursor().position();
+    const QTextCursor c = textCursor();
+    QPointer<CodeEditor> self(this);
+    m_provider(c.blockNumber(), c.positionInBlock(), [self, request, position, words](QList<ServerItem> items) {
+        // Descarta respostas antigas ou de outra posição do cursor.
+        if (!self || request != self->m_completionRequest || self->textCursor().position() != position)
+            return;
+        self->showCompletions(self->wordUnderCursor(), words, items);
+    });
+}
+
+void CodeEditor::showCompletions(const QString &prefix, QStringList words, const QList<ServerItem> &server)
+{
+    m_insertFor.clear();
+    QStringList labels;
     QSet<QString> seen;
-    auto consider = [&](const QString &w) {
-        if (w.length() > prefix.length() && w.startsWith(prefix, Qt::CaseInsensitive) && !seen.contains(w)) {
-            seen.insert(w);
-            candidates << w;
-        }
-    };
-    for (const QString &k : language().keywords) consider(k);
-    for (const QString &t : language().types) consider(t);
-    static const QRegularExpression wordRe(QStringLiteral("[A-Za-z_][A-Za-z0-9_]{2,}"));
-    auto it = wordRe.globalMatch(toPlainText());
-    int scanned = 0;
-    while (it.hasNext() && scanned++ < 20000)
-        consider(it.next().captured());
-
-    if (candidates.isEmpty()) {
-        m_completer->popup()->hide();
-        return;
+    for (const ServerItem &item : server) {
+        const QString filter = item.insert.isEmpty() ? item.label : item.insert;
+        if (!prefix.isEmpty() && !filter.startsWith(prefix, Qt::CaseInsensitive)
+            && !item.label.startsWith(prefix, Qt::CaseInsensitive))
+            continue;
+        if (seen.contains(item.label) || filter == prefix)
+            continue;
+        seen.insert(item.label);
+        labels << item.label;
+        m_insertFor.insert(item.label, filter);
     }
-    // Prefixo com a mesma caixa primeiro, depois os mais curtos.
-    std::stable_sort(candidates.begin(), candidates.end(), [&prefix](const QString &a, const QString &b) {
+    // Prefixo com a mesma caixa primeiro, depois os mais curtos (o clangd põe
+    // PRIb16 antes de printf, por exemplo).
+    auto rank = [&prefix](const QString &a, const QString &b) {
         const bool ea = a.startsWith(prefix), eb = b.startsWith(prefix);
         if (ea != eb) return ea;
         return a.length() < b.length();
+    };
+    std::stable_sort(labels.begin(), labels.end(), [&](const QString &a, const QString &b) {
+        return rank(m_insertFor.value(a), m_insertFor.value(b));
     });
-    if (candidates.size() > 50)
-        candidates = candidates.mid(0, 50);
-    m_completionModel->setStringList(candidates);
+    std::stable_sort(words.begin(), words.end(), rank);
+    for (const QString &w : std::as_const(words)) {
+        bool dup = seen.contains(w);
+        for (auto it = m_insertFor.cbegin(); !dup && it != m_insertFor.cend(); ++it)
+            dup = it.value() == w;
+        if (!dup) {
+            labels << w;
+            seen.insert(w);
+        }
+    }
+    if (labels.isEmpty()) {
+        m_completer->popup()->hide();
+        return;
+    }
+    if (labels.size() > 60)
+        labels = labels.mid(0, 60);
+    m_completionModel->setStringList(labels);
     m_completer->setCompletionPrefix(QString());
     m_completer->popup()->setCurrentIndex(m_completionModel->index(0));
 
     QRect rect = cursorRect();
     rect.translate(viewportMargins().left(), 0);
-    rect.setWidth(m_completer->popup()->sizeHintForColumn(0)
-                  + m_completer->popup()->verticalScrollBar()->sizeHint().width() + 24);
+    rect.setWidth(qMin(520, m_completer->popup()->sizeHintForColumn(0)
+                                + m_completer->popup()->verticalScrollBar()->sizeHint().width() + 24));
     m_completer->complete(rect);
 }
 
-void CodeEditor::insertCompletion(const QString &word)
+void CodeEditor::insertCompletion(const QString &label)
 {
+    const QString word = m_insertFor.value(label, label);
     const QString prefix = wordUnderCursor();
     QTextCursor c = textCursor();
     c.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, prefix.length());

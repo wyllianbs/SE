@@ -8,6 +8,18 @@
 #include <QSet>
 
 class QTextDocument;
+
+/** Diagnóstico do servidor LSP (posições em unidades UTF-16, base 0). */
+struct Diagnostic
+{
+    int line = 0;
+    int column = 0;
+    int endLine = 0;
+    int endColumn = 0;
+    int severity = 1; //< 1 erro, 2 aviso, 3 informação, 4 dica
+    QString message;
+    QString source;
+};
 class SyntaxHighlighter;
 
 /**
@@ -45,6 +57,11 @@ public:
     /** Desdobra o que esconder a linha (o cursor entrou nela). */
     void revealLine(int line);
 
+    const QList<Diagnostic> &diagnostics() const { return m_diagnostics; }
+    void setDiagnostics(const QList<Diagnostic> &diagnostics);
+    /** Diagnósticos que tocam a linha, do mais grave para o menos. */
+    QList<Diagnostic> diagnosticsAt(int line) const;
+
     /** Nome da codificação ("UTF-8", "ISO-8859-15"…) e se o arquivo leva BOM. */
     QString encoding() const { return m_encoding; }
     bool hasBom() const { return m_bom; }
@@ -59,6 +76,7 @@ Q_SIGNALS:
     /** Nome, caminho, linguagem ou estado de modificação mudaram. */
     void changed();
     void foldingChanged();
+    void diagnosticsChanged();
 
 private:
     QTextDocument *m_text;
@@ -67,6 +85,7 @@ private:
     QString m_filePath;
     QString m_encoding = QStringLiteral("UTF-8");
     bool m_bom = false;
+    QList<Diagnostic> m_diagnostics;
     void recomputeFolds();
     void applyFolding();
     QList<FoldRegion> m_regions;

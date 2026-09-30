@@ -22,6 +22,8 @@ add_executable(slayer-editor
     src/TerminalDock.cpp src/TerminalDock.h
     src/FindBar.cpp src/FindBar.h
     src/Icons.cpp src/Icons.h
+    src/LspClient.cpp src/LspClient.h
+    src/LspManager.cpp src/LspManager.h
     src/Folding.cpp src/Folding.h
     src/Document.cpp src/Document.h
     src/ViewSpace.cpp src/ViewSpace.h
@@ -59,4 +61,8 @@ if(BUILD_TESTING)
                    src/SyntaxHighlighter.cpp src/Language.cpp src/Theme.cpp)
     target_link_libraries(tst_document PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME document COMMAND tst_document)
+    add_executable(tst_lsp tests/tst_lsp.cpp src/Document.cpp src/Folding.cpp src/SyntaxHighlighter.cpp
+                   src/Language.cpp src/Theme.cpp src/Settings.cpp src/LspManager.cpp src/LspClient.cpp)
+    target_link_libraries(tst_lsp PRIVATE Qt6::Widgets Qt6::Test)
+    add_test(NAME lsp COMMAND tst_lsp)
 endif()

@@ -34,6 +34,7 @@ enum Glyph : char32_t {
     ChevronDown = 0xEAB4,
     ChevronRight = 0xEAB6,
     GitBranch = 0xE725,
+    Server = 0xEB50,
     SplitSideBySide = 0xEB56,
     SplitStacked = 0xEB57,
     CloseAll = 0xEAC1,

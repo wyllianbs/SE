@@ -2,6 +2,7 @@
 #include "CodeEditor.h"
 #include "FindBar.h"
 #include "Language.h"
+#include "LspManager.h"
 #include "SettingsDialog.h"
 #include "TerminalDock.h"
 #include "ViewSpace.h"
@@ -44,7 +45,15 @@ MainWindow::MainWindow(QWidget *parent)
     , m_cursorLabel(new QLabel(this))
     , m_theme(Theme::all().first())
     , m_lastDir(QDir::homePath())
+    , m_lsp(new LspManager(this))
 {
+    connect(m_lsp, &LspManager::statusChanged, this, [this]() {
+        // Gatilhos de completion chegam com o "initialize" do servidor.
+        for (CodeEditor *e : allEditors())
+            configureEditor(e);
+        updateStatus();
+    });
+    connect(m_lsp, &LspManager::message, this, [this](const QString &text) { statusBar()->showMessage(text, 6000); });
     setWindowTitle(QStringLiteral("Slayer Editor"));
     setWindowIcon(QIcon(QStringLiteral(":/icons/slayer-editor.png")));
     setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowTabbedDocks);
@@ -90,7 +99,7 @@ MainWindow::MainWindow(QWidget *parent)
     updateEmptyState();
     // Depuração: renderiza a janela (e opcionalmente uma página das configurações) em PNG e sai.
     if (qEnvironmentVariableIsSet("SLAYER_DEBUG_GRAB")) {
-        QTimer::singleShot(900, this, [this]() {
+        QTimer::singleShot(qEnvironmentVariableIntValue("SLAYER_DEBUG_DELAY") + 900, this, [this]() {
             const QString out = qEnvironmentVariable("SLAYER_DEBUG_GRAB");
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_SETTINGS")) {
                 showSettings();
@@ -517,7 +526,14 @@ Document *MainWindow::createDocument()
     auto *doc = new Document(this);
     doc->setTheme(m_theme);
     doc->setFoldingEnabled(m_settings.codeFolding);
-    connect(doc, &Document::changed, this, [this, doc]() { updateDocumentTitles(doc); });
+    connect(doc, &Document::changed, this, [this, doc]() {
+        updateDocumentTitles(doc);
+        m_lsp->attach(doc);
+    });
+    connect(doc, &Document::diagnosticsChanged, this, [this, doc]() {
+        if (CodeEditor *e = currentEditor(); e && e->doc() == doc)
+            updateStatus();
+    });
     return doc;
 }
 
@@ -616,6 +632,7 @@ bool MainWindow::save(CodeEditor *editor)
         return false;
     }
     statusBar()->showMessage(tr("Saved %1").arg(editor->displayName()), 2500);
+    m_lsp->documentSaved(editor->doc());
     return true;
 }
 
@@ -634,6 +651,7 @@ bool MainWindow::saveAs(CodeEditor *editor)
     }
     m_lastDir = QFileInfo(path).absolutePath();
     editor->setLanguage(languageForPath(path));
+    m_lsp->documentSaved(editor->doc());
     updateStatus();
     return true;
 }
@@ -715,6 +733,14 @@ void MainWindow::buildStatusBar()
     m_branchLabel->setObjectName(QStringLiteral("BranchLabel"));
     m_branchLabel->setTextFormat(Qt::RichText);
     statusBar()->addWidget(m_branchLabel);
+    m_diagLabel = new QLabel(this);
+    m_diagLabel->setObjectName(QStringLiteral("DiagLabel"));
+    m_diagLabel->setTextFormat(Qt::RichText);
+    m_diagLabel->setMinimumWidth(0);
+    m_diagLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    statusBar()->addWidget(m_diagLabel, 1);
+    m_lspLabel = new QLabel(this);
+    m_lspLabel->setToolTip(tr("Language server"));
 
     m_modeLabel = new QLabel(this);
     m_modeLabel->setToolTip(tr("Insert key toggles insert/overwrite"));
@@ -795,8 +821,8 @@ void MainWindow::buildStatusBar()
 
     m_languageCombo->setFocusPolicy(Qt::NoFocus);
     m_languageCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-    for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingButton,
-                                                        m_languageCombo})
+    for (QWidget *w : std::initializer_list<QWidget *>{m_lspLabel, m_cursorLabel, m_modeLabel, m_tabsButton,
+                                                        m_encodingButton, m_languageCombo})
         statusBar()->addPermanentWidget(w);
 }
 
@@ -874,6 +900,8 @@ void MainWindow::updateStatus()
         w->setVisible(has);
     if (!has) {
         m_branchLabel->clear();
+        m_diagLabel->clear();
+        m_lspLabel->hide();
         setWindowTitle(QStringLiteral("Slayer Editor"));
         return;
     }
@@ -881,6 +909,22 @@ void MainWindow::updateStatus()
     m_cursorLabel->setText(QStringLiteral("%1:%2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
     m_modeLabel->setText(editor->overwriteMode() ? tr("OVERWRITE") : tr("INSERT"));
     m_encodingButton->setText(editor->doc()->encodingLabel());
+    const QString server = m_lsp->statusFor(editor->doc());
+    m_lspLabel->setVisible(!server.isEmpty());
+    m_lspLabel->setText(QStringLiteral("<span style=\"font-family:'%1'\">%2</span>&nbsp;%3")
+                            .arg(Icons::symbolFamily(), Icons::glyphText(Icons::Server), server.toHtmlEscaped()));
+    // Diagnóstico da linha do cursor, como no Slayer Editor Android.
+    const QList<Diagnostic> here = editor->doc()->diagnosticsAt(c.blockNumber());
+    if (here.isEmpty()) {
+        m_diagLabel->clear();
+    } else {
+        static const char *colors[] = {"#f38ba8", "#f38ba8", "#f9e2af", "#89b4fa", "#94e2d5"};
+        const Diagnostic &d = here.first();
+        const QString msg = d.message.section(QLatin1Char('\n'), 0, 0);
+        m_diagLabel->setText(QStringLiteral("<span style=\"color:%1\">●</span>&nbsp;%2")
+                                 .arg(QLatin1String(colors[qBound(0, d.severity, 4)]), msg.toHtmlEscaped()));
+        m_diagLabel->setToolTip(d.message);
+    }
     m_tabsButton->setText(editor->insertSpaces() ? tr("Soft Tabs: %1").arg(editor->tabWidth())
                                                  : tr("Tab Size: %1").arg(editor->tabWidth()));
     const QString branch = gitBranchFor(editor->filePath());
@@ -999,6 +1043,20 @@ void MainWindow::configureEditor(CodeEditor *editor) const
     editor->setAutoClosePairs(m_settings.autoClosePairs);
     editor->setCodeCompletion(m_settings.codeCompletion);
     editor->setInsertSpaces(m_settings.insertSpaces);
+    Document *doc = editor->doc();
+    LspManager *lsp = m_lsp;
+    const bool useLsp = m_settings.lspEnabled;
+    editor->setCompletionProvider(
+        useLsp ? CodeEditor::CompletionProvider([lsp, doc](int line, int column, std::function<void(QList<CodeEditor::ServerItem>)> done) {
+                     lsp->complete(doc, line, column, [done](const QList<LspCompletion> &items) {
+                         QList<CodeEditor::ServerItem> out;
+                         for (const LspCompletion &i : items)
+                             out.append({i.label, i.insertText});
+                         done(out);
+                     });
+                 })
+               : CodeEditor::CompletionProvider(),
+        lsp->triggerCharacters(doc));
 }
 
 void MainWindow::applySettings(const AppSettings &settings)
@@ -1033,6 +1091,7 @@ void MainWindow::applySettings(const AppSettings &settings)
     const int iconSize = qRound(18 * m_settings.buttonScale / 100.0);
     m_toolbar->setIconSize(QSize(iconSize, iconSize));
 
+    m_lsp->setSettings(m_settings);
     QSet<Document *> docs;
     for (CodeEditor *ed : allEditors()) {
         configureEditor(ed);
@@ -1163,6 +1222,7 @@ QPlainTextEdit { background: %2; color: %3; border: none; selection-background-c
 QStatusBar { background: %1; color: %7; border-top: 1px solid %4; }
 QStatusBar QLabel { color: %7; padding: 0 8px; }
 QStatusBar QLabel#BranchLabel { color: %3; padding-left: 10px; }
+QStatusBar QLabel#DiagLabel { color: %3; }
 QToolButton#StatusButton { color: %7; padding: 2px 8px; border-radius: 6px; }
 QToolButton#StatusButton:hover { background: %4; color: %3; }
 QToolButton#StatusButton::menu-indicator { image: none; width: 0; }

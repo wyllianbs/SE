@@ -20,6 +20,7 @@ class ViewSpace;
 class QToolBar;
 class QToolButton;
 class TerminalDock;
+class LspManager;
 
 class MainWindow : public QMainWindow
 {
@@ -95,6 +96,9 @@ private:
     QLabel *m_modeLabel = nullptr;
     QToolButton *m_tabsButton = nullptr;
     QToolButton *m_encodingButton = nullptr;
+    QLabel *m_lspLabel = nullptr;
+    QLabel *m_diagLabel = nullptr;
+    LspManager *m_lsp = nullptr;
     void changeEncoding(const QString &encoding, bool bom);
     void buildStatusBar();
     QString gitBranchFor(const QString &filePath) const;

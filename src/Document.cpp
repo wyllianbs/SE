@@ -176,6 +176,23 @@ void Document::setTheme(const Theme &theme)
     m_highlighter->setTheme(theme);
 }
 
+void Document::setDiagnostics(const QList<Diagnostic> &diagnostics)
+{
+    m_diagnostics = diagnostics;
+    Q_EMIT diagnosticsChanged();
+}
+
+QList<Diagnostic> Document::diagnosticsAt(int line) const
+{
+    QList<Diagnostic> out;
+    for (const Diagnostic &d : m_diagnostics) {
+        if (line >= d.line && line <= d.endLine)
+            out << d;
+    }
+    std::stable_sort(out.begin(), out.end(), [](const Diagnostic &a, const Diagnostic &b) { return a.severity < b.severity; });
+    return out;
+}
+
 void Document::setEncoding(const QString &encoding, bool bom)
 {
     m_encoding = encoding;

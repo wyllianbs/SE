@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include "LspManager.h"
 
 #include <QDir>
 #include <QJsonArray>
@@ -50,6 +51,17 @@ LanguageConfig AppSettings::languageConfig(const QString &id) const
     return cfg;
 }
 
+LspConfig AppSettings::lspConfig(const QString &id) const
+{
+    LspConfig cfg = lsp.value(id);
+    if (cfg.command.trimmed().isEmpty()) {
+        const QList<LspPreset> presets = LspManager::presets(id);
+        if (!presets.isEmpty())
+            cfg.command = presets.first().command;
+    }
+    return cfg;
+}
+
 QJsonObject AppSettings::toJson() const
 {
     QJsonObject o;
@@ -62,6 +74,11 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("autoClosePairs")] = autoClosePairs;
     o[QStringLiteral("codeCompletion")] = codeCompletion;
     o[QStringLiteral("codeFolding")] = codeFolding;
+    o[QStringLiteral("lspEnabled")] = lspEnabled;
+    QJsonObject lspObj;
+    for (auto it = lsp.cbegin(); it != lsp.cend(); ++it)
+        lspObj[it.key()] = QJsonObject{{"enabled", it->enabled}, {"command", it->command}};
+    o[QStringLiteral("lsp")] = lspObj;
     o[QStringLiteral("insertSpaces")] = insertSpaces;
     o[QStringLiteral("editorCursorBlink")] = editorCursorBlink;
     o[QStringLiteral("theme")] = theme;
@@ -103,6 +120,12 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.autoClosePairs = flag("autoClosePairs", s.autoClosePairs);
     s.codeCompletion = flag("codeCompletion", s.codeCompletion);
     s.codeFolding = flag("codeFolding", s.codeFolding);
+    s.lspEnabled = flag("lspEnabled", s.lspEnabled);
+    const QJsonObject lspObj = o.value(QStringLiteral("lsp")).toObject();
+    for (auto it = lspObj.begin(); it != lspObj.end(); ++it) {
+        const QJsonObject l = it.value().toObject();
+        s.lsp.insert(it.key(), {l.value("enabled").toBool(true), l.value("command").toString()});
+    }
     s.insertSpaces = flag("insertSpaces", s.insertSpaces);
     s.editorCursorBlink = flag("editorCursorBlink", s.editorCursorBlink);
     s.theme = str("theme", s.theme);

@@ -1,6 +1,7 @@
 #include "SettingsDialog.h"
 #include "Icons.h"
 #include "Language.h"
+#include "LspManager.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -116,6 +117,7 @@ SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, 
     addPage(tr("Appearance"), Icons::Palette, buildAppearancePage());
     addPage(tr("Terminal"), Icons::Terminal, buildTerminalPage());
     addPage(tr("Languages"), Icons::Languages, buildLanguagesPage());
+    addPage(tr("Language Servers"), Icons::Server, buildServersPage());
     connect(m_nav, &QListWidget::currentRowChanged, m_pages, &QStackedWidget::setCurrentIndex);
     m_nav->setCurrentRow(1);
 
@@ -276,10 +278,12 @@ QWidget *SettingsDialog::buildEditorPage()
     m_autoPairs = new QCheckBox(tr("Auto-close brackets and quotes  ( )  [ ]  { }  \" \"  ' '"));
     m_completion = new QCheckBox(tr("Code completion (words in the file + language keywords, Ctrl+Space)"));
     m_folding = new QCheckBox(tr("Code folding (arrows next to the line numbers, Ctrl+Shift+[ / ])"));
+    m_lspEnabled = new QCheckBox(tr("Language servers (LSP): diagnostics and smarter completion"));
     auto *typing = new QVBoxLayout;
     typing->addWidget(m_autoPairs);
     typing->addWidget(m_completion);
     typing->addWidget(m_folding);
+    typing->addWidget(m_lspEnabled);
 
     auto *layout = new QVBoxLayout;
     layout->setSpacing(14);
@@ -468,6 +472,84 @@ QWidget *SettingsDialog::buildLanguagesPage()
                     layout);
 }
 
+QWidget *SettingsDialog::buildServersPage()
+{
+    m_servers = new QTableWidget(0, 4);
+    m_servers->setObjectName(QStringLiteral("LanguageTable"));
+    m_servers->setHorizontalHeaderLabels({tr("Language"), tr("On"), tr("Server command"), tr("Status")});
+    m_servers->verticalHeader()->hide();
+    m_servers->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    m_servers->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    m_servers->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    m_servers->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    m_servers->setSelectionMode(QAbstractItemView::NoSelection);
+    m_servers->setFocusPolicy(Qt::NoFocus);
+    m_servers->setShowGrid(false);
+    m_servers->setAlternatingRowColors(true);
+    m_servers->setMinimumHeight(330);
+    m_servers->verticalHeader()->setDefaultSectionSize(38);
+
+    for (const QString &id : LspManager::languages()) {
+        const int row = m_servers->rowCount();
+        m_servers->insertRow(row);
+        auto *name = new QTableWidgetItem(Icons::icon(Icons::forLanguage(id), Icons::colorForLanguage(id), 16),
+                                          Language::byId(id).displayName);
+        name->setData(kIdRole, id);
+        name->setFlags(Qt::ItemIsEnabled);
+        m_servers->setItem(row, 0, name);
+
+        auto *enabledHolder = new QWidget;
+        auto *enabledLayout = new QHBoxLayout(enabledHolder);
+        enabledLayout->setContentsMargins(8, 0, 8, 0);
+        enabledLayout->addWidget(new QCheckBox);
+        m_servers->setCellWidget(row, 1, enabledHolder);
+
+        // Servidores conhecidos + campo livre para outro comando.
+        auto *combo = new QComboBox;
+        combo->setEditable(true);
+        for (const LspPreset &p : LspManager::presets(id))
+            combo->addItem(p.command, p.install);
+        connect(combo, &QComboBox::currentTextChanged, this, [this]() { refreshServerStatus(); });
+        m_servers->setCellWidget(row, 2, combo);
+        m_servers->setItem(row, 3, new QTableWidgetItem);
+    }
+
+    auto *hint = new QLabel(tr("Servers start when a file of their language is opened. Without compile_commands.json, "
+                               "clangd uses the C/C++ flags from Settings → Languages. Install commands are shown "
+                               "in the status tooltip; nothing is installed automatically."));
+    hint->setObjectName(QStringLiteral("Hint"));
+    hint->setWordWrap(true);
+    auto *box = new QVBoxLayout;
+    box->addWidget(m_servers);
+    box->addWidget(hint);
+    auto *layout = new QVBoxLayout;
+    layout->addWidget(card(QString(), box));
+    return makePage(tr("Language Servers"),
+                    tr("Diagnostics (wavy underlines) and completion from a Language Server Protocol server. "
+                       "Turn all servers on or off in Settings → Editor."),
+                    layout);
+}
+
+void SettingsDialog::refreshServerStatus()
+{
+    for (int row = 0; row < m_servers->rowCount(); ++row) {
+        auto *combo = qobject_cast<QComboBox *>(m_servers->cellWidget(row, 2));
+        QTableWidgetItem *status = m_servers->item(row, 3);
+        if (!combo || !status)
+            continue;
+        const QString command = combo->currentText().trimmed();
+        const bool installed = LspManager::isInstalled(command);
+        status->setText(installed ? tr("Installed") : tr("Not found"));
+        status->setForeground(installed ? QColor("#a6e3a1") : QColor("#f38ba8"));
+        QString install;
+        for (const LspPreset &p : LspManager::presets(m_servers->item(row, 0)->data(kIdRole).toString())) {
+            if (p.command == command)
+                install = p.install;
+        }
+        status->setToolTip(installed || install.isEmpty() ? QString() : tr("Install with:\n%1").arg(install));
+    }
+}
+
 // ---------------------------------------------------------- formulário
 
 void SettingsDialog::refreshProfiles()
@@ -520,6 +602,13 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_autoPairs->setChecked(s.autoClosePairs);
     m_completion->setChecked(s.codeCompletion);
     m_folding->setChecked(s.codeFolding);
+    m_lspEnabled->setChecked(s.lspEnabled);
+    for (int row = 0; row < m_servers->rowCount(); ++row) {
+        const LspConfig cfg = s.lspConfig(m_servers->item(row, 0)->data(kIdRole).toString());
+        m_servers->cellWidget(row, 1)->findChild<QCheckBox *>()->setChecked(cfg.enabled);
+        qobject_cast<QComboBox *>(m_servers->cellWidget(row, 2))->setEditText(cfg.command);
+    }
+    refreshServerStatus();
     m_insertSpaces->setChecked(s.insertSpaces);
     m_editorBlink->setChecked(s.editorCursorBlink);
 
@@ -562,6 +651,17 @@ AppSettings SettingsDialog::settings() const
     s.autoClosePairs = m_autoPairs->isChecked();
     s.codeCompletion = m_completion->isChecked();
     s.codeFolding = m_folding->isChecked();
+    s.lspEnabled = m_lspEnabled->isChecked();
+    for (int row = 0; row < m_servers->rowCount(); ++row) {
+        const QString id = m_servers->item(row, 0)->data(kIdRole).toString();
+        const bool on = m_servers->cellWidget(row, 1)->findChild<QCheckBox *>()->isChecked();
+        QString command = qobject_cast<QComboBox *>(m_servers->cellWidget(row, 2))->currentText().trimmed();
+        const QList<LspPreset> presets = LspManager::presets(id);
+        if (!presets.isEmpty() && command == presets.first().command)
+            command.clear(); // padrão: acompanha mudanças futuras do preset
+        if (!on || !command.isEmpty())
+            s.lsp.insert(id, {on, command});
+    }
     s.insertSpaces = m_insertSpaces->isChecked();
     s.editorCursorBlink = m_editorBlink->isChecked();
 

@@ -38,6 +38,8 @@ private:
     QWidget *buildAppearancePage();
     QWidget *buildTerminalPage();
     QWidget *buildLanguagesPage();
+    QWidget *buildServersPage();
+    void refreshServerStatus();
     void addPage(const QString &title, char32_t glyph, QWidget *page);
 
     void setForm(const AppSettings &s);
@@ -63,6 +65,8 @@ private:
     QCheckBox *m_autoPairs = nullptr;
     QCheckBox *m_completion = nullptr;
     QCheckBox *m_folding = nullptr;
+    QCheckBox *m_lspEnabled = nullptr;
+    QTableWidget *m_servers = nullptr;
     QCheckBox *m_insertSpaces = nullptr;
     QCheckBox *m_editorBlink = nullptr;
 
