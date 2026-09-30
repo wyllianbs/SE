@@ -1166,8 +1166,8 @@ void MainWindow::showSettings()
     auto *dialog = new SettingsDialog(m_settings, m_theme, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &SettingsDialog::applied, this, [this](const AppSettings &s) {
-        if (s.uiScale != m_settings.uiScale)
-            statusBar()->showMessage(tr("The interface scale applies after restarting Slayer Editor."), 5000);
+        if (s.uiScale != m_settings.uiScale || s.uiLanguage != m_settings.uiLanguage)
+            statusBar()->showMessage(tr("Interface scale and language apply after restarting Slayer Editor."), 5000);
         applySettings(s);
     });
     dialog->open();

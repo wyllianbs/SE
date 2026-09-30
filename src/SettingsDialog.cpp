@@ -113,7 +113,7 @@ SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, 
     resize(900, 620);
 
     m_nav->setObjectName(QStringLiteral("SettingsNav"));
-    m_nav->setFixedWidth(210);
+    m_nav->setFixedWidth(240);
     m_nav->setIconSize(QSize(18, 18));
     m_nav->setFocusPolicy(Qt::NoFocus);
 
@@ -351,6 +351,14 @@ QWidget *SettingsDialog::buildAppearancePage()
     scale->addRow(tr("Toolbar buttons"), makeSlider(m_buttonScale, m_buttonScaleLabel, 80, 200));
     scale->addRow(tr("Interface (restart)"), makeSlider(m_uiScale, m_uiScaleLabel, 80, 200));
 
+    m_uiLanguage = new QComboBox;
+    m_uiLanguage->addItem(tr("Automatic (system language)"), QStringLiteral("auto"));
+    m_uiLanguage->addItem(QStringLiteral("English"), QStringLiteral("en"));
+    m_uiLanguage->addItem(QStringLiteral("Português (Brasil)"), QStringLiteral("pt_BR"));
+    auto *languageForm = new QFormLayout;
+    languageForm->setHorizontalSpacing(24);
+    languageForm->addRow(tr("Interface language (restart)"), m_uiLanguage);
+
     auto *themeBox = new QVBoxLayout;
     themeBox->addWidget(m_themes, 1);
 
@@ -358,6 +366,7 @@ QWidget *SettingsDialog::buildAppearancePage()
     layout->setSpacing(14);
     layout->addWidget(card(tr("Theme"), themeBox), 1);
     layout->addWidget(card(tr("Scale"), scale));
+    layout->addWidget(card(tr("Language"), languageForm));
     return makePage(tr("Appearance"), tr("The theme colors the interface, the editor and the terminal."), layout, true);
 }
 
@@ -629,6 +638,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_uiScale->setValue(s.uiScale / 10);
     m_buttonScaleLabel->setText(QStringLiteral("%1%").arg(m_buttonScale->value() * 10));
     m_uiScaleLabel->setText(QStringLiteral("%1%").arg(m_uiScale->value() * 10));
+    m_uiLanguage->setCurrentIndex(qMax(0, m_uiLanguage->findData(s.uiLanguage)));
 
     m_terminalFont->setCurrentFont(QFont(s.terminalFont.isEmpty() ? Icons::monoFamily() : s.terminalFont));
     m_terminalFontSize->setValue(s.terminalFontSize);
@@ -678,6 +688,7 @@ AppSettings SettingsDialog::settings() const
         s.theme = item->data(kIdRole).toString();
     s.buttonScale = m_buttonScale->value() * 10;
     s.uiScale = m_uiScale->value() * 10;
+    s.uiLanguage = m_uiLanguage->currentData().toString();
 
     const QString tf = m_terminalFont->currentFont().family();
     s.terminalFont = (tf == Icons::monoFamily()) ? QString() : tf;

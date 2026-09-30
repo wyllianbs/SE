@@ -6,6 +6,7 @@ Build-Depends: debhelper-compat (= 13),
  cmake,
  qt6-base-dev,
  libqtermwidget-dev,
+ qt6-l10n-tools,
  libutf8proc-dev
 Standards-Version: 4.7.0
 Rules-Requires-Root: no
@@ -13,7 +14,7 @@ Rules-Requires-Root: no
 Package: slayer-editor
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: build-essential, python3
+Recommends: build-essential, python3, qt6-translations-l10n
 Suggests: rustc, golang-go, nodejs, default-jdk
 Description: lightweight code editor with an embedded terminal
  Slayer Editor is a Qt 6 code editor with tabs, syntax highlighting,

@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 
 include(GNUInstallDirs)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets LinguistTools)
 find_package(qtermwidget6 REQUIRED)
 
 add_executable(slayer-editor
@@ -38,6 +38,12 @@ target_compile_definitions(slayer-editor PRIVATE
 )
 
 target_link_libraries(slayer-editor PRIVATE Qt6::Widgets qtermwidget6)
+
+# Traduções: os .qm vão embutidos no binário, em :/i18n.
+qt_add_translations(slayer-editor
+    TS_FILES translations/slayer-editor_pt_BR.ts
+    RESOURCE_PREFIX /i18n
+    LUPDATE_OPTIONS -locations none -no-obsolete)
 
 install(TARGETS slayer-editor RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES data/slayer-editor.desktop

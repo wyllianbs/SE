@@ -1,0 +1,1026 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.1" language="pt_BR">
+<context>
+    <name>Document</name>
+    <message>
+        <source>Untitled</source>
+        <translation>Sem título</translation>
+    </message>
+    <message>
+        <source>Unknown encoding: %1</source>
+        <translation>Codificação desconhecida: %1</translation>
+    </message>
+    <message>
+        <source>Some characters cannot be represented in %1.</source>
+        <translation>Alguns caracteres não podem ser representados em %1.</translation>
+    </message>
+</context>
+<context>
+    <name>FindBar</name>
+    <message>
+        <source>Aa</source>
+        <translation>Aa</translation>
+    </message>
+    <message>
+        <source>Word</source>
+        <translation>Palavra</translation>
+    </message>
+    <message>
+        <source>Find</source>
+        <translation>Localizar</translation>
+    </message>
+    <message>
+        <source>Replace with</source>
+        <translation>Substituir por</translation>
+    </message>
+    <message>
+        <source>Match case</source>
+        <translation>Diferenciar maiúsculas</translation>
+    </message>
+    <message>
+        <source>Whole words only</source>
+        <translation>Somente palavras inteiras</translation>
+    </message>
+    <message>
+        <source>Previous (Shift+Enter)</source>
+        <translation>Anterior (Shift+Enter)</translation>
+    </message>
+    <message>
+        <source>Next (Enter)</source>
+        <translation>Próximo (Enter)</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Substituir</translation>
+    </message>
+    <message>
+        <source>Replace All</source>
+        <translation>Substituir tudo</translation>
+    </message>
+    <message>
+        <source>No results</source>
+        <translation>Nenhum resultado</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n replaced</source>
+        <translation>
+            <numerusform>%n substituída</numerusform><numerusform>%n substituídas</numerusform></translation>
+    </message>
+</context>
+<context>
+    <name>HelpDialog</name>
+    <message>
+        <source>Getting started</source>
+        <translation>Primeiros passos</translation>
+    </message>
+    <message>
+        <source>start begin welcome overview new open file tab</source>
+        <translation>start begin welcome overview new open file tab início começar boas-vindas visão geral novo abrir arquivo aba</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Slayer Editor is a code editor with an embedded terminal. Create a file with %1, open one with %2 or drop file names on the command line: &lt;code&gt;slayer-editor main.c&lt;/code&gt;.&lt;/p&gt;&lt;p&gt;Closing the last tab shows the welcome screen. Open files, window layout and terminal position are restored on the next start.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;O Slayer Editor é um editor de código com terminal embutido. Crie um arquivo com %1, abra um com %2 ou passe nomes de arquivo na linha de comando: &lt;code&gt;slayer-editor main.c&lt;/code&gt;.&lt;/p&gt;&lt;p&gt;Fechar a última aba mostra a tela de boas-vindas. Arquivos abertos, disposição da janela e posição do terminal são restaurados na próxima vez.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Saving files</source>
+        <translation>Salvando arquivos</translation>
+    </message>
+    <message>
+        <source>save save as save all write disk modified unsaved</source>
+        <translation>save save as save all write disk modified unsaved salvar salvar como salvar tudo gravar disco modificado não salvo</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;%1 saves, %2 saves under a new name and %3 saves every modified document (untitled ones ask for a name). A ● in the tab marks unsaved changes; closing asks before discarding them.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;%1 salva, %2 salva com outro nome e %3 salva todos os documentos modificados (os sem título pedem um nome). Um ● na aba indica alterações não salvas; ao fechar, o editor pergunta antes de descartá-las.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Running code</source>
+        <translation>Executando código</translation>
+    </message>
+    <message>
+        <source>run execute compile build f5 gcc g++ python flags tool</source>
+        <translation>run execute compile build f5 gcc g++ python flags tool executar rodar compilar ferramenta</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;%1 saves the file and runs it in the terminal. C, C++ and Rust are compiled to &lt;code&gt;/tmp/slayer_out&lt;/code&gt; and then executed; interpreted languages run directly.&lt;/p&gt;&lt;p&gt;Change the tool, flags and extensions of each language in &lt;b&gt;Settings → Languages&lt;/b&gt;, or add your own language (Ruby, Lua, Perl…) with &lt;b&gt;Add Language…&lt;/b&gt;.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;%1 salva o arquivo e o executa no terminal. C, C++ e Rust são compilados em &lt;code&gt;/tmp/slayer_out&lt;/code&gt; e depois executados; linguagens interpretadas rodam direto.&lt;/p&gt;&lt;p&gt;Altere a ferramenta, as flags e as extensões de cada linguagem em &lt;b&gt;Configurações → Linguagens&lt;/b&gt;, ou adicione a sua (Ruby, Lua, Perl…) com &lt;b&gt;Adicionar linguagem…&lt;/b&gt;.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Terminal</source>
+        <translation>Terminal</translation>
+    </message>
+    <message>
+        <source>terminal shell bash console dock position left right top bottom float exit</source>
+        <translation>terminal shell bash console dock position left right top bottom float exit posição esquerda direita topo base flutuante sair painel</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;%1 shows or hides the terminal and moves the focus to it. The ▥ button on its title bar moves it to the left, top, right or bottom; you can also drag it by the title or detach it as a window.&lt;/p&gt;&lt;p&gt;Typing &lt;code&gt;exit&lt;/code&gt; starts a new shell. Font, size, shell and cursor are in &lt;b&gt;Settings → Terminal&lt;/b&gt;.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;%1 mostra ou oculta o terminal e leva o foco até ele. O botão ▥ da barra de título o move para a esquerda, o topo, a direita ou a base; também dá para arrastá-lo pelo título ou destacá-lo como janela.&lt;/p&gt;&lt;p&gt;Digitar &lt;code&gt;exit&lt;/code&gt; inicia um novo shell. Fonte, tamanho, shell e cursor ficam em &lt;b&gt;Configurações → Terminal&lt;/b&gt;.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Split view</source>
+        <translation>Dividir visão</translation>
+    </message>
+    <message>
+        <source>split view vertical horizontal side by side pane window divide</source>
+        <translation>split view vertical horizontal side by side pane window divide dividir visão lado a lado painel janela</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The button at the right end of the tab bar splits the view, like Kate: %1 side by side, %2 stacked. The same document can be shown in several views; edits appear in all of them.&lt;/p&gt;&lt;p&gt;“Move Document to New Split” moves the tab instead of duplicating it. %3 closes the current view, %4 / %5 switch between views.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;O botão no fim da barra de abas divide a visão, como no Kate: %1 lado a lado, %2 empilhado. O mesmo documento pode aparecer em várias visões; as edições aparecem em todas.&lt;/p&gt;&lt;p&gt;“Mover documento para nova divisão” move a aba em vez de duplicá-la. %3 fecha a visão atual e %4 / %5 alternam entre as visões.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Find and replace</source>
+        <translation>Localizar e substituir</translation>
+    </message>
+    <message>
+        <source>find search replace next previous case word</source>
+        <translation>find search replace next previous case word localizar buscar pesquisar substituir próximo anterior maiúsculas palavra</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;%1 opens the find bar and %2 the replace bar. %3 / %4 jump to the next or previous match; &lt;b&gt;Aa&lt;/b&gt; matches case and &lt;b&gt;Word&lt;/b&gt; whole words.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;%1 abre a barra de busca e %2 a de substituição. %3 / %4 vão para a ocorrência seguinte ou anterior; &lt;b&gt;Aa&lt;/b&gt; diferencia maiúsculas e &lt;b&gt;Palavra&lt;/b&gt; busca palavras inteiras.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Code completion</source>
+        <translation>Autocompletar</translation>
+    </message>
+    <message>
+        <source>completion autocomplete suggestion popup ctrl space intellisense</source>
+        <translation>completion autocomplete suggestion popup ctrl space intellisense autocompletar completar sugestão sugestões</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Suggestions appear after two letters: words of the file, language keywords and, when a language server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.&lt;/p&gt;&lt;p&gt;Turn it off in &lt;b&gt;Settings → Editor → Features&lt;/b&gt;.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;As sugestões aparecem depois de duas letras: palavras do arquivo, palavras-chave da linguagem e, quando há um servidor de linguagem, os itens dele (mostrados primeiro). %1 abre a lista a qualquer momento. %2 ou %3 aceitam, %4 fecha.&lt;/p&gt;&lt;p&gt;Desligue em &lt;b&gt;Configurações → Editor → Recursos&lt;/b&gt;.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Language servers (LSP)</source>
+        <translation>Servidores de linguagem (LSP)</translation>
+    </message>
+    <message>
+        <source>lsp language server clangd pylsp pyright diagnostics errors warnings underline</source>
+        <translation>lsp language server clangd pylsp pyright diagnostics errors warnings underline servidor de linguagem diagnósticos erros avisos sublinhado</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;With a language server installed, errors and warnings are underlined (red, yellow, blue) and the line number takes their color. Hover the underline for the message; the message of the cursor line is also shown in the status bar.&lt;/p&gt;&lt;p&gt;Choose the server of each language in &lt;b&gt;Settings → Language Servers&lt;/b&gt;; the status column tells whether it is installed and how to install it. For C and C++, clangd uses &lt;code&gt;compile_commands.json&lt;/code&gt; when present, otherwise the flags from Settings → Languages.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Com um servidor de linguagem instalado, erros e avisos ficam sublinhados (vermelho, amarelo, azul) e o número da linha assume a cor deles. Passe o mouse sobre o sublinhado para ver a mensagem; a mensagem da linha do cursor também aparece na barra de status.&lt;/p&gt;&lt;p&gt;Escolha o servidor de cada linguagem em &lt;b&gt;Configurações → Servidores de linguagem&lt;/b&gt;; a coluna Estado informa se ele está instalado e como instalá-lo. Para C e C++, o clangd usa o &lt;code&gt;compile_commands.json&lt;/code&gt; quando existe, senão as flags de Configurações → Linguagens.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Code folding</source>
+        <translation>Dobramento de código</translation>
+    </message>
+    <message>
+        <source>fold unfold collapse expand block folding</source>
+        <translation>fold unfold collapse expand block folding dobrar desdobrar recolher expandir bloco dobramento</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Click the arrow next to a line number to fold its block (C, C++, Java, JavaScript, Rust, Go and Python). Folded lines end with ⋯. %1 / %2 fold or unfold the block of the cursor, %3 / %4 all blocks.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Clique na seta ao lado do número da linha para dobrar o bloco (C, C++, Java, JavaScript, Rust, Go e Python). Linhas dobradas terminam com ⋯. %1 / %2 dobram ou desdobram o bloco do cursor, %3 / %4 todos os blocos.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Brackets, indentation and tabs</source>
+        <translation>Parênteses, indentação e tabulação</translation>
+    </message>
+    <message>
+        <source>auto closing pairs brackets quotes indent tab spaces soft tabs width</source>
+        <translation>auto closing pairs brackets quotes indent tab spaces soft tabs width fechamento automático pares parênteses chaves aspas indentação tabulação espaços largura</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Brackets and quotes are closed automatically; typing the closing one just steps over it. Enter keeps the indentation and indents after &lt;code&gt;{&lt;/code&gt; or a Python &lt;code&gt;:&lt;/code&gt;. %1 / %2 indent or unindent the selected lines, %3 toggles comments.&lt;/p&gt;&lt;p&gt;Tab width (4 by default) and “insert spaces” are in &lt;b&gt;Settings → Editor&lt;/b&gt;; the status bar button changes them for the current file.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Parênteses e aspas são fechados automaticamente; digitar o fechamento apenas avança sobre ele. Enter mantém a indentação e indenta depois de &lt;code&gt;{&lt;/code&gt; ou de &lt;code&gt;:&lt;/code&gt; em Python. %1 / %2 indentam ou desindentam as linhas selecionadas, %3 alterna comentários.&lt;/p&gt;&lt;p&gt;A largura da tabulação (4 por padrão) e “inserir espaços” ficam em &lt;b&gt;Configurações → Editor&lt;/b&gt;; o botão da barra de status muda isso para o arquivo atual.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Text encoding</source>
+        <translation>Codificação de texto</translation>
+    </message>
+    <message>
+        <source>encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação</source>
+        <translation>encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação acentos</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The status bar shows the encoding of the file. Click it to choose another one: an unmodified file is reloaded in that encoding, otherwise it applies when saving. Files with a BOM keep it; files that are not valid UTF-8 open as Windows-1252.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;A barra de status mostra a codificação do arquivo. Clique nela para escolher outra: um arquivo sem alterações é recarregado nessa codificação; caso contrário, ela vale ao salvar. Arquivos com BOM o mantêm; arquivos que não são UTF-8 válido abrem como Windows-1252.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Status bar</source>
+        <translation>Barra de status</translation>
+    </message>
+    <message>
+        <source>status bar footer branch git line column insert overwrite</source>
+        <translation>status bar footer branch git line column insert overwrite barra de status rodapé linha coluna inserir sobrescrever</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;From left to right: git branch, message of the cursor line, language server, line:column, INSERT/OVERWRITE (%1 toggles), tabs, encoding and language (click to change the highlighting).&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Da esquerda para a direita: branch do git, mensagem da linha do cursor, servidor de linguagem, linha:coluna, INSERIR/SOBRESCREVER (%1 alterna), tabulação, codificação e linguagem (clique para mudar o realce).&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Themes and appearance</source>
+        <translation>Temas e aparência</translation>
+    </message>
+    <message>
+        <source>theme dark light color appearance scale font size zoom</source>
+        <translation>theme dark light color appearance scale font size zoom tema escuro claro cor aparência escala fonte tamanho</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Pick a theme in &lt;b&gt;View → Theme&lt;/b&gt; or &lt;b&gt;Settings → Appearance&lt;/b&gt;; it also colors the terminal. %1 / %2 / %3 zoom the editor. Button and interface scale are in Settings → Appearance.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Escolha um tema em &lt;b&gt;Exibir → Tema&lt;/b&gt; ou &lt;b&gt;Configurações → Aparência&lt;/b&gt;; ele também colore o terminal. %1 / %2 / %3 controlam o zoom do editor. A escala dos botões e da interface fica em Configurações → Aparência.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation>Perfis</translation>
+    </message>
+    <message>
+        <source>profile profiles save load settings setup preset</source>
+        <translation>profile profiles save load settings setup preset perfil perfis salvar carregar configurações</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;&lt;b&gt;Settings → Profiles&lt;/b&gt; stores every setting under a name, so you can switch setups (class, presentation, home) in one click. Loading a profile applies it immediately.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;&lt;b&gt;Configurações → Perfis&lt;/b&gt; guarda todas as configurações com um nome, para trocar de configuração (aula, apresentação, casa) com um clique. Carregar um perfil o aplica na hora.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation>Atalhos de teclado</translation>
+    </message>
+    <message>
+        <source>shortcuts keys keyboard hotkeys</source>
+        <translation>shortcuts keys keyboard hotkeys atalhos teclas teclado</translation>
+    </message>
+    <message>
+        <source>&lt;table cellpadding='3'&gt;&lt;tr&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td&gt;New / open / save&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%2&lt;/td&gt;&lt;td&gt;Save as / save all&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%3&lt;/td&gt;&lt;td&gt;Close tab&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%4&lt;/td&gt;&lt;td&gt;Run&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%5&lt;/td&gt;&lt;td&gt;Terminal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%6&lt;/td&gt;&lt;td&gt;Find / replace&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%7&lt;/td&gt;&lt;td&gt;Go to line&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%8&lt;/td&gt;&lt;td&gt;Toggle comment&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%9&lt;/td&gt;&lt;td&gt;Split vertical / horizontal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%10&lt;/td&gt;&lt;td&gt;Settings&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%11&lt;/td&gt;&lt;td&gt;Help&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</source>
+        <translation>&lt;table cellpadding='3'&gt;&lt;tr&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td&gt;Novo / abrir / salvar&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%2&lt;/td&gt;&lt;td&gt;Salvar como / salvar tudo&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%3&lt;/td&gt;&lt;td&gt;Fechar aba&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%4&lt;/td&gt;&lt;td&gt;Executar&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%5&lt;/td&gt;&lt;td&gt;Terminal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%6&lt;/td&gt;&lt;td&gt;Localizar / substituir&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%7&lt;/td&gt;&lt;td&gt;Ir para linha&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%8&lt;/td&gt;&lt;td&gt;Alternar comentário&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%9&lt;/td&gt;&lt;td&gt;Dividir vertical / horizontal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%10&lt;/td&gt;&lt;td&gt;Configurações&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%11&lt;/td&gt;&lt;td&gt;Ajuda&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</translation>
+    </message>
+    <message>
+        <source>Slayer Editor Help</source>
+        <translation>Ajuda do Slayer Editor</translation>
+    </message>
+    <message>
+        <source>Search help (e.g. split, encoding, lsp)…</source>
+        <translation>Buscar na ajuda (ex.: dividir, codificação, lsp)…</translation>
+    </message>
+    <message>
+        <source>No topic matches.</source>
+        <translation>Nenhum tópico encontrado.</translation>
+    </message>
+</context>
+<context>
+    <name>Language</name>
+    <message>
+        <source>Plain Text</source>
+        <translation>Texto simples</translation>
+    </message>
+</context>
+<context>
+    <name>LspClient</name>
+    <message>
+        <source>Could not start “%1”</source>
+        <translation>Não foi possível iniciar “%1”</translation>
+    </message>
+</context>
+<context>
+    <name>LspManager</name>
+    <message numerus="yes">
+        <source>%1 stopped %n time(s); disabled until the settings change.</source>
+        <translation>
+            <numerusform>%1 parou %n vez; desativado até as configurações mudarem.</numerusform><numerusform>%1 parou %n vezes; desativado até as configurações mudarem.</numerusform></translation>
+    </message>
+    <message>
+        <source>Could not start “%1”</source>
+        <translation>Não foi possível iniciar “%1”</translation>
+    </message>
+    <message>
+        <source>%1 — starting</source>
+        <translation>%1 — iniciando</translation>
+    </message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message>
+        <source>&amp;File</source>
+        <translation>&amp;Arquivo</translation>
+    </message>
+    <message>
+        <source>&amp;New</source>
+        <translation>&amp;Novo</translation>
+    </message>
+    <message>
+        <source>&amp;Open…</source>
+        <translation>A&amp;brir…</translation>
+    </message>
+    <message>
+        <source>Open File</source>
+        <translation>Abrir arquivo</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Salvar</translation>
+    </message>
+    <message>
+        <source>Save &amp;As…</source>
+        <translation>Salvar &amp;como…</translation>
+    </message>
+    <message>
+        <source>Save A&amp;ll</source>
+        <translation>Salvar &amp;tudo</translation>
+    </message>
+    <message>
+        <source>Save As (Ctrl+Shift+S)</source>
+        <translation>Salvar como (Ctrl+Shift+S)</translation>
+    </message>
+    <message>
+        <source>Save All (Ctrl+L)</source>
+        <translation>Salvar tudo (Ctrl+L)</translation>
+    </message>
+    <message>
+        <source>&amp;Close Tab</source>
+        <translation>&amp;Fechar aba</translation>
+    </message>
+    <message>
+        <source>&amp;Quit</source>
+        <translation>Sa&amp;ir</translation>
+    </message>
+    <message>
+        <source>&amp;Edit</source>
+        <translation>&amp;Editar</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <translation>&amp;Desfazer</translation>
+    </message>
+    <message>
+        <source>&amp;Redo</source>
+        <translation>&amp;Refazer</translation>
+    </message>
+    <message>
+        <source>&amp;Find…</source>
+        <translation>&amp;Localizar…</translation>
+    </message>
+    <message>
+        <source>&amp;Replace…</source>
+        <translation>Su&amp;bstituir…</translation>
+    </message>
+    <message>
+        <source>Find &amp;Next</source>
+        <translation>Localizar &amp;próximo</translation>
+    </message>
+    <message>
+        <source>Find &amp;Previous</source>
+        <translation>Localizar &amp;anterior</translation>
+    </message>
+    <message>
+        <source>Toggle &amp;Comment</source>
+        <translation>Alternar &amp;comentário</translation>
+    </message>
+    <message>
+        <source>&amp;Go to Line…</source>
+        <translation>&amp;Ir para linha…</translation>
+    </message>
+    <message>
+        <source>Code &amp;Folding</source>
+        <translation>&amp;Dobramento de código</translation>
+    </message>
+    <message>
+        <source>&amp;Fold Block</source>
+        <translation>&amp;Dobrar bloco</translation>
+    </message>
+    <message>
+        <source>&amp;Unfold Block</source>
+        <translation>D&amp;esdobrar bloco</translation>
+    </message>
+    <message>
+        <source>Fold &amp;All</source>
+        <translation>Dobrar &amp;tudo</translation>
+    </message>
+    <message>
+        <source>Unfold A&amp;ll</source>
+        <translation>Desdobrar t&amp;udo</translation>
+    </message>
+    <message>
+        <source>&amp;Settings…</source>
+        <translation>&amp;Configurações…</translation>
+    </message>
+    <message>
+        <source>&amp;View</source>
+        <translation>E&amp;xibir</translation>
+    </message>
+    <message>
+        <source>Show/Hide &amp;Terminal</source>
+        <translation>Mostrar/ocultar &amp;terminal</translation>
+    </message>
+    <message>
+        <source>Terminal &amp;Position</source>
+        <translation>&amp;Posição do terminal</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Esquerda</translation>
+    </message>
+    <message>
+        <source>Top</source>
+        <translation>Topo</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Direita</translation>
+    </message>
+    <message>
+        <source>Bottom</source>
+        <translation>Base</translation>
+    </message>
+    <message>
+        <source>&amp;Split View</source>
+        <translation>&amp;Dividir visão</translation>
+    </message>
+    <message>
+        <source>Split &amp;Vertical</source>
+        <translation>Dividir &amp;verticalmente</translation>
+    </message>
+    <message>
+        <source>Split &amp;Horizontal</source>
+        <translation>Dividir &amp;horizontalmente</translation>
+    </message>
+    <message>
+        <source>&amp;Close Current View</source>
+        <translation>&amp;Fechar visão atual</translation>
+    </message>
+    <message>
+        <source>Next View</source>
+        <translation>Próxima visão</translation>
+    </message>
+    <message>
+        <source>Previous View</source>
+        <translation>Visão anterior</translation>
+    </message>
+    <message>
+        <source>T&amp;heme</source>
+        <translation>T&amp;ema</translation>
+    </message>
+    <message>
+        <source>Zoom &amp;In</source>
+        <translation>&amp;Aumentar zoom</translation>
+    </message>
+    <message>
+        <source>Zoom &amp;Out</source>
+        <translation>&amp;Diminuir zoom</translation>
+    </message>
+    <message>
+        <source>&amp;Reset Zoom</source>
+        <translation>&amp;Redefinir zoom</translation>
+    </message>
+    <message>
+        <source>&amp;Run</source>
+        <translation>E&amp;xecutar</translation>
+    </message>
+    <message>
+        <source>&amp;Run File</source>
+        <translation>&amp;Executar arquivo</translation>
+    </message>
+    <message>
+        <source>Save and run the current file (F5)</source>
+        <translation>Salvar e executar o arquivo atual (F5)</translation>
+    </message>
+    <message>
+        <source>&amp;Help</source>
+        <translation>Aj&amp;uda</translation>
+    </message>
+    <message>
+        <source>Slayer Editor &amp;Help</source>
+        <translation>&amp;Ajuda do Slayer Editor</translation>
+    </message>
+    <message>
+        <source>&amp;About</source>
+        <translation>&amp;Sobre</translation>
+    </message>
+    <message>
+        <source>&amp;About Slayer Editor</source>
+        <translation>&amp;Sobre o Slayer Editor</translation>
+    </message>
+    <message>
+        <source>About &amp;Qt</source>
+        <translation>Sobre o &amp;Qt</translation>
+    </message>
+    <message>
+        <source>Main Toolbar</source>
+        <translation>Barra de ferramentas principal</translation>
+    </message>
+    <message>
+        <source>No open files</source>
+        <translation>Nenhum arquivo aberto</translation>
+    </message>
+    <message>
+        <source>New File</source>
+        <translation>Novo arquivo</translation>
+    </message>
+    <message>
+        <source>Open File…</source>
+        <translation>Abrir arquivo…</translation>
+    </message>
+    <message>
+        <source>Close tab</source>
+        <translation>Fechar aba</translation>
+    </message>
+    <message>
+        <source>Could not open %1:
+%2</source>
+        <translation>Não foi possível abrir %1:
+%2</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Salvar</translation>
+    </message>
+    <message>
+        <source>Could not save %1:
+%2</source>
+        <translation>Não foi possível salvar %1:
+%2</translation>
+    </message>
+    <message>
+        <source>Saved %1</source>
+        <translation>%1 salvo</translation>
+    </message>
+    <message>
+        <source>Save As</source>
+        <translation>Salvar como</translation>
+    </message>
+    <message>
+        <source>Unsaved Changes</source>
+        <translation>Alterações não salvas</translation>
+    </message>
+    <message>
+        <source>“%1” has unsaved changes. Save them?</source>
+        <translation>“%1” tem alterações não salvas. Deseja salvá-las?</translation>
+    </message>
+    <message>
+        <source>Language server</source>
+        <translation>Servidor de linguagem</translation>
+    </message>
+    <message>
+        <source>Insert key toggles insert/overwrite</source>
+        <translation>A tecla Insert alterna entre inserir e sobrescrever</translation>
+    </message>
+    <message>
+        <source>Text encoding</source>
+        <translation>Codificação de texto</translation>
+    </message>
+    <message>
+        <source>UTF-8 with BOM</source>
+        <translation>UTF-8 com BOM</translation>
+    </message>
+    <message>
+        <source>ISO-8859-1 (Western European)</source>
+        <translation>ISO-8859-1 (Europa Ocidental)</translation>
+    </message>
+    <message>
+        <source>ISO-8859-15 (Western European, €)</source>
+        <translation>ISO-8859-15 (Europa Ocidental, €)</translation>
+    </message>
+    <message>
+        <source>Windows-1252 (Western European)</source>
+        <translation>Windows-1252 (Europa Ocidental)</translation>
+    </message>
+    <message>
+        <source>Save with encoding</source>
+        <translation>Salvar com a codificação</translation>
+    </message>
+    <message>
+        <source>Reload with encoding</source>
+        <translation>Recarregar com a codificação</translation>
+    </message>
+    <message>
+        <source>Other Encodings</source>
+        <translation>Outras codificações</translation>
+    </message>
+    <message>
+        <source>Insert Spaces (Soft Tabs)</source>
+        <translation>Inserir espaços (tabulações emuladas)</translation>
+    </message>
+    <message>
+        <source>Tab Width</source>
+        <translation>Largura da tabulação</translation>
+    </message>
+    <message>
+        <source>Encoding</source>
+        <translation>Codificação</translation>
+    </message>
+    <message>
+        <source>Reloaded as %1</source>
+        <translation>Recarregado como %1</translation>
+    </message>
+    <message>
+        <source>%1 will be saved as %2</source>
+        <translation>%1 será salvo como %2</translation>
+    </message>
+    <message>
+        <source>OVERWRITE</source>
+        <translation>SOBRESCREVER</translation>
+    </message>
+    <message>
+        <source>INSERT</source>
+        <translation>INSERIR</translation>
+    </message>
+    <message>
+        <source>Soft Tabs: %1</source>
+        <translation>Tabulações emuladas: %1</translation>
+    </message>
+    <message>
+        <source>Tab Size: %1</source>
+        <translation>Tabulação: %1</translation>
+    </message>
+    <message>
+        <source>No run command for %1 files — set one in Settings → Languages.</source>
+        <translation>Sem comando de execução para arquivos %1 — defina um em Configurações → Linguagens.</translation>
+    </message>
+    <message>
+        <source>Go to Line</source>
+        <translation>Ir para linha</translation>
+    </message>
+    <message>
+        <source>Line:</source>
+        <translation>Linha:</translation>
+    </message>
+    <message numerus="yes">
+        <source>Saved %n file(s)</source>
+        <translation>
+            <numerusform>%n arquivo salvo</numerusform><numerusform>%n arquivos salvos</numerusform></translation>
+    </message>
+    <message>
+        <source>Nothing to save</source>
+        <translation>Nada para salvar</translation>
+    </message>
+    <message>
+        <source>About Slayer Editor</source>
+        <translation>Sobre o Slayer Editor</translation>
+    </message>
+    <message>
+        <source>Version</source>
+        <translation>Versão</translation>
+    </message>
+    <message>
+        <source>A lightweight code editor with an embedded terminal.&lt;br&gt;© Prof. Wyllian</source>
+        <translation>Um editor de código leve com terminal embutido.&lt;br&gt;© Prof. Wyllian</translation>
+    </message>
+    <message>
+        <source>Interface scale and language apply after restarting Slayer Editor.</source>
+        <translation>A escala e o idioma da interface valem após reiniciar o Slayer Editor.</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsDialog</name>
+    <message>
+        <source>Settings</source>
+        <translation>Configurações</translation>
+    </message>
+    <message>
+        <source>Profiles</source>
+        <translation>Perfis</translation>
+    </message>
+    <message>
+        <source>Editor</source>
+        <translation>Editor</translation>
+    </message>
+    <message>
+        <source>Appearance</source>
+        <translation>Aparência</translation>
+    </message>
+    <message>
+        <source>Terminal</source>
+        <translation>Terminal</translation>
+    </message>
+    <message>
+        <source>Languages</source>
+        <translation>Linguagens</translation>
+    </message>
+    <message>
+        <source>Language Servers</source>
+        <translation>Servidores de linguagem</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Restaurar padrões</translation>
+    </message>
+    <message>
+        <source>Reset every setting to its default value? Saved profiles are kept.</source>
+        <translation>Restaurar todas as configurações para o padrão? Os perfis salvos são mantidos.</translation>
+    </message>
+    <message>
+        <source>Profile name</source>
+        <translation>Nome do perfil</translation>
+    </message>
+    <message>
+        <source>Save Current Settings</source>
+        <translation>Salvar configurações atuais</translation>
+    </message>
+    <message>
+        <source>Load</source>
+        <translation>Carregar</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Excluir</translation>
+    </message>
+    <message>
+        <source>Save Profile</source>
+        <translation>Salvar perfil</translation>
+    </message>
+    <message>
+        <source>Overwrite profile “%1”?</source>
+        <translation>Sobrescrever o perfil “%1”?</translation>
+    </message>
+    <message>
+        <source>Delete Profile</source>
+        <translation>Excluir perfil</translation>
+    </message>
+    <message>
+        <source>Delete profile “%1”?</source>
+        <translation>Excluir o perfil “%1”?</translation>
+    </message>
+    <message>
+        <source>New profile</source>
+        <translation>Novo perfil</translation>
+    </message>
+    <message>
+        <source>Saved profiles</source>
+        <translation>Perfis salvos</translation>
+    </message>
+    <message>
+        <source>A profile stores every setting under a name, so you can switch setups in one click (for example “Class”, “Presentation”, “Home”).</source>
+        <translation>Um perfil guarda todas as configurações com um nome, para trocar de configuração com um clique (por exemplo “Aula”, “Apresentação”, “Casa”).</translation>
+    </message>
+    <message>
+        <source> spaces</source>
+        <translation> espaços</translation>
+    </message>
+    <message>
+        <source>Font</source>
+        <translation>Fonte</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation>Tamanho</translation>
+    </message>
+    <message>
+        <source>Tab width</source>
+        <translation>Largura da tabulação</translation>
+    </message>
+    <message>
+        <source>Insert spaces instead of tab characters</source>
+        <translation>Inserir espaços em vez de caracteres de tabulação</translation>
+    </message>
+    <message>
+        <source>Show line numbers</source>
+        <translation>Mostrar números de linha</translation>
+    </message>
+    <message>
+        <source>Wrap long lines</source>
+        <translation>Quebrar linhas longas</translation>
+    </message>
+    <message>
+        <source>Highlight the current line</source>
+        <translation>Destacar a linha atual</translation>
+    </message>
+    <message>
+        <source>Blinking cursor</source>
+        <translation>Cursor piscante</translation>
+    </message>
+    <message>
+        <source>Auto-close brackets and quotes  ( )  [ ]  { }  " "  ' '</source>
+        <translation>Fechar parênteses e aspas automaticamente  ( )  [ ]  { }  " "  ' '</translation>
+    </message>
+    <message>
+        <source>Code completion (words in the file + language keywords, Ctrl+Space)</source>
+        <translation>Autocompletar (palavras do arquivo + palavras-chave da linguagem, Ctrl+Espaço)</translation>
+    </message>
+    <message>
+        <source>Code folding (arrows next to the line numbers, Ctrl+Shift+[ / ])</source>
+        <translation>Dobramento de código (setas ao lado dos números de linha, Ctrl+Shift+[ / ])</translation>
+    </message>
+    <message>
+        <source>Language servers (LSP): diagnostics and smarter completion</source>
+        <translation>Servidores de linguagem (LSP): diagnósticos e autocompletar mais inteligente</translation>
+    </message>
+    <message>
+        <source>Display</source>
+        <translation>Exibição</translation>
+    </message>
+    <message>
+        <source>Features</source>
+        <translation>Recursos</translation>
+    </message>
+    <message>
+        <source>Toolbar buttons</source>
+        <translation>Botões da barra</translation>
+    </message>
+    <message>
+        <source>Interface (restart)</source>
+        <translation>Interface (reiniciar)</translation>
+    </message>
+    <message>
+        <source>Theme</source>
+        <translation>Tema</translation>
+    </message>
+    <message>
+        <source>Scale</source>
+        <translation>Escala</translation>
+    </message>
+    <message>
+        <source>The theme colors the interface, the editor and the terminal.</source>
+        <translation>O tema colore a interface, o editor e o terminal.</translation>
+    </message>
+    <message>
+        <source>Default ($SHELL)</source>
+        <translation>Padrão ($SHELL)</translation>
+    </message>
+    <message>
+        <source>Shell</source>
+        <translation>Shell</translation>
+    </message>
+    <message>
+        <source>Move the terminal to the left, top, right or bottom with the ▥ button on its title bar, or drag it by the title. Typing “exit” starts a new shell.</source>
+        <translation>Mova o terminal para a esquerda, o topo, a direita ou a base com o botão ▥ da barra de título, ou arraste-o pelo título. Digitar “exit” inicia um novo shell.</translation>
+    </message>
+    <message>
+        <source>Tip</source>
+        <translation>Dica</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Idioma</translation>
+    </message>
+    <message>
+        <source>Tool</source>
+        <translation>Ferramenta</translation>
+    </message>
+    <message>
+        <source>Flags</source>
+        <translation>Flags</translation>
+    </message>
+    <message>
+        <source>Extensions</source>
+        <translation>Extensões</translation>
+    </message>
+    <message>
+        <source>Add Language…</source>
+        <translation>Adicionar linguagem…</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Remover</translation>
+    </message>
+    <message>
+        <source>Reset Row</source>
+        <translation>Restaurar linha</translation>
+    </message>
+    <message>
+        <source>Add Language</source>
+        <translation>Adicionar linguagem</translation>
+    </message>
+    <message>
+        <source>Interpreter or compiler (e.g. ruby, lua, perl, php, Rscript):</source>
+        <translation>Interpretador ou compilador (ex.: ruby, lua, perl, php, Rscript):</translation>
+    </message>
+    <message>
+        <source>File extensions (e.g. rb):</source>
+        <translation>Extensões de arquivo (ex.: rb):</translation>
+    </message>
+    <message>
+        <source>Run (F5) saves the file and runs “tool flags file” in the terminal. C, C++ and Rust are compiled to /tmp/slayer_out and then executed. Double-click a cell to edit it.</source>
+        <translation>Executar (F5) salva o arquivo e roda “ferramenta flags arquivo” no terminal. C, C++ e Rust são compilados em /tmp/slayer_out e depois executados. Dê um duplo clique numa célula para editá-la.</translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation>Ativo</translation>
+    </message>
+    <message>
+        <source>Server command</source>
+        <translation>Comando do servidor</translation>
+    </message>
+    <message>
+        <source>Status</source>
+        <translation>Estado</translation>
+    </message>
+    <message>
+        <source>Use a language server for %1</source>
+        <translation>Usar um servidor de linguagem para %1</translation>
+    </message>
+    <message>
+        <source>Servers start when a file of their language is opened. Without compile_commands.json, clangd uses the C/C++ flags from Settings → Languages. Install commands are shown in the status tooltip; nothing is installed automatically.</source>
+        <translation>Os servidores iniciam quando um arquivo da linguagem é aberto. Sem compile_commands.json, o clangd usa as flags de C/C++ de Configurações → Linguagens. Os comandos de instalação aparecem na dica da coluna Estado; nada é instalado automaticamente.</translation>
+    </message>
+    <message>
+        <source>Diagnostics (wavy underlines) and completion from a Language Server Protocol server. Turn all servers on or off in Settings → Editor.</source>
+        <translation>Diagnósticos (sublinhado ondulado) e autocompletar de um servidor Language Server Protocol. Ligue ou desligue todos em Configurações → Editor.</translation>
+    </message>
+    <message>
+        <source>Installed</source>
+        <translation>Instalado</translation>
+    </message>
+    <message>
+        <source>Not found</source>
+        <translation>Não encontrado</translation>
+    </message>
+    <message>
+        <source>Install with:
+%1</source>
+        <translation>Instale com:
+%1</translation>
+    </message>
+    <message>
+        <source>No active profile</source>
+        <translation>Nenhum perfil ativo</translation>
+    </message>
+    <message>
+        <source>Active: %1</source>
+        <translation>Ativo: %1</translation>
+    </message>
+    <message>
+        <source>No saved profiles yet.</source>
+        <translation>Nenhum perfil salvo ainda.</translation>
+    </message>
+    <message>
+        <source>Automatic (system language)</source>
+        <translation>Automático (idioma do sistema)</translation>
+    </message>
+    <message>
+        <source>Interface language (restart)</source>
+        <translation>Idioma da interface (reiniciar)</translation>
+    </message>
+</context>
+<context>
+    <name>TerminalDock</name>
+    <message>
+        <source>Terminal</source>
+        <translation>Terminal</translation>
+    </message>
+    <message>
+        <source>TERMINAL</source>
+        <translation>TERMINAL</translation>
+    </message>
+    <message>
+        <source>Panel position</source>
+        <translation>Posição do painel</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Esquerda</translation>
+    </message>
+    <message>
+        <source>Top</source>
+        <translation>Topo</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Direita</translation>
+    </message>
+    <message>
+        <source>Bottom</source>
+        <translation>Base</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Limpar</translation>
+    </message>
+    <message>
+        <source>Detach or re-dock</source>
+        <translation>Destacar ou reacoplar</translation>
+    </message>
+    <message>
+        <source>Hide panel</source>
+        <translation>Ocultar painel</translation>
+    </message>
+</context>
+<context>
+    <name>ViewSpace</name>
+    <message>
+        <source>Split Vertical</source>
+        <translation>Dividir verticalmente</translation>
+    </message>
+    <message>
+        <source>Split Horizontal</source>
+        <translation>Dividir horizontalmente</translation>
+    </message>
+    <message>
+        <source>Move Document to New Vertical Split</source>
+        <translation>Mover documento para nova divisão vertical</translation>
+    </message>
+    <message>
+        <source>Move Document to New Horizontal Split</source>
+        <translation>Mover documento para nova divisão horizontal</translation>
+    </message>
+    <message>
+        <source>Close Current View</source>
+        <translation>Fechar visão atual</translation>
+    </message>
+    <message>
+        <source>Close Inactive Views</source>
+        <translation>Fechar visões inativas</translation>
+    </message>
+    <message>
+        <source>Hide Inactive Views</source>
+        <translation>Ocultar visões inativas</translation>
+    </message>
+    <message>
+        <source>Split view</source>
+        <translation>Dividir visão</translation>
+    </message>
+</context>
+</TS>

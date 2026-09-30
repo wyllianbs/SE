@@ -75,6 +75,7 @@ private:
     QSlider *m_buttonScale = nullptr;
     QLabel *m_buttonScaleLabel = nullptr;
     QSlider *m_uiScale = nullptr;
+    QComboBox *m_uiLanguage = nullptr;
     QLabel *m_uiScaleLabel = nullptr;
 
     // Terminal

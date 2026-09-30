@@ -84,6 +84,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("theme")] = theme;
     o[QStringLiteral("buttonScale")] = buttonScale;
     o[QStringLiteral("uiScale")] = uiScale;
+    o[QStringLiteral("uiLanguage")] = uiLanguage;
     o[QStringLiteral("terminalFont")] = terminalFont;
     o[QStringLiteral("terminalFontSize")] = terminalFontSize;
     o[QStringLiteral("shell")] = shell;
@@ -131,6 +132,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.theme = str("theme", s.theme);
     s.buttonScale = qBound(80, num("buttonScale", s.buttonScale), 200);
     s.uiScale = qBound(80, num("uiScale", s.uiScale), 200);
+    s.uiLanguage = str("uiLanguage", s.uiLanguage);
     s.terminalFont = str("terminalFont", s.terminalFont);
     s.terminalFontSize = qBound(6, num("terminalFontSize", s.terminalFontSize), 48);
     s.shell = str("shell", s.shell);

@@ -56,6 +56,7 @@ struct AppSettings
     QString theme = QStringLiteral("catppuccin-mocha");
     int buttonScale = 100;       //< % do tamanho dos ícones da barra
     int uiScale = 100;           //< % — aplicado ao reiniciar
+    QString uiLanguage = QStringLiteral("auto"); //< "auto" (pt_BR do sistema, senão en), "en", "pt_BR"
 
     // Terminal
     QString terminalFont;

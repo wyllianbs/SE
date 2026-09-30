@@ -1,5 +1,6 @@
 #include "Language.h"
 
+#include <QCoreApplication>
 #include <QFileInfo>
 #include <QRegularExpression>
 
@@ -116,7 +117,7 @@ const QList<Language> &Language::all()
 
 const Language &Language::plainText()
 {
-    static const Language text{QStringLiteral("text"), QStringLiteral("Plain Text"),
+    static const Language text{QStringLiteral("text"), QCoreApplication::translate("Language", "Plain Text"),
                                {"txt"}, {}, {}, {}, {}, {}, {}};
     return text;
 }
