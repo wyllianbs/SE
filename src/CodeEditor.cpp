@@ -474,6 +474,82 @@ void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
     }
 }
 
+/** Linha (já aparada) termina com a palavra w, respeitando limites de palavra. */
+static bool endsWithWord(const QString &t, const QString &w)
+{
+    if (!t.endsWith(w))
+        return false;
+    const int i = t.size() - w.size() - 1;
+    return i < 0 || !(t.at(i).isLetterOrNumber() || t.at(i) == QLatin1Char('_'));
+}
+
+static bool startsWithWord(const QString &t, const QString &w)
+{
+    if (!t.startsWith(w))
+        return false;
+    const int i = w.size();
+    return i >= t.size() || !(t.at(i).isLetterOrNumber() || t.at(i) == QLatin1Char('_'));
+}
+
+bool CodeEditor::opensBlock(const QString &id, const QString &before)
+{
+    const QString t = before.trimmed();
+    if (t.isEmpty())
+        return false;
+    // Delimitadores abertos: valem para quase toda linguagem com chaves/colchetes.
+    if (t.endsWith(QLatin1Char('{')) || t.endsWith(QLatin1Char('[')) || t.endsWith(QLatin1Char('(')))
+        return true;
+    if (id == QLatin1String("python"))
+        return t.endsWith(QLatin1Char(':'));
+    if (id == QLatin1String("ruby")) {
+        if (endsWithWord(t, QStringLiteral("end")))
+            return false;
+        if (endsWithWord(t, QStringLiteral("do")) || t.endsWith(QLatin1Char('|')))
+            return true;
+        for (const QString &k : {"def", "class", "module", "if", "unless", "while", "until", "for", "begin",
+                                 "case", "else", "elsif", "when", "ensure", "rescue"}) {
+            if (startsWithWord(t, k))
+                return !t.contains(QLatin1Char(';')) && !endsWithWord(t, QStringLiteral("end"));
+        }
+        return false;
+    }
+    if (id == QLatin1String("lua")) {
+        if (endsWithWord(t, QStringLiteral("end")) || endsWithWord(t, QStringLiteral("until")))
+            return false;
+        return endsWithWord(t, QStringLiteral("then")) || endsWithWord(t, QStringLiteral("do"))
+               || endsWithWord(t, QStringLiteral("repeat")) || endsWithWord(t, QStringLiteral("else"))
+               || (startsWithWord(t, QStringLiteral("function")) && !endsWithWord(t, QStringLiteral("end")));
+    }
+    if (id == QLatin1String("bash")) {
+        return endsWithWord(t, QStringLiteral("then")) || endsWithWord(t, QStringLiteral("do"))
+               || endsWithWord(t, QStringLiteral("in")) || endsWithWord(t, QStringLiteral("else"))
+               || endsWithWord(t, QStringLiteral("elif"));
+    }
+    if (id == QLatin1String("pascal")) {
+        const QString l = t.toLower();
+        return endsWithWord(l, QStringLiteral("begin")) || endsWithWord(l, QStringLiteral("do"))
+               || endsWithWord(l, QStringLiteral("then")) || endsWithWord(l, QStringLiteral("else"))
+               || endsWithWord(l, QStringLiteral("of")) || endsWithWord(l, QStringLiteral("repeat"))
+               || startsWithWord(l, QStringLiteral("var")) || startsWithWord(l, QStringLiteral("type"))
+               || startsWithWord(l, QStringLiteral("const"));
+    }
+    if (id == QLatin1String("fortran")) {
+        const QString l = t.toLower();
+        if (startsWithWord(l, QStringLiteral("end")))
+            return false;
+        return endsWithWord(l, QStringLiteral("then")) || startsWithWord(l, QStringLiteral("program"))
+               || startsWithWord(l, QStringLiteral("subroutine")) || startsWithWord(l, QStringLiteral("function"))
+               || startsWithWord(l, QStringLiteral("module")) || startsWithWord(l, QStringLiteral("do"))
+               || startsWithWord(l, QStringLiteral("type")) || startsWithWord(l, QStringLiteral("interface"));
+    }
+    if (id == QLatin1String("haskell")) {
+        return endsWithWord(t, QStringLiteral("where")) || endsWithWord(t, QStringLiteral("do"))
+               || endsWithWord(t, QStringLiteral("of")) || endsWithWord(t, QStringLiteral("let"))
+               || t.endsWith(QLatin1Char('='));
+    }
+    return false;
+}
+
 void CodeEditor::insertNewlineWithIndent()
 {
     QTextCursor c = textCursor();
@@ -486,9 +562,7 @@ void CodeEditor::insertNewlineWithIndent()
         indent += ch;
     }
     const QString trimmed = before.trimmed();
-    const bool opens = trimmed.endsWith(QLatin1Char('{')) || trimmed.endsWith(QLatin1Char('['))
-                       || trimmed.endsWith(QLatin1Char('('))
-                       || (language().id == QLatin1String("python") && trimmed.endsWith(QLatin1Char(':')));
+    const bool opens = opensBlock(language().id, before);
     const QString step = indentUnit();
 
     c.beginEditBlock();

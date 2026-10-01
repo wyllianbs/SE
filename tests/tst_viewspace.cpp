@@ -43,6 +43,36 @@ private Q_SLOTS:
         QCOMPARE(action.first().at(1).toInt(), 0);
         QCOMPARE(action.first().at(2).toString(), QStringLiteral("rename"));
     }
+    void opensBlockPerLanguage()
+    {
+        // Linhas que ABREM um bloco (Enter deve indentar um nível a mais).
+        struct Case { const char *id; const char *line; bool opens; };
+        const Case cases[] = {
+            {"c", "int main(void) {", true}, {"c", "    return 0;", false},
+            {"cpp", "if (x) {", true}, {"rust", "fn main() {", true}, {"go", "func a() {", true},
+            {"java", "class A {", true}, {"javascript", "const f = () => {", true},
+            {"php", "function f() {", true}, {"r", "f <- function() {", true},
+            {"python", "def f():", true}, {"python", "    x = 1", false}, {"python", "y = {}", false},
+            {"ruby", "def greet", true}, {"ruby", "3.times do |i|", true}, {"ruby", "if x", true},
+            {"ruby", "end", false}, {"ruby", "puts x", false},
+            {"lua", "function f()", true}, {"lua", "if x then", true}, {"lua", "for i=1,3 do", true},
+            {"lua", "end", false}, {"lua", "print(x)", false},
+            {"bash", "if [ -f x ]; then", true}, {"bash", "for i in 1 2; do", true},
+            {"bash", "echo hi", false},
+            {"pascal", "begin", true}, {"pascal", "if x then", true}, {"pascal", "var", true},
+            {"pascal", "end;", false},
+            {"fortran", "program hello", true}, {"fortran", "do i = 1, 3", true},
+            {"fortran", "if (x) then", true}, {"fortran", "end program", false},
+            {"haskell", "main = do", true}, {"haskell", "foo = bar", false}, {"haskell", "foo =", true}, {"haskell", "  where", true},
+            {"haskell", "x = 1", false},
+        };
+        for (const Case &c : cases) {
+            const bool got = CodeEditor::opensBlock(QString::fromLatin1(c.id), QString::fromUtf8(c.line));
+            QVERIFY2(got == c.opens,
+                     qPrintable(QStringLiteral("%1: '%2' expected %3")
+                                    .arg(c.id, c.line).arg(c.opens)));
+        }
+    }
     void clickGutterTogglesBreakpoint()
     {
         Document doc;

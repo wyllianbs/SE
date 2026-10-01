@@ -50,6 +50,9 @@ public:
     void toggleComment();
     void goToLine(int line);
 
+    /** Enter após esta linha (já sem espaços à direita) abre um novo nível de bloco? */
+    static bool opensBlock(const QString &languageId, const QString &lineBeforeCursor);
+
     int lineNumberAreaWidth() const;
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     void lineNumberAreaClicked(const QPoint &pos);
