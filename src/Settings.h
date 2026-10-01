@@ -56,7 +56,7 @@ struct AppSettings
 
     // Aparência
     QString theme = QStringLiteral("catppuccin-mocha");
-    bool themeFollowSystem = false; //< usa a variante clara/escura conforme o desktop
+    bool themeFollowSystem = true;  //< usa a variante clara/escura conforme o desktop (padrão)
     int buttonScale = 100;       //< (obsoleto; substituído por toolbarIconSize)
     // Barra de ferramentas (botão direito nela, como no Kate)
     int toolbarIconSize = 22;    //< 16, 22, 32 ou 48
