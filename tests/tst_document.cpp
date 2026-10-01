@@ -2,6 +2,7 @@
 
 #include <QGuiApplication>
 #include <QTemporaryDir>
+#include <QSignalSpy>
 #include <QTest>
 #include <QTextDocument>
 
@@ -79,6 +80,94 @@ private Q_SLOTS:
         QString error;
         QVERIFY(!doc.save(m_dir.filePath("f.txt"), &error));
         QVERIFY(!error.isEmpty());
+    }
+    // ── Alterações feitas por outros programas ──
+    static void writeExternally(const QString &path, const QByteArray &data, bool atomic = false)
+    {
+        QTest::qWait(30); // garante outro mtime
+        if (atomic) { // como muitos editores: grava ao lado e renomeia
+            QFile tmp(path + ".tmp");
+            tmp.open(QIODevice::WriteOnly);
+            tmp.write(data);
+            tmp.close();
+            QFile::remove(path);
+            QFile::rename(path + ".tmp", path);
+        } else {
+            QFile f(path);
+            f.open(QIODevice::WriteOnly | QIODevice::Truncate);
+            f.write(data);
+        }
+    }
+
+    void autoReloadUnmodified()
+    {
+        Document doc;
+        const QString path = write("w1.txt", "one\n");
+        QVERIFY(doc.load(path));
+        doc.setAutoReload(true);
+        QSignalSpy asked(&doc, &Document::changedOnDisk);
+        writeExternally(path, "two\n");
+        QTRY_COMPARE(doc.text()->toPlainText(), QStringLiteral("two\n"));
+        QVERIFY(asked.isEmpty());
+        QVERIFY(!doc.isModified());
+        // Salvar por renomeação: detectado, e a vigilância continua.
+        writeExternally(path, "three\n", true);
+        QTRY_COMPARE(doc.text()->toPlainText(), QStringLiteral("three\n"));
+        writeExternally(path, "four\n");
+        QTRY_COMPARE(doc.text()->toPlainText(), QStringLiteral("four\n"));
+    }
+
+    void asksWhenAutoReloadOff()
+    {
+        Document doc;
+        const QString path = write("w2.txt", "one\n");
+        QVERIFY(doc.load(path));
+        QSignalSpy asked(&doc, &Document::changedOnDisk);
+        writeExternally(path, "two\n");
+        QTRY_COMPARE(asked.count(), 1);
+        QCOMPARE(asked.first().at(0).toBool(), false);
+        QCOMPARE(doc.text()->toPlainText(), QStringLiteral("one\n")); // nada foi trocado sem pedir
+        QVERIFY(doc.reload());
+        QCOMPARE(doc.text()->toPlainText(), QStringLiteral("two\n"));
+    }
+
+    void neverOverwritesUnsavedChanges()
+    {
+        Document doc;
+        const QString path = write("w3.txt", "one\n");
+        QVERIFY(doc.load(path));
+        doc.setAutoReload(true);
+        doc.text()->setPlainText("mine\n");
+        QVERIFY(doc.isModified());
+        QSignalSpy asked(&doc, &Document::changedOnDisk);
+        writeExternally(path, "theirs\n");
+        QTRY_COMPARE(asked.count(), 1);
+        QCOMPARE(doc.text()->toPlainText(), QStringLiteral("mine\n"));
+    }
+
+    void ownSaveIsNotAChange()
+    {
+        Document doc;
+        const QString path = write("w4.txt", "one\n");
+        QVERIFY(doc.load(path));
+        QSignalSpy asked(&doc, &Document::changedOnDisk);
+        doc.text()->setPlainText("saved by us\n");
+        QVERIFY(doc.save(path));
+        QTest::qWait(600);
+        QVERIFY(asked.isEmpty());
+    }
+
+    void deletedFile()
+    {
+        Document doc;
+        const QString path = write("w5.txt", "one\n");
+        QVERIFY(doc.load(path));
+        doc.setAutoReload(true);
+        QSignalSpy asked(&doc, &Document::changedOnDisk);
+        QFile::remove(path);
+        QTRY_COMPARE(asked.count(), 1);
+        QCOMPARE(asked.first().at(0).toBool(), true);
+        QCOMPARE(doc.text()->toPlainText(), QStringLiteral("one\n"));
     }
 };
 

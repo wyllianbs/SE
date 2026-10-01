@@ -982,6 +982,94 @@ sudo apt install gdb</translation>
         <source>%1 (not installed)</source>
         <translation>%1 (não instalada)</translation>
     </message>
+    <message>
+        <source>Auto &amp;Reload Document</source>
+        <translation>&amp;Recarregar documento automaticamente</translation>
+    </message>
+    <message>
+        <source>Files changed by other programs will reload automatically</source>
+        <translation>Arquivos alterados por outros programas serão recarregados automaticamente</translation>
+    </message>
+    <message>
+        <source>Auto reload disabled: you will be asked when a file changes on disk</source>
+        <translation>Recarregamento automático desligado: você será consultado quando um arquivo mudar no disco</translation>
+    </message>
+    <message>
+        <source>Reload files changed by other programs (unless they have unsaved changes)</source>
+        <translation>Recarrega arquivos alterados por outros programas (exceto se houver alterações não salvas)</translation>
+    </message>
+    <message>
+        <source>Re&amp;load Document</source>
+        <translation>Re&amp;carregar documento</translation>
+    </message>
+    <message>
+        <source>Reload Document</source>
+        <translation>Recarregar documento</translation>
+    </message>
+    <message>
+        <source>Discard the unsaved changes in “%1” and reload it from disk?</source>
+        <translation>Descartar as alterações não salvas de “%1” e recarregá-lo do disco?</translation>
+    </message>
+    <message>
+        <source>Reloaded “%1” (changed on disk)</source>
+        <translation>“%1” recarregado (alterado no disco)</translation>
+    </message>
+    <message>
+        <source>Reload</source>
+        <translation>Recarregar</translation>
+    </message>
+    <message>
+        <source>View Difference</source>
+        <translation>Ver diferença</translation>
+    </message>
+    <message>
+        <source>Overwrite</source>
+        <translation>Sobrescrever</translation>
+    </message>
+    <message>
+        <source>Ignore</source>
+        <translation>Ignorar</translation>
+    </message>
+    <message>
+        <source>Keep your version and save it over the file on disk</source>
+        <translation>Mantém a sua versão e a grava sobre o arquivo no disco</translation>
+    </message>
+    <message>
+        <source>“%1” was deleted by another program.</source>
+        <translation>“%1” foi apagado por outro programa.</translation>
+    </message>
+    <message>
+        <source>“%1” was modified by another program, and you have unsaved changes. Reload it (losing your changes) or overwrite the file with your version?</source>
+        <translation>“%1” foi modificado por outro programa, e você tem alterações não salvas. Recarregar (perdendo suas alterações) ou sobrescrever o arquivo com a sua versão?</translation>
+    </message>
+    <message>
+        <source>“%1” was modified by another program. Show the new version?</source>
+        <translation>“%1” foi modificado por outro programa. Mostrar a nova versão?</translation>
+    </message>
+    <message>
+        <source>Save Again</source>
+        <translation>Salvar de novo</translation>
+    </message>
+    <message>
+        <source>in the editor</source>
+        <translation>no editor</translation>
+    </message>
+    <message>
+        <source>on disk</source>
+        <translation>no disco</translation>
+    </message>
+    <message>
+        <source>Could not run “diff”.</source>
+        <translation>Não foi possível executar o “diff”.</translation>
+    </message>
+    <message>
+        <source>Changes in “%1”</source>
+        <translation>Alterações em “%1”</translation>
+    </message>
+    <message>
+        <source>No differences.</source>
+        <translation>Sem diferenças.</translation>
+    </message>
 </context>
 <context>
     <name>NewFileDialog</name>

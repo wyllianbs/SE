@@ -4,10 +4,12 @@
 #include "Language.h"
 #include "Theme.h"
 
+#include <QDateTime>
 #include <QObject>
 #include <QSet>
 
 class QTextDocument;
+class QTimer;
 
 /** Diagnóstico do servidor LSP (posições em unidades UTF-16, base 0). */
 struct Diagnostic
@@ -80,6 +82,14 @@ public:
 
     /** encoding vazio = detectar (BOM, UTF-8 válido, senão Windows-1252). */
     bool load(const QString &path, QString *error = nullptr, const QString &encoding = QString());
+
+    // Alterações feitas por outros programas no arquivo.
+    /** Com auto, um arquivo sem alterações locais é relido sozinho. */
+    void setAutoReload(bool enabled) { m_autoReload = enabled; }
+    /** Relê do disco na mesma codificação (as visões mantêm cursor e rolagem). */
+    bool reload(QString *error = nullptr);
+    /** Aceita a versão do disco como "vista" (botão Ignorar). */
+    void acknowledgeDiskChange();
     bool save(const QString &path, QString *error = nullptr);
 
 Q_SIGNALS:
@@ -89,6 +99,10 @@ Q_SIGNALS:
     void diagnosticsChanged();
     void breakpointsChanged();
     void executionLineChanged();
+    /** O arquivo mudou no disco e não foi relido (alterações locais, ou auto desligado). */
+    void changedOnDisk(bool deleted);
+    void aboutToReload();
+    void reloaded();
 
 private:
     QTextDocument *m_text;
@@ -101,11 +115,19 @@ private:
     QList<Diagnostic> m_diagnostics;
     QSet<int> m_breakpoints;
     int m_executionLine = -1;
+    void watch();
+    void onFileChanged();
+    void rememberDiskState();
+    class QFileSystemWatcher *m_watcher = nullptr;
+    QTimer *m_changeTimer = nullptr;
+    qint64 m_diskSize = -1;
+    QDateTime m_diskTime;
+    bool m_autoReload = false;
     void recomputeFolds();
     void applyFolding();
     QList<FoldRegion> m_regions;
     QSet<int> m_folded;
     bool m_foldingEnabled = true;
     int m_lastBlockCount = 1;
-    class QTimer *m_foldTimer;
+    QTimer *m_foldTimer;
 };

@@ -55,6 +55,20 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
     setDocument(document->text());
     connect(document, &Document::foldingChanged, this, &CodeEditor::onFoldingChanged);
     connect(document, &Document::breakpointsChanged, m_lineNumberArea, qOverload<>(&QWidget::update));
+    // Recarregar do disco não tira o cursor nem a rolagem do lugar.
+    connect(document, &Document::aboutToReload, this, [this]() {
+        const QTextCursor c = textCursor();
+        m_reloadLine = c.blockNumber();
+        m_reloadColumn = c.positionInBlock();
+        m_reloadScroll = verticalScrollBar()->value();
+    });
+    connect(document, &Document::reloaded, this, [this]() {
+        const QTextBlock b = this->document()->findBlockByNumber(qMin(m_reloadLine, this->document()->blockCount() - 1));
+        QTextCursor c(b);
+        c.setPosition(b.position() + qMin(m_reloadColumn, b.length() - 1));
+        setTextCursor(c);
+        verticalScrollBar()->setValue(m_reloadScroll);
+    });
     connect(document, &Document::executionLineChanged, this, [this]() {
         updateExtraSelections();
         m_lineNumberArea->update();

@@ -121,6 +121,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("autoClosePairs")] = autoClosePairs;
     o[QStringLiteral("codeCompletion")] = codeCompletion;
     o[QStringLiteral("codeFolding")] = codeFolding;
+    o[QStringLiteral("autoReload")] = autoReload;
     o[QStringLiteral("lspEnabled")] = lspEnabled;
     QJsonObject lspObj;
     for (auto it = lsp.cbegin(); it != lsp.cend(); ++it)
@@ -171,6 +172,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.autoClosePairs = flag("autoClosePairs", s.autoClosePairs);
     s.codeCompletion = flag("codeCompletion", s.codeCompletion);
     s.codeFolding = flag("codeFolding", s.codeFolding);
+    s.autoReload = flag("autoReload", s.autoReload);
     s.lspEnabled = flag("lspEnabled", s.lspEnabled);
     s.userThemes = o.value(QStringLiteral("userThemes")).toArray();
     const QJsonObject lspObj = o.value(QStringLiteral("lsp")).toObject();

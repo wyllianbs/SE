@@ -3,6 +3,7 @@
 
 #include <QFile>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QPlainTextDocumentLayout>
 #include <QSaveFile>
 #include <QStringConverter>
@@ -18,6 +19,14 @@ Document::Document(QObject *parent)
     , m_language(Language::plainText())
     , m_foldTimer(new QTimer(this))
 {
+    // Mudanças no disco: o evento chega em rajadas (e salvar por renomeação o
+    // repete), então espera um pouco antes de olhar o arquivo.
+    m_watcher = new QFileSystemWatcher(this);
+    m_changeTimer = new QTimer(this);
+    m_changeTimer->setSingleShot(true);
+    m_changeTimer->setInterval(250);
+    connect(m_watcher, &QFileSystemWatcher::fileChanged, m_changeTimer, qOverload<>(&QTimer::start));
+    connect(m_changeTimer, &QTimer::timeout, this, &Document::onFileChanged);
     m_foldTimer->setSingleShot(true);
     m_foldTimer->setInterval(200);
     connect(m_foldTimer, &QTimer::timeout, this, &Document::recomputeFolds);
@@ -54,6 +63,7 @@ Document::Document(QObject *parent)
 void Document::setFilePath(const QString &path)
 {
     m_filePath = path;
+    watch();
     Q_EMIT changed();
 }
 
@@ -210,6 +220,63 @@ void Document::setExecutionLine(int line)
     Q_EMIT executionLineChanged();
 }
 
+void Document::watch()
+{
+    const QStringList files = m_watcher->files();
+    if (!files.isEmpty())
+        m_watcher->removePaths(files);
+    if (!m_filePath.isEmpty() && QFileInfo::exists(m_filePath))
+        m_watcher->addPath(m_filePath);
+}
+
+void Document::rememberDiskState()
+{
+    const QFileInfo info(m_filePath);
+    m_diskSize = info.exists() ? info.size() : -1;
+    m_diskTime = info.exists() ? info.lastModified() : QDateTime();
+}
+
+void Document::acknowledgeDiskChange()
+{
+    rememberDiskState();
+    watch();
+}
+
+void Document::onFileChanged()
+{
+    if (m_filePath.isEmpty())
+        return;
+    const QFileInfo info(m_filePath);
+    // Salvar por renomeação (o nosso e o de muitos editores) tira o arquivo
+    // da vigilância: volta a vigiar o novo.
+    if (info.exists() && !m_watcher->files().contains(m_filePath))
+        m_watcher->addPath(m_filePath);
+    if (!info.exists()) {
+        Q_EMIT changedOnDisk(true);
+        return;
+    }
+    if (info.size() == m_diskSize && info.lastModified() == m_diskTime)
+        return; // nada mudou de fato (ou foi o nosso próprio salvamento)
+    if (m_autoReload && !isModified()) {
+        if (reload())
+            return;
+    }
+    Q_EMIT changedOnDisk(false);
+}
+
+bool Document::reload(QString *error)
+{
+    if (m_filePath.isEmpty())
+        return false;
+    Q_EMIT aboutToReload();
+    const bool bom = m_bom;
+    const bool ok = load(m_filePath, error, m_encoding);
+    if (ok && bom)
+        m_bom = true;
+    Q_EMIT reloaded();
+    return ok;
+}
+
 void Document::setDiagnostics(const QList<Diagnostic> &diagnostics)
 {
     m_diagnostics = diagnostics;
@@ -287,6 +354,7 @@ bool Document::load(const QString &path, QString *error, const QString &encoding
     m_text->setPlainText(text);
     m_text->setModified(false);
     setFilePath(path);
+    rememberDiskState();
     return true;
 }
 
@@ -319,5 +387,6 @@ bool Document::save(const QString &path, QString *error)
     }
     m_text->setModified(false);
     setFilePath(path);
+    rememberDiskState(); // o próprio salvamento não conta como mudança externa
     return true;
 }

@@ -31,6 +31,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 public:
     explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
 
     void openFiles(const QStringList &paths);
 
@@ -81,6 +82,9 @@ private:
     void showAbout();
     void showHelp();
     void saveAll();
+    QWidget *buildDiskBar();
+    void updateDiskBar();
+    void showDiskDifference(Document *doc);
     void restartApplication();
 
     void applySettings(const AppSettings &settings);
@@ -131,6 +135,15 @@ private:
     QAction *m_stopDebugAction = nullptr;
     QPointer<Document> m_execDoc;
     bool m_focusProgramOnRun = true;
+    // Arquivos alterados por outros programas (valor: apagado?).
+    QHash<Document *, bool> m_diskChanged;
+    QWidget *m_diskBar = nullptr;
+    QLabel *m_diskIcon = nullptr;
+    QLabel *m_diskLabel = nullptr;
+    QPushButton *m_diskReload = nullptr;
+    QPushButton *m_diskDiff = nullptr;
+    QPushButton *m_diskOverwrite = nullptr;
+    QPushButton *m_diskIgnore = nullptr;
     QAction *m_lspAction = nullptr;
     QList<QPair<QAction *, bool AppSettings::*>> m_settingToggles;
 };

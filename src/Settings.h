@@ -49,6 +49,7 @@ struct AppSettings
     bool autoClosePairs = true;
     bool codeCompletion = true;
     bool codeFolding = true;
+    bool autoReload = false;     //< relê sozinho arquivos alterados por outros programas
     bool lspEnabled = true;      //< chave geral dos servidores de linguagem
     bool insertSpaces = true;    //< Tab insere espaços (tabulações emuladas)
     bool editorCursorBlink = true;

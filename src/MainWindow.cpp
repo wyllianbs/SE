@@ -19,7 +19,11 @@
 #include <QCloseEvent>
 #include <QGuiApplication>
 #include <QComboBox>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDir>
+#include <QPlainTextEdit>
+#include <QTemporaryFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QInputDialog>
@@ -80,6 +84,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_stack = new QStackedWidget(central);
     m_stack->addWidget(m_rootSplitter);
     m_stack->addWidget(buildEmptyState());
+    layout->addWidget(buildDiskBar());
     layout->addWidget(m_stack, 1);
     layout->addWidget(m_findBar);
     setCentralWidget(central);
@@ -198,6 +203,12 @@ MainWindow::MainWindow(QWidget *parent)
                 currentEditor()->doc()->toggleBreakpoint(qEnvironmentVariableIntValue("SLAYER_DEBUG_BREAK") - 1);
                 startDebugging();
             }
+            // SLAYER_DEBUG_TOUCH: outro "programa" altera o arquivo atual.
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_TOUCH") && currentEditor()) {
+                QFile f(currentEditor()->filePath());
+                if (f.open(QIODevice::Append))
+                    f.write(qgetenv("SLAYER_DEBUG_TOUCH") + "\n");
+            }
             // SLAYER_DEBUG_TERMTABS: abre abas extras de terminal.
             for (int i = 1; i < qEnvironmentVariableIntValue("SLAYER_DEBUG_TERMTABS"); ++i)
                 m_terminal->newTerminal();
@@ -214,6 +225,14 @@ MainWindow::MainWindow(QWidget *parent)
             });
         });
     }
+}
+
+MainWindow::~MainWindow()
+{
+    // Os documentos são filhos da janela e morrem depois dos membros dela:
+    // nada de sinais deles para cá (m_diskChanged etc. já não existiriam).
+    for (Document *doc : findChildren<Document *>(Qt::FindDirectChildrenOnly))
+        doc->disconnect(this);
 }
 
 // ---------------------------------------------------------------- ações
@@ -283,8 +302,9 @@ void MainWindow::createActions()
     });
     edit->addSeparator();
     // Chaves rápidas das opções de Settings → Editor → Features.
-    auto toggle = [this, edit](const QString &text, bool AppSettings::*field, const QString &on, const QString &off) {
-        QAction *a = edit->addAction(text);
+    auto toggle = [this](QMenu *menu, const QString &text, bool AppSettings::*field, const QString &on,
+                         const QString &off) {
+        QAction *a = menu->addAction(text);
         a->setCheckable(true);
         connect(a, &QAction::toggled, this, [this, field, on, off](bool checked) {
             if (m_settings.*field == checked)
@@ -295,12 +315,13 @@ void MainWindow::createActions()
             statusBar()->showMessage(checked ? on : off, 3000);
         });
         m_settingToggles.append({a, field});
+        return a;
     };
-    toggle(tr("Code Com&pletion"), &AppSettings::codeCompletion, tr("Code completion enabled"),
+    toggle(edit, tr("Code Com&pletion"), &AppSettings::codeCompletion, tr("Code completion enabled"),
            tr("Code completion disabled"));
-    toggle(tr("Auto-Close &Brackets and Quotes"), &AppSettings::autoClosePairs, tr("Auto-closing pairs enabled"),
+    toggle(edit, tr("Auto-Close &Brackets and Quotes"), &AppSettings::autoClosePairs, tr("Auto-closing pairs enabled"),
            tr("Auto-closing pairs disabled"));
-    toggle(tr("Code F&olding Markers"), &AppSettings::codeFolding, tr("Code folding enabled"),
+    toggle(edit, tr("Code F&olding Markers"), &AppSettings::codeFolding, tr("Code folding enabled"),
            tr("Code folding disabled"));
     edit->addSeparator();
     add(edit, tr("&Settings…"), QKeySequence(Qt::CTRL | Qt::Key_Comma),
@@ -360,6 +381,25 @@ void MainWindow::createActions()
                 if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
                     nav->setCurrentRow(2);
         });
+    });
+    view->addSeparator();
+    // Como no Kate: arquivo alterado por outro programa é relido sozinho.
+    QAction *autoReloadA = toggle(view, tr("Auto &Reload Document"), &AppSettings::autoReload,
+                                  tr("Files changed by other programs will reload automatically"),
+                                  tr("Auto reload disabled: you will be asked when a file changes on disk"));
+    autoReloadA->setToolTip(tr("Reload files changed by other programs (unless they have unsaved changes)"));
+    add(view, tr("Re&load Document"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F5), [this]() {
+        if (CodeEditor *e = currentEditor(); e && !e->filePath().isEmpty()) {
+            if (e->doc()->isModified()
+                && QMessageBox::question(this, tr("Reload Document"),
+                                         tr("Discard the unsaved changes in “%1” and reload it from disk?")
+                                             .arg(e->displayName()))
+                       != QMessageBox::Yes)
+                return;
+            e->doc()->reload();
+            m_diskChanged.remove(e->doc());
+            updateDiskBar();
+        }
     });
     view->addSeparator();
     add(view, tr("Zoom &In"), QKeySequence::ZoomIn, [this]() { applyFontSize(m_settings.editorFontSize + 1); });
@@ -739,6 +779,22 @@ Document *MainWindow::createDocument()
     auto *doc = new Document(this);
     doc->setTheme(m_theme);
     doc->setFoldingEnabled(m_settings.codeFolding);
+    doc->setAutoReload(m_settings.autoReload);
+    connect(doc, &Document::changedOnDisk, this, [this, doc](bool deleted) {
+        m_diskChanged.insert(doc, deleted);
+        updateDiskBar();
+    });
+    connect(doc, &Document::reloaded, this, [this, doc]() {
+        if (m_diskChanged.remove(doc))
+            updateDiskBar();
+        if (m_settings.autoReload)
+            statusBar()->showMessage(tr("Reloaded “%1” (changed on disk)").arg(doc->displayName()), 3000);
+        m_lsp->documentSaved(doc); // o servidor vê o texto novo
+    });
+    connect(doc, &QObject::destroyed, this, [this, doc]() {
+        m_diskChanged.remove(doc);
+        updateDiskBar();
+    });
     connect(doc, &Document::changed, this, [this, doc]() {
         updateDocumentTitles(doc);
         m_lsp->attach(doc);
@@ -1185,6 +1241,142 @@ void MainWindow::changeEncoding(const QString &encoding, bool bom)
     updateStatus();
 }
 
+/**
+ * Faixa "modificado por outro programa" (como no Kate), para o arquivo
+ * atual: Recarregar, Ver diferença, Sobrescrever (com alterações locais) e
+ * Ignorar.
+ */
+QWidget *MainWindow::buildDiskBar()
+{
+    m_diskBar = new QWidget(this);
+    m_diskBar->setObjectName(QStringLiteral("DiskBar"));
+    m_diskBar->setAttribute(Qt::WA_StyledBackground);
+    auto *row = new QHBoxLayout(m_diskBar);
+    row->setContentsMargins(12, 6, 8, 6);
+    m_diskIcon = new QLabel(m_diskBar);
+    m_diskLabel = new QLabel(m_diskBar);
+    m_diskLabel->setWordWrap(true);
+    row->addWidget(m_diskIcon);
+    row->addWidget(m_diskLabel, 1);
+    auto makeButton = [this, row](const QString &text) {
+        auto *b = new QPushButton(text, m_diskBar);
+        b->setAutoDefault(false);
+        row->addWidget(b);
+        return b;
+    };
+    m_diskReload = makeButton(tr("Reload"));
+    m_diskDiff = makeButton(tr("View Difference"));
+    m_diskOverwrite = makeButton(tr("Overwrite"));
+    m_diskIgnore = makeButton(tr("Ignore"));
+    m_diskOverwrite->setToolTip(tr("Keep your version and save it over the file on disk"));
+
+    auto current = [this]() -> Document * {
+        CodeEditor *e = currentEditor();
+        return e && m_diskChanged.contains(e->doc()) ? e->doc() : nullptr;
+    };
+    connect(m_diskReload, &QPushButton::clicked, this, [this, current]() {
+        if (Document *doc = current()) {
+            QString error;
+            if (!doc->reload(&error))
+                QMessageBox::warning(this, tr("Reload Document"), error);
+            m_diskChanged.remove(doc);
+            updateDiskBar();
+        }
+    });
+    connect(m_diskDiff, &QPushButton::clicked, this, [this, current]() {
+        if (Document *doc = current())
+            showDiskDifference(doc);
+    });
+    connect(m_diskOverwrite, &QPushButton::clicked, this, [this, current]() {
+        if (Document *doc = current()) {
+            if (CodeEditor *e = currentEditor(); e && save(e)) {
+                m_diskChanged.remove(doc);
+                updateDiskBar();
+            }
+        }
+    });
+    connect(m_diskIgnore, &QPushButton::clicked, this, [this, current]() {
+        if (Document *doc = current()) {
+            doc->acknowledgeDiskChange();
+            m_diskChanged.remove(doc);
+            updateDiskBar();
+        }
+    });
+    m_diskBar->hide();
+    return m_diskBar;
+}
+
+void MainWindow::updateDiskBar()
+{
+    if (!m_diskBar)
+        return;
+    CodeEditor *e = currentEditor();
+    if (!e || !m_diskChanged.contains(e->doc())) {
+        m_diskBar->hide();
+        return;
+    }
+    Document *doc = e->doc();
+    const bool deleted = m_diskChanged.value(doc);
+    m_diskIcon->setPixmap(Icons::icon(Icons::Info, QColor("#f9e2af"), 16).pixmap(16, 16));
+    m_diskLabel->setText(deleted ? tr("“%1” was deleted by another program.").arg(doc->displayName())
+                         : doc->isModified()
+                             ? tr("“%1” was modified by another program, and you have unsaved changes. "
+                                  "Reload it (losing your changes) or overwrite the file with your version?")
+                                   .arg(doc->displayName())
+                             : tr("“%1” was modified by another program. Show the new version?").arg(doc->displayName()));
+    m_diskReload->setVisible(!deleted);
+    m_diskDiff->setVisible(!deleted);
+    m_diskOverwrite->setVisible(deleted || doc->isModified());
+    m_diskOverwrite->setText(deleted ? tr("Save Again") : tr("Overwrite"));
+    m_diskBar->show();
+}
+
+/** Diferença entre a versão do disco e a do editor (diff -u). */
+void MainWindow::showDiskDifference(Document *doc)
+{
+    QTemporaryFile mine(QDir::tempPath() + QStringLiteral("/slayer-XXXXXX"));
+    if (!mine.open())
+        return;
+    mine.write(doc->text()->toPlainText().toUtf8());
+    mine.flush();
+    QProcess diff;
+    diff.start(QStringLiteral("diff"), {"-u", "--label", tr("in the editor"), "--label", tr("on disk"),
+                                        mine.fileName(), doc->filePath()});
+    if (!diff.waitForFinished(10000)) {
+        QMessageBox::warning(this, tr("View Difference"), tr("Could not run “diff”."));
+        return;
+    }
+    const QString text = QString::fromUtf8(diff.readAllStandardOutput());
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Changes in “%1”").arg(doc->displayName()));
+    dialog.resize(900, 600);
+    auto *view = new QPlainTextEdit(&dialog);
+    view->setReadOnly(true);
+    view->setLineWrapMode(QPlainTextEdit::NoWrap);
+    view->setFont(editorFont());
+    // Linhas +/- coloridas como num diff.
+    QString html;
+    for (const QString &line : text.split(QLatin1Char('\n'))) {
+        QString color = m_theme.text.name();
+        if (line.startsWith(QLatin1String("+")) && !line.startsWith(QLatin1String("+++")))
+            color = QStringLiteral("#a6e3a1");
+        else if (line.startsWith(QLatin1String("-")) && !line.startsWith(QLatin1String("---")))
+            color = QStringLiteral("#f38ba8");
+        else if (line.startsWith(QLatin1String("@@")))
+            color = m_theme.primary.name();
+        html += QStringLiteral("<span style=\"color:%1; white-space:pre\">%2</span><br>").arg(color, line.toHtmlEscaped());
+    }
+    view->document()->setHtml(QStringLiteral("<div style=\"font-family:'%1'\">%2</div>")
+                                  .arg(editorFont().family(), text.isEmpty() ? tr("No differences.") : html));
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    auto *layout = new QVBoxLayout(&dialog);
+    layout->addWidget(view);
+    layout->addWidget(buttons);
+    dialog.exec();
+}
+
 /** Branch atual lendo .git/HEAD (sem executar o git). Vazio fora de repositório. */
 QString MainWindow::gitBranchFor(const QString &filePath) const
 {
@@ -1224,6 +1416,7 @@ void MainWindow::updateStatus()
 {
     if (!m_branchLabel) // chamado durante a construção, antes do rodapé existir
         return;
+    updateDiskBar();
     CodeEditor *editor = currentEditor();
     const bool has = editor != nullptr;
     for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingButton,
@@ -1565,6 +1758,7 @@ void MainWindow::applySettings(const AppSettings &settings)
     for (Document *doc : std::as_const(docs)) {
         doc->setTheme(m_theme);
         doc->setFoldingEnabled(m_settings.codeFolding);
+        doc->setAutoReload(m_settings.autoReload);
         // Extensões e linguagens personalizadas podem ter mudado.
         if (!doc->filePath().isEmpty())
             doc->setLanguage(languageForPath(doc->filePath()));
@@ -1733,6 +1927,8 @@ QMainWindow::separator:hover { background: %5; }
 QMessageBox, QInputDialog, QFileDialog { background: %1; }
 QDialog#SettingsDialog { background: %2; }
 #EmptyState { background: %2; }
+#DiskBar { background: %1; border-bottom: 2px solid #f9e2af; }
+#DiskBar QLabel { color: %3; }
 QLabel#EmptyTitle { color: %3; font-size: 26px; font-weight: 700; margin-top: 10px; }
 QLabel#EmptyHint { color: %7; font-size: 14px; }
 QPushButton#EmptyAction { background: %1; color: %3; border: 1px solid %4; border-radius: 12px;

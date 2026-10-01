@@ -93,6 +93,9 @@ private:
     bool m_completionEnabled = true;
     bool m_insertSpaces = true;
     int m_hoverBreakpointLine = -1;
+    int m_reloadLine = 0;
+    int m_reloadColumn = 0;
+    int m_reloadScroll = 0;
     QString indentUnit() const;
     QCompleter *m_completer;
     QStringListModel *m_completionModel;
