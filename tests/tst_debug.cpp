@@ -2,6 +2,7 @@
 #include "../src/TerminalDock.h"
 
 #include <qtermwidget.h>
+#include <QAction>
 
 #include <QApplication>
 #include <QMainWindow>
@@ -152,6 +153,24 @@ private Q_SLOTS:
         QVERIFY(QTest::qWaitFor([&]() { return errors.count() > 0; }, 20000));
         QVERIFY(errors.first().at(0).toString().contains("x"));
         QCOMPARE(s.state(), DebugSession::State::Idle);
+    }
+
+    void terminalHasCopyPasteMenu()
+    {
+        QTermWidget *t = m_terminal->current();
+        QVERIFY(t);
+        // Menu de contexto habilitado no terminal e no display interno.
+        QCOMPARE(t->contextMenuPolicy(), Qt::CustomContextMenu);
+        // Ações Copiar/Colar instaladas (Ctrl+Shift+C / Ctrl+Shift+V).
+        bool copy = false, paste = false;
+        for (QAction *a : t->actions()) {
+            if (a->shortcut() == QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C)) copy = true;
+            if (a->shortcut() == QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_V)) paste = true;
+        }
+        QVERIFY(copy && paste);
+        // Copiar/colar não quebram sem seleção.
+        t->copyClipboard();
+        t->pasteClipboard();
     }
 
     void editedThemeReachesTerminal()

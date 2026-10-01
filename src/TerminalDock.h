@@ -63,6 +63,8 @@ private:
     void updateTabBar();
     void sendWhenIdle(QTermWidget *term, const QString &line, int attempt);
     void refreshTabIcons();
+    void installContextMenu(QTermWidget *term);
+    void showTerminalMenu(QTermWidget *term, const QPoint &globalPos);
     QString effectiveShell() const;
     static void registerColorSchemes();
 

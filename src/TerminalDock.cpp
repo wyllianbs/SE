@@ -1,5 +1,6 @@
 #include "TerminalDock.h"
 
+#include <QAction>
 #include <QActionGroup>
 #include <QCoreApplication>
 #include <QDir>
@@ -267,7 +268,52 @@ QTermWidget *TerminalDock::createTerminal()
         term->setTerminalFont(m_font);
     term->setTerminalOpacity(opacity());
     applyScrollbarStyle(term);
+    installContextMenu(term);
     return term;
+}
+
+/**
+ * Menu de contexto (botão direito) e atalhos do terminal: Copiar, Colar,
+ * Colar seleção e Limpar. A seleção com o mouse e a cópia da seleção (botão do
+ * meio) já são do QTermWidget. Ctrl+Shift+C/V porque Ctrl+C é sinal de
+ * interrupção no shell.
+ */
+void TerminalDock::installContextMenu(QTermWidget *term)
+{
+    auto *copy = new QAction(tr("Copy"), term);
+    copy->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C));
+    copy->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    copy->setEnabled(false);
+    connect(copy, &QAction::triggered, term, &QTermWidget::copyClipboard);
+    connect(term, &QTermWidget::copyAvailable, copy, &QAction::setEnabled);
+    auto *paste = new QAction(tr("Paste"), term);
+    paste->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_V));
+    paste->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    connect(paste, &QAction::triggered, term, &QTermWidget::pasteClipboard);
+    term->addAction(copy);
+    term->addAction(paste);
+
+    // O clique direito chega ao filho TerminalDisplay; vale para ele também.
+    const auto hook = [this, term](QWidget *w) {
+        w->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(w, &QWidget::customContextMenuRequested, this,
+                [this, term, w](const QPoint &p) { showTerminalMenu(term, w->mapToGlobal(p)); });
+    };
+    hook(term);
+    for (QWidget *w : term->findChildren<QWidget *>())
+        hook(w);
+}
+
+void TerminalDock::showTerminalMenu(QTermWidget *term, const QPoint &globalPos)
+{
+    QMenu menu(this);
+    QAction *copy = menu.addAction(tr("Copy"), term, &QTermWidget::copyClipboard);
+    copy->setEnabled(!term->selectedText().isEmpty());
+    menu.addAction(tr("Paste"), term, &QTermWidget::pasteClipboard);
+    menu.addAction(tr("Paste Selection"), term, &QTermWidget::pasteSelection);
+    menu.addSeparator();
+    menu.addAction(tr("Clear"), term, &QTermWidget::clear);
+    menu.exec(globalPos);
 }
 
 QTermWidget *TerminalDock::newTerminal()
@@ -329,6 +375,7 @@ QString TerminalDock::newTeletype(const QString &title)
         term->setTerminalFont(m_font);
     term->setTerminalOpacity(opacity());
     applyScrollbarStyle(term);
+    installContextMenu(term);
     term->startShellProgram();
     const int fd = term->getPtySlaveFd();
     const char *name = fd >= 0 ? ::ttyname(fd) : nullptr;

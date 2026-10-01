@@ -1543,6 +1543,18 @@ sudo apt install gdb</translation>
         <source>Close terminal tab</source>
         <translation>Fechar aba do terminal</translation>
     </message>
+    <message>
+        <source>Copy</source>
+        <translation>Copiar</translation>
+    </message>
+    <message>
+        <source>Paste</source>
+        <translation>Colar</translation>
+    </message>
+    <message>
+        <source>Paste Selection</source>
+        <translation>Colar seleção</translation>
+    </message>
 </context>
 <context>
     <name>Theme</name>

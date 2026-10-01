@@ -20,6 +20,7 @@
 #include <QCloseEvent>
 #include <QGuiApplication>
 #include <QComboBox>
+#include <QContextMenuEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
