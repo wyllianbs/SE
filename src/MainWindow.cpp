@@ -214,6 +214,9 @@ MainWindow::MainWindow(QWidget *parent)
                 currentEditor()->doc()->toggleBreakpoint(qEnvironmentVariableIntValue("SLAYER_DEBUG_BREAK") - 1);
                 startDebugging();
             }
+            // SLAYER_DEBUG_TERMRIGHT: move o terminal para a direita (layout do usuário).
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_TERMRIGHT"))
+                m_terminal->moveToArea(Qt::RightDockWidgetArea);
             // SLAYER_DEBUG_TOUCH: outro "programa" altera o arquivo atual.
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_TOUCH") && currentEditor()) {
                 QFile f(currentEditor()->filePath());
@@ -1988,6 +1991,7 @@ QMenu::indicator:checked:selected { border-color: %5; }
 QTabWidget::pane { border: none; }
 QTabBar { background: %1; }
 QTabBar::tab { background: transparent; color: %7; padding: 8px 14px; margin: 4px 2px 0 2px;
+               border: 1px solid transparent; border-bottom: none;
                border-top-left-radius: 10px; border-top-right-radius: 10px; min-width: 60px; }
 QTabBar::tab:selected { background: %2; color: %3; }
 QTabBar::tab:hover:!selected { background: %4; color: %3; }
@@ -2000,9 +2004,11 @@ QSplitter::handle:hover { background: %5; }
 QToolButton#SplitButton { padding: 4px; margin: 2px 6px; border-radius: 6px; }
 QToolButton#TabClose { padding: 2px; border-radius: 5px; margin-left: 4px; }
 QTabWidget#TerminalTabs QTabBar { background: %2; }
-QTabWidget#TerminalTabs QTabBar::tab { padding: 5px 12px; margin: 4px 1px 0 1px; color: %7; background: transparent;
-    border-top-left-radius: 8px; border-top-right-radius: 8px; border-top: 2px solid transparent; }
-QTabWidget#TerminalTabs QTabBar::tab:selected { background: %12; color: %3; border-top: 2px solid %5; font-weight: 600; }
+QTabWidget#TerminalTabs QTabBar::tab { padding: 6px 12px; margin: 4px 1px 0 1px; color: %7; background: transparent;
+    border: 1px solid transparent; border-bottom: none;
+    border-top-left-radius: 8px; border-top-right-radius: 8px; }
+QTabWidget#TerminalTabs QTabBar::tab:selected { background: %12; color: %3; font-weight: 600;
+    border: 1px solid %4; border-bottom: none; }
 QTabWidget#TerminalTabs QTabBar::tab:hover:!selected { background: %4; color: %3; }
 QPlainTextEdit { background: %2; color: %3; border: none; selection-background-color: %8; }
 QStatusBar { background: %1; color: %7; border-top: 1px solid %4; }
