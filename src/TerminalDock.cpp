@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QProcessEnvironment>
+#include <QPalette>
 #include <QScrollBar>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -528,14 +529,34 @@ void TerminalDock::setTheme(const Theme &theme)
     }
 }
 
-/** Aplica ao scrollbar do terminal as cores do tema (ele não segue o esquema). */
+/** Cores do tema no scrollbar e na "sobra" de célula à direita/abaixo do texto. */
 void TerminalDock::applyScrollbarStyle(QTermWidget *term) const
 {
-    if (!term || m_scrollbarStyle.isEmpty())
+    if (!term)
         return;
-    const auto bars = term->findChildren<QScrollBar *>();
-    for (QScrollBar *bar : bars)
-        bar->setStyleSheet(m_scrollbarStyle);
+    if (!m_scrollbarStyle.isEmpty()) {
+        const auto bars = term->findChildren<QScrollBar *>();
+        for (QScrollBar *bar : bars)
+            bar->setStyleSheet(m_scrollbarStyle);
+    }
+    if (!m_background.isValid())
+        return;
+    // A grade de caracteres raramente preenche o widget por inteiro: a faixa
+    // que sobra à direita e embaixo é pintada com a cor de fundo do widget (a
+    // paleta), não a do esquema. No tema escuro isso aparecia como uma borda
+    // clara. Iguala-se a paleta ao fundo do terminal (o scrollbar, com folha de
+    // estilo própria, não é afetado).
+    QPalette pal = term->palette();
+    pal.setColor(QPalette::Window, m_background);
+    pal.setColor(QPalette::Base, m_background);
+    term->setPalette(pal);
+    for (QWidget *w : term->findChildren<QWidget *>()) {
+        if (qobject_cast<QScrollBar *>(w))
+            continue;
+        w->setPalette(pal);
+        if (QLatin1String(w->metaObject()->className()) == QLatin1String("Konsole::TerminalDisplay"))
+            w->setAutoFillBackground(true);
+    }
 }
 
 /** Margens em volta do terminal com a mesma opacidade dele. */
