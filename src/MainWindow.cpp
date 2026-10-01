@@ -151,6 +151,16 @@ MainWindow::MainWindow(QWidget *parent)
     if (qEnvironmentVariableIsSet("SLAYER_DEBUG_GRAB")) {
         QTimer::singleShot(qEnvironmentVariableIntValue("SLAYER_DEBUG_DELAY") + 900, this, [this]() {
             const QString out = qEnvironmentVariable("SLAYER_DEBUG_GRAB");
+            // SLAYER_DEBUG_MENU: abre o menu do topo com esse índice e o captura.
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_MENU")) {
+                QMenu *m = menuBar()->actions().value(qEnvironmentVariableIntValue("SLAYER_DEBUG_MENU"))->menu();
+                m->popup(mapToGlobal(QPoint(40, 40)));
+                QTimer::singleShot(300, this, [m, out]() {
+                    m->grab().save(out);
+                    qApp->exit(0);
+                });
+                return;
+            }
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_NEWFILE")) {
                 auto *dialog = new NewFileDialog(m_settings, qEnvironmentVariable("SLAYER_DEBUG_NEWFILE"), m_theme, this);
                 dialog->show();
@@ -1968,6 +1978,13 @@ QMenu { background: %2; color: %3; border: 1px solid %4; border-radius: 10px; pa
 QMenu::item { padding: 6px 28px 6px 14px; border-radius: 6px; }
 QMenu::item:selected { background: %4; }
 QMenu::separator { height: 1px; background: %4; margin: 5px 8px; }
+/* Opções marcáveis com caixa visível (como no Kate): vazia = dá para marcar. */
+QMenu::indicator { width: 14px; height: 14px; margin-left: 8px; border: 1px solid %7; border-radius: 4px;
+                   background: %2; }
+QMenu::indicator:checked { background: %5; border-color: %5; image: url("%9"); }
+QMenu::indicator:exclusive { border-radius: 8px; }
+QMenu::indicator:selected { border-color: %3; }
+QMenu::indicator:checked:selected { border-color: %5; }
 QTabWidget::pane { border: none; }
 QTabBar { background: %1; }
 QTabBar::tab { background: transparent; color: %7; padding: 8px 14px; margin: 4px 2px 0 2px;
