@@ -43,6 +43,7 @@ private:
     void saveSession();
 
     CodeEditor *newTab();
+    void newFileFromTemplate();
     QWidget *buildEmptyState();
     void updateEmptyState();
     CodeEditor *currentEditor() const;

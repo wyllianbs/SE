@@ -189,7 +189,9 @@ sudo apt install gdb</translation>
     <message numerus="yes">
         <source>%n replaced</source>
         <translation>
-            <numerusform>%n substituída</numerusform><numerusform>%n substituídas</numerusform></translation>
+            <numerusform>%n substituída</numerusform>
+            <numerusform>%n substituídas</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -406,7 +408,9 @@ sudo apt install gdb</translation>
     <message numerus="yes">
         <source>%1 stopped %n time(s); disabled until the settings change.</source>
         <translation>
-            <numerusform>%1 parou %n vez; desativado até as configurações mudarem.</numerusform><numerusform>%1 parou %n vezes; desativado até as configurações mudarem.</numerusform></translation>
+            <numerusform>%1 parou %n vez; desativado até as configurações mudarem.</numerusform>
+            <numerusform>%1 parou %n vezes; desativado até as configurações mudarem.</numerusform>
+        </translation>
     </message>
     <message>
         <source>Could not start “%1”</source>
@@ -422,10 +426,6 @@ sudo apt install gdb</translation>
     <message>
         <source>&amp;File</source>
         <translation>&amp;Arquivo</translation>
-    </message>
-    <message>
-        <source>&amp;New</source>
-        <translation>&amp;Novo</translation>
     </message>
     <message>
         <source>&amp;Open…</source>
@@ -762,7 +762,9 @@ sudo apt install gdb</translation>
     <message numerus="yes">
         <source>Saved %n file(s)</source>
         <translation>
-            <numerusform>%n arquivo salvo</numerusform><numerusform>%n arquivos salvos</numerusform></translation>
+            <numerusform>%n arquivo salvo</numerusform>
+            <numerusform>%n arquivos salvos</numerusform>
+        </translation>
     </message>
     <message>
         <source>Nothing to save</source>
@@ -963,6 +965,49 @@ sudo apt install gdb</translation>
     <message>
         <source>Customize Themes…</source>
         <translation>Personalizar temas…</translation>
+    </message>
+    <message>
+        <source>&amp;New…</source>
+        <translation>&amp;Novo…</translation>
+    </message>
+    <message>
+        <source>New file with a Hello, World! template (Ctrl+N)</source>
+        <translation>Novo arquivo com o modelo Hello, World! (Ctrl+N)</translation>
+    </message>
+    <message>
+        <source>New &amp;Empty File</source>
+        <translation>Novo arquivo &amp;vazio</translation>
+    </message>
+    <message>
+        <source>%1 (not installed)</source>
+        <translation>%1 (não instalada)</translation>
+    </message>
+</context>
+<context>
+    <name>NewFileDialog</name>
+    <message>
+        <source>New File</source>
+        <translation>Novo arquivo</translation>
+    </message>
+    <message>
+        <source>Empty file</source>
+        <translation>Arquivo vazio</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Sem título</translation>
+    </message>
+    <message>
+        <source>File name</source>
+        <translation>Nome do arquivo</translation>
+    </message>
+    <message>
+        <source>The file is created in the editor; Save chooses the folder.</source>
+        <translation>O arquivo é criado no editor; ao salvar, você escolhe a pasta.</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>Criar</translation>
     </message>
 </context>
 <context>
@@ -1280,6 +1325,10 @@ sudo apt install gdb</translation>
     <message>
         <source>Use the light or dark variant of the chosen theme according to the desktop, switching automatically when it changes</source>
         <translation>Usa a variante clara ou escura do tema escolhido conforme a área de trabalho, trocando automaticamente quando ela mudar</translation>
+    </message>
+    <message>
+        <source>Not installed on this system (hidden): %1. Install a compiler or interpreter and it appears here.</source>
+        <translation>Não instaladas neste sistema (ocultas): %1. Instale o compilador ou interpretador e a linguagem aparece aqui.</translation>
     </message>
 </context>
 <context>

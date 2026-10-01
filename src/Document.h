@@ -36,6 +36,9 @@ public:
     QString filePath() const { return m_filePath; }
     void setFilePath(const QString &path);
     QString displayName() const;
+    /** Nome proposto a um arquivo novo (ainda sem caminho), ex.: "hello.c". */
+    QString suggestedName() const { return m_suggestedName; }
+    void setSuggestedName(const QString &name) { m_suggestedName = name; Q_EMIT changed(); }
     bool isModified() const;
     bool isUntitledAndEmpty() const;
 
@@ -92,6 +95,7 @@ private:
     SyntaxHighlighter *m_highlighter;
     Language m_language;
     QString m_filePath;
+    QString m_suggestedName;
     QString m_encoding = QStringLiteral("UTF-8");
     bool m_bom = false;
     QList<Diagnostic> m_diagnostics;

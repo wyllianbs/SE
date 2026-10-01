@@ -1,5 +1,9 @@
 #include "Settings.h"
+#include "Language.h"
 #include "LspManager.h"
+
+#include <QProcess>
+#include <QStandardPaths>
 
 #include <QDir>
 #include <QJsonArray>
@@ -32,6 +36,24 @@ LanguageConfig AppSettings::defaultLanguageConfig(const QString &id)
         return {QStringLiteral("java"), QString(), QStringLiteral("java")};
     if (id == QLatin1String("bash"))
         return {QStringLiteral("bash"), QString(), QStringLiteral("sh bash")};
+    if (id == QLatin1String("ruby"))
+        return {QStringLiteral("ruby"), QString(), QStringLiteral("rb")};
+    if (id == QLatin1String("perl"))
+        return {QStringLiteral("perl"), QString(), QStringLiteral("pl pm")};
+    if (id == QLatin1String("lua"))
+        return {QStringLiteral("lua"), QString(), QStringLiteral("lua")};
+    if (id == QLatin1String("php"))
+        return {QStringLiteral("php"), QString(), QStringLiteral("php")};
+    if (id == QLatin1String("r"))
+        return {QStringLiteral("Rscript"), QString(), QStringLiteral("r R")};
+    if (id == QLatin1String("julia"))
+        return {QStringLiteral("julia"), QString(), QStringLiteral("jl")};
+    if (id == QLatin1String("haskell"))
+        return {QStringLiteral("runghc"), QString(), QStringLiteral("hs")};
+    if (id == QLatin1String("fortran"))
+        return {QStringLiteral("gfortran"), QStringLiteral("-Wall"), QStringLiteral("f90 f95 f03 f08 f")};
+    if (id == QLatin1String("pascal"))
+        return {QStringLiteral("fpc"), QStringLiteral("-O2"), QStringLiteral("pas pp")};
     return {};
 }
 
@@ -49,6 +71,31 @@ LanguageConfig AppSettings::languageConfig(const QString &id) const
     if (cfg.extensions.trimmed().isEmpty())
         cfg.extensions = def.extensions;
     return cfg;
+}
+
+bool AppSettings::languageInstalled(const QString &id) const
+{
+    const Language &lang = Language::byId(id);
+    if (lang.id != id)
+        return false;
+    const QStringList tool = QProcess::splitCommand(languageConfig(id).tool);
+    if (tool.isEmpty() || QStandardPaths::findExecutable(tool.first()).isEmpty())
+        return false;
+    for (const QString &r : lang.requires) {
+        if (QStandardPaths::findExecutable(r).isEmpty())
+            return false;
+    }
+    return true;
+}
+
+QStringList AppSettings::installedLanguages() const
+{
+    QStringList ids;
+    for (const Language &lang : Language::all()) {
+        if (languageInstalled(lang.id))
+            ids << lang.id;
+    }
+    return ids;
 }
 
 LspConfig AppSettings::lspConfig(const QString &id) const

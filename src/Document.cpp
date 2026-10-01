@@ -59,7 +59,9 @@ void Document::setFilePath(const QString &path)
 
 QString Document::displayName() const
 {
-    return m_filePath.isEmpty() ? tr("Untitled") : QFileInfo(m_filePath).fileName();
+    if (!m_filePath.isEmpty())
+        return QFileInfo(m_filePath).fileName();
+    return m_suggestedName.isEmpty() ? tr("Untitled") : m_suggestedName;
 }
 
 bool Document::isModified() const

@@ -48,6 +48,7 @@ private:
     void refreshProfiles();
     void addLanguageRow(const QString &id, const QString &name, const LanguageConfig &cfg, bool custom);
 
+    AppSettings m_detect; //< configurações iniciais, para detectar o que está instalado
     Theme m_theme;
     QListWidget *m_nav;
     QStackedWidget *m_pages;
@@ -96,4 +97,6 @@ private:
 
     // Linguagens
     QTableWidget *m_languages = nullptr;
+    QLabel *m_missingLanguages = nullptr;
+    QMap<QString, LanguageConfig> m_hiddenLanguages; //< configs de linguagens não instaladas, preservadas
 };

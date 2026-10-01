@@ -79,6 +79,10 @@ struct AppSettings
 
     /** Config efetiva de uma linguagem embutida (com os padrões preenchidos). */
     LanguageConfig languageConfig(const QString &languageId) const;
+    /** A ferramenta da linguagem (e o que mais ela exigir) existe no sistema? */
+    bool languageInstalled(const QString &languageId) const;
+    /** Linguagens embutidas disponíveis neste sistema, na ordem do catálogo. */
+    QStringList installedLanguages() const;
     /** Config efetiva do LSP (comando padrão preenchido). */
     LspConfig lspConfig(const QString &languageId) const;
 

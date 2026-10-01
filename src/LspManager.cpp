@@ -30,7 +30,8 @@ LspManager::~LspManager()
 
 QStringList LspManager::languages()
 {
-    return {"c", "cpp", "python", "javascript", "rust", "go", "java", "bash"};
+    return {"c", "cpp", "python", "javascript", "rust", "go", "java", "bash", "ruby", "perl", "lua", "php", "r",
+            "haskell", "fortran"};
 }
 
 QList<LspPreset> LspManager::presets(const QString &id)
@@ -52,6 +53,23 @@ QList<LspPreset> LspManager::presets(const QString &id)
         return {{"jdtls", "jdtls", "sudo apt install jdtls"}};
     if (id == QLatin1String("bash"))
         return {{"bash-language-server", "bash-language-server start", "npm install -g bash-language-server"}};
+    if (id == QLatin1String("ruby"))
+        return {{"Solargraph", "solargraph stdio", "gem install --user-install solargraph"},
+                {"Ruby LSP", "ruby-lsp", "gem install --user-install ruby-lsp"}};
+    if (id == QLatin1String("perl"))
+        return {{"Perl Navigator", "perlnavigator --stdio", "npm install -g perlnavigator-server"}};
+    if (id == QLatin1String("lua"))
+        return {{"lua-language-server", "lua-language-server", "sudo apt install lua-language-server"}};
+    if (id == QLatin1String("php"))
+        return {{"Intelephense", "intelephense --stdio", "npm install -g intelephense"},
+                {"Phpactor", "phpactor language-server", "composer global require phpactor/phpactor"}};
+    if (id == QLatin1String("r"))
+        return {{"languageserver", "R --slave -e languageserver::run()",
+                 "sudo apt install r-cran-languageserver"}};
+    if (id == QLatin1String("haskell"))
+        return {{"haskell-language-server", "haskell-language-server-wrapper --lsp", "ghcup install hls"}};
+    if (id == QLatin1String("fortran"))
+        return {{"fortls", "fortls", "pipx install fortls"}};
     return {};
 }
 

@@ -22,6 +22,7 @@ add_executable(slayer-editor
     src/TerminalDock.cpp src/TerminalDock.h
     src/FindBar.cpp src/FindBar.h
     src/Icons.cpp src/Icons.h
+    src/NewFileDialog.cpp src/NewFileDialog.h
     src/ThemeEditor.cpp src/ThemeEditor.h
     src/DapClient.cpp src/DapClient.h
     src/DebugSession.cpp src/DebugSession.h
@@ -85,6 +86,10 @@ if(BUILD_TESTING)
     add_executable(tst_themes tests/tst_themes.cpp src/Theme.cpp)
     target_link_libraries(tst_themes PRIVATE Qt6::Gui Qt6::Test)
     add_test(NAME themes COMMAND tst_themes)
+    add_executable(tst_languages tests/tst_languages.cpp src/Language.cpp src/Settings.cpp src/LspManager.cpp
+                   src/LspClient.cpp src/Document.cpp src/Folding.cpp src/SyntaxHighlighter.cpp src/Theme.cpp)
+    target_link_libraries(tst_languages PRIVATE Qt6::Widgets Qt6::Test)
+    add_test(NAME languages COMMAND tst_languages)
     add_executable(tst_viewspace tests/tst_viewspace.cpp src/ViewSpace.cpp src/CodeEditor.cpp src/Document.cpp
                    src/Folding.cpp src/SyntaxHighlighter.cpp src/Language.cpp src/Theme.cpp src/Icons.cpp
                    resources/resources.qrc)

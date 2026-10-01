@@ -6,6 +6,7 @@
 #include "DebugSession.h"
 #include "HelpDialog.h"
 #include "LspManager.h"
+#include "NewFileDialog.h"
 #include "SettingsDialog.h"
 #include "TerminalDock.h"
 #include "ThemeEditor.h"
@@ -144,6 +145,15 @@ MainWindow::MainWindow(QWidget *parent)
     if (qEnvironmentVariableIsSet("SLAYER_DEBUG_GRAB")) {
         QTimer::singleShot(qEnvironmentVariableIntValue("SLAYER_DEBUG_DELAY") + 900, this, [this]() {
             const QString out = qEnvironmentVariable("SLAYER_DEBUG_GRAB");
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_NEWFILE")) {
+                auto *dialog = new NewFileDialog(m_settings, qEnvironmentVariable("SLAYER_DEBUG_NEWFILE"), m_theme, this);
+                dialog->show();
+                QTimer::singleShot(300, this, [dialog, out]() {
+                    dialog->grab().save(out);
+                    qApp->exit(0);
+                });
+                return;
+            }
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_THEMEEDITOR")) {
                 auto *editor = new ThemeEditor({}, m_theme.id, m_theme, this);
                 editor->show();
@@ -217,7 +227,9 @@ void MainWindow::createActions()
     };
 
     QMenu *file = menuBar()->addMenu(tr("&File"));
-    QAction *newA = add(file, tr("&New"), QKeySequence::New, [this]() { newTab(); }, Icons::NewFile);
+    QAction *newA = add(file, tr("&New…"), QKeySequence::New, [this]() { newFileFromTemplate(); }, Icons::NewFile);
+    newA->setToolTip(tr("New file with a Hello, World! template (Ctrl+N)"));
+    add(file, tr("New &Empty File"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_N), [this]() { newTab(); });
     QAction *openA = add(file, tr("&Open…"), QKeySequence::Open, [this]() {
         const QStringList paths = QFileDialog::getOpenFileNames(this, tr("Open File"), m_lastDir);
         openFiles(paths);
@@ -493,7 +505,7 @@ QWidget *MainWindow::buildEmptyState()
     };
     auto *newButton = makeButton(Icons::NewFile, tr("New File"), QStringLiteral("Ctrl+N"));
     auto *openButton = makeButton(Icons::Open, tr("Open File…"), QStringLiteral("Ctrl+O"));
-    connect(newButton, &QPushButton::clicked, this, [this]() { newTab(); });
+    connect(newButton, &QPushButton::clicked, this, [this]() { newFileFromTemplate(); });
     connect(openButton, &QPushButton::clicked, this, [this]() {
         openFiles(QFileDialog::getOpenFileNames(this, tr("Open File"), m_lastDir));
     });
@@ -774,6 +786,35 @@ CodeEditor *MainWindow::newTab()
     return editor;
 }
 
+/** Arquivo novo com o Hello, World! da linguagem escolhida (Ctrl+N). */
+void MainWindow::newFileFromTemplate()
+{
+    QSettings qs;
+    NewFileDialog dialog(m_settings, qs.value(QStringLiteral("ui/lastNewLanguage"), QStringLiteral("c")).toString(),
+                         m_theme, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    const QString id = dialog.languageId();
+    qs.setValue(QStringLiteral("ui/lastNewLanguage"), id);
+
+    CodeEditor *editor = newTab();
+    Document *doc = editor->doc();
+    const QString name = dialog.fileName();
+    // A extensão digitada manda; sem ela, vale a linguagem escolhida.
+    Language lang = !name.isEmpty() && !QFileInfo(name).suffix().isEmpty() ? languageForPath(name) : languageById(id);
+    if (lang.id == Language::plainText().id && !id.isEmpty())
+        lang = languageById(id);
+    doc->setLanguage(lang);
+    doc->setSuggestedName(name);
+    doc->text()->setPlainText(dialog.content());
+    doc->text()->setModified(false); // fechar sem editar não pergunta nada
+    // Cursor no fim do corpo do programa, pronto para editar.
+    QTextCursor c(doc->text());
+    c.movePosition(QTextCursor::End);
+    editor->setTextCursor(c);
+    editor->setFocus();
+}
+
 CodeEditor *MainWindow::currentEditor() const
 {
     return m_activeSpace ? m_activeSpace->currentEditor() : nullptr;
@@ -843,7 +884,10 @@ bool MainWindow::saveAs(CodeEditor *editor)
 {
     if (!editor)
         return false;
-    const QString start = editor->filePath().isEmpty() ? m_lastDir : editor->filePath();
+    QString start = editor->filePath();
+    if (start.isEmpty())
+        start = editor->doc()->suggestedName().isEmpty() ? m_lastDir
+                                                          : QDir(m_lastDir).filePath(editor->doc()->suggestedName());
     const QString path = QFileDialog::getSaveFileName(this, tr("Save As"), start);
     if (path.isEmpty())
         return false;
@@ -1217,7 +1261,14 @@ void MainWindow::updateStatus()
                                             : QStringLiteral("<span style=\"font-family:'%1'\">%2</span>&nbsp;&nbsp;%3")
                                                   .arg(Icons::symbolFamily(), Icons::glyphText(Icons::GitBranch),
                                                        branch.toHtmlEscaped()));
-    const int idx = m_languageCombo->findData(editor->language().id);
+    int idx = m_languageCombo->findData(editor->language().id);
+    if (idx < 0) {
+        // Arquivo de uma linguagem não instalada: aparece só enquanto for o atual.
+        const Language &lang = editor->language();
+        m_languageCombo->addItem(Icons::icon(Icons::forLanguage(lang.id), Icons::colorForLanguage(lang.id), 14),
+                                 tr("%1 (not installed)").arg(lang.displayName), lang.id);
+        idx = m_languageCombo->count() - 1;
+    }
     m_languageCombo->setCurrentIndex(idx);
     const QString title = editor->displayName() + (editor->doc()->isModified() ? QStringLiteral(" ●") : QString());
     setWindowTitle(title + QStringLiteral(" — Slayer Editor"));
@@ -1541,10 +1592,14 @@ void MainWindow::showSettings()
 
 void MainWindow::rebuildLanguageCombo()
 {
+    // Linguagens instaladas no sistema (o realce das outras continua valendo
+    // para arquivos abertos; updateStatus acrescenta a do arquivo atual).
     m_languageCombo->clear();
-    for (const Language &lang : Language::all())
-        m_languageCombo->addItem(Icons::icon(Icons::forLanguage(lang.id), Icons::colorForLanguage(lang.id), 14),
-                                 lang.displayName, lang.id);
+    for (const Language &lang : Language::all()) {
+        if (m_settings.languageInstalled(lang.id))
+            m_languageCombo->addItem(Icons::icon(Icons::forLanguage(lang.id), Icons::colorForLanguage(lang.id), 14),
+                                     lang.displayName, lang.id);
+    }
     for (const CustomLanguage &c : std::as_const(m_settings.customLanguages))
         m_languageCombo->addItem(Icons::icon(Icons::File, Icons::colorForLanguage(QString()), 14), c.name,
                                  QStringLiteral("custom:") + c.name);

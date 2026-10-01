@@ -60,6 +60,14 @@ enum Glyph : char32_t {
     LangJs = 0xE60C,
     LangJava = 0xE738,
     LangShell = 0xE795,
+    LangRuby = 0xE739,
+    LangPerl = 0xE769,
+    LangLua = 0xE620,
+    LangPhp = 0xE73D,
+    LangR = 0xE68A,
+    LangJulia = 0xE624,
+    LangHaskell = 0xE777,
+    LangFortran = 0xF121A,
 };
 
 /** Carrega as fontes embutidas; chamar uma vez após criar o QApplication. */

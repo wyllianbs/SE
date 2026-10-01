@@ -70,6 +70,14 @@ Icons::Glyph Icons::forLanguage(const QString &id)
     if (id == QLatin1String("javascript")) return LangJs;
     if (id == QLatin1String("java")) return LangJava;
     if (id == QLatin1String("bash")) return LangShell;
+    if (id == QLatin1String("ruby")) return LangRuby;
+    if (id == QLatin1String("perl")) return LangPerl;
+    if (id == QLatin1String("lua")) return LangLua;
+    if (id == QLatin1String("php")) return LangPhp;
+    if (id == QLatin1String("r")) return LangR;
+    if (id == QLatin1String("julia")) return LangJulia;
+    if (id == QLatin1String("haskell")) return LangHaskell;
+    if (id == QLatin1String("fortran")) return LangFortran;
     return File;
 }
 
@@ -83,6 +91,15 @@ QColor Icons::colorForLanguage(const QString &id)
     if (id == QLatin1String("javascript")) return QColor("#f1e05a");
     if (id == QLatin1String("java")) return QColor("#e76f00");
     if (id == QLatin1String("bash")) return QColor("#89e051");
+    if (id == QLatin1String("ruby")) return QColor("#e0115f");
+    if (id == QLatin1String("perl")) return QColor("#39457e");
+    if (id == QLatin1String("lua")) return QColor("#51a0cf");
+    if (id == QLatin1String("php")) return QColor("#8892bf");
+    if (id == QLatin1String("r")) return QColor("#276dc3");
+    if (id == QLatin1String("julia")) return QColor("#9558b2");
+    if (id == QLatin1String("haskell")) return QColor("#a074c4");
+    if (id == QLatin1String("fortran")) return QColor("#734f96");
+    if (id == QLatin1String("pascal")) return QColor("#e3f171");
     return QColor("#8b949e");
 }
 

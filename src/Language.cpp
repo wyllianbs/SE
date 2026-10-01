@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <QHash>
 #include <QRegularExpression>
 
 namespace {
@@ -104,14 +105,95 @@ QList<Language> buildLanguages()
         "#", QString(), QString(),
         QStringLiteral("{tool} {flags} %f")});
 
-    // Interativo: o interpretador fica aberto com o estado do programa.
+    const QString compiled = QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} %f -o /tmp/slayer_out/%b && /tmp/slayer_out/%b");
+    const QString interpreted = QStringLiteral("{tool} {flags} %f");
+
+    list.append({QStringLiteral("ruby"), QStringLiteral("Ruby"), {"rb"},
+        {"alias", "and", "begin", "break", "case", "class", "def", "defined?", "do", "else", "elsif", "end",
+         "ensure", "false", "for", "if", "in", "module", "next", "nil", "not", "or", "redo", "rescue", "retry",
+         "return", "self", "super", "then", "true", "undef", "unless", "until", "when", "while", "yield"},
+        {"puts", "print", "require", "attr_accessor", "Integer", "String", "Array", "Hash"},
+        "#", "=begin", "=end", interpreted});
+    list.append({QStringLiteral("perl"), QStringLiteral("Perl"), {"pl", "pm"},
+        {"my", "our", "local", "sub", "if", "elsif", "else", "unless", "while", "until", "for", "foreach",
+         "last", "next", "redo", "return", "use", "no", "package", "require", "and", "or", "not", "eq", "ne"},
+        {"print", "printf", "say", "chomp", "split", "join", "push", "pop", "shift", "keys", "values"},
+        "#", QString(), QString(), interpreted});
+    list.append({QStringLiteral("lua"), QStringLiteral("Lua"), {"lua"},
+        {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
+         "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"},
+        {"print", "pairs", "ipairs", "require", "table", "string", "math", "io"},
+        "--", "--[[", "]]", interpreted});
+    list.append({QStringLiteral("php"), QStringLiteral("PHP"), {"php"},
+        {"abstract", "and", "array", "as", "break", "case", "catch", "class", "const", "continue", "default",
+         "do", "echo", "else", "elseif", "extends", "final", "for", "foreach", "function", "if", "implements",
+         "interface", "namespace", "new", "or", "private", "protected", "public", "return", "static",
+         "switch", "throw", "try", "use", "while", "true", "false", "null"},
+        {"int", "float", "string", "bool", "void", "mixed", "self"},
+        "//", "/*", "*/", interpreted});
+    list.append({QStringLiteral("r"), QStringLiteral("R"), {"r", "R"},
+        {"if", "else", "repeat", "while", "function", "for", "in", "next", "break", "TRUE", "FALSE", "NULL",
+         "NA", "Inf", "NaN", "return"},
+        {"print", "cat", "c", "list", "vector", "data.frame", "library"},
+        "#", QString(), QString(), interpreted});
+    list.append({QStringLiteral("julia"), QStringLiteral("Julia"), {"jl"},
+        {"begin", "end", "function", "return", "if", "elseif", "else", "for", "while", "in", "let", "local",
+         "global", "const", "module", "using", "import", "struct", "mutable", "true", "false", "nothing"},
+        {"Int", "Float64", "String", "Bool", "Vector", "Array", "println", "print"},
+        "#", "#=", "=#", interpreted});
+    list.append({QStringLiteral("haskell"), QStringLiteral("Haskell"), {"hs"},
+        {"case", "class", "data", "deriving", "do", "else", "if", "import", "in", "instance", "let", "module",
+         "newtype", "of", "then", "type", "where", "True", "False"},
+        {"Int", "Integer", "Double", "String", "Bool", "IO", "Maybe", "putStrLn", "print"},
+        "--", "{-", "-}", interpreted});
+    list.append({QStringLiteral("fortran"), QStringLiteral("Fortran"), {"f90", "f95", "f03", "f08", "f"},
+        {"program", "end", "implicit", "none", "integer", "real", "character", "logical", "do", "if", "then",
+         "else", "call", "subroutine", "function", "module", "use", "contains", "print", "write", "read"},
+        {"double", "precision", "complex"},
+        "!", QString(), QString(), compiled});
+    list.append({QStringLiteral("pascal"), QStringLiteral("Pascal"), {"pas", "pp"},
+        {"program", "begin", "end", "var", "const", "type", "procedure", "function", "if", "then", "else",
+         "while", "do", "for", "to", "downto", "repeat", "until", "case", "of", "uses", "and", "or", "not"},
+        {"integer", "real", "boolean", "char", "string", "writeln", "readln"},
+        "//", "{", "}",
+        QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} -FE/tmp/slayer_out %f && /tmp/slayer_out/%b")});
+
+    struct Extra { const char *id; const char *interactive; const char *file; const char *hello; QStringList requires; };
+    const QList<Extra> extras{
+        {"c", nullptr, "hello.c",
+         "#include <stdio.h>\n\nint main(void)\n{\n    printf(\"Hello, World!\\n\");\n    return 0;\n}\n", {}},
+        {"cpp", nullptr, "hello.cpp",
+         "#include <iostream>\n\nint main()\n{\n    std::cout << \"Hello, World!\" << std::endl;\n    return 0;\n}\n", {}},
+        {"python", "{tool} {flags} -i %f", "hello.py", "print(\"Hello, World!\")\n", {}},
+        {"rust", nullptr, "hello.rs", "fn main() {\n    println!(\"Hello, World!\");\n}\n", {}},
+        {"go", nullptr, "hello.go", "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, World!\")\n}\n", {}},
+        {"javascript", "{tool} {flags} -i -e \"$(cat %f)\"", "hello.js", "console.log(\"Hello, World!\");\n", {}},
+        // "java Arquivo.java" precisa do compilador: só o JRE não basta.
+        {"java", nullptr, "Hello.java",
+         "public class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}\n",
+         {"javac"}},
+        {"bash", "{tool} {flags} --rcfile %f -i", "hello.sh", "#!/usr/bin/env bash\n\necho \"Hello, World!\"\n", {}},
+        {"ruby", "irb -r ./%f", "hello.rb", "puts \"Hello, World!\"\n", {}},
+        {"perl", nullptr, "hello.pl", "#!/usr/bin/env perl\nuse strict;\nuse warnings;\n\nprint \"Hello, World!\\n\";\n", {}},
+        {"lua", "{tool} {flags} -i %f", "hello.lua", "print(\"Hello, World!\")\n", {}},
+        {"php", nullptr, "hello.php", "<?php\n\necho \"Hello, World!\\n\";\n", {}},
+        {"r", nullptr, "hello.R", "cat(\"Hello, World!\\n\")\n", {}},
+        {"julia", "{tool} {flags} -i %f", "hello.jl", "println(\"Hello, World!\")\n", {}},
+        {"haskell", nullptr, "Hello.hs", "main :: IO ()\nmain = putStrLn \"Hello, World!\"\n", {}},
+        {"fortran", nullptr, "hello.f90",
+         "program hello\n    implicit none\n    print *, \"Hello, World!\"\nend program hello\n", {}},
+        {"pascal", nullptr, "hello.pas", "program Hello;\nbegin\n    writeln('Hello, World!');\nend.\n", {}},
+    };
     for (Language &lang : list) {
-        if (lang.id == QLatin1String("python"))
-            lang.interactiveCommand = QStringLiteral("{tool} {flags} -i %f");
-        else if (lang.id == QLatin1String("javascript"))
-            lang.interactiveCommand = QStringLiteral("{tool} {flags} -i -e \"$(cat %f)\"");
-        else if (lang.id == QLatin1String("bash"))
-            lang.interactiveCommand = QStringLiteral("{tool} {flags} --rcfile %f -i");
+        for (const Extra &e : extras) {
+            if (lang.id != QLatin1String(e.id))
+                continue;
+            if (e.interactive)
+                lang.interactiveCommand = QString::fromUtf8(e.interactive);
+            lang.newFileName = QString::fromUtf8(e.file);
+            lang.helloWorld = QString::fromUtf8(e.hello);
+            lang.requires = e.requires;
+        }
     }
     return list;
 }
@@ -173,6 +255,26 @@ Language Language::custom(const QString &name, const QStringList &extensions)
     lang.lineComment = QStringLiteral("#");
     lang.runCommand = QStringLiteral("{tool} {flags} %f");
     return lang;
+}
+
+QString Language::helloWorldForTool(const QString &tool)
+{
+    // Pelo interpretador/compilador (primeira palavra do comando, sem versão).
+    QString name = tool.trimmed().section(QLatin1Char(' '), 0, 0).section(QLatin1Char('/'), -1);
+    name.remove(QRegularExpression(QStringLiteral("[0-9.]+$")));
+    static const QHash<QString, QString> byTool{
+        {"python", "python"}, {"node", "javascript"}, {"bash", "bash"}, {"sh", "bash"}, {"zsh", "bash"},
+        {"ruby", "ruby"}, {"perl", "perl"}, {"lua", "lua"}, {"php", "php"}, {"Rscript", "r"}, {"julia", "julia"},
+        {"runghc", "haskell"}, {"gcc", "c"}, {"clang", "c"}, {"g++", "cpp"}, {"clang++", "cpp"},
+        {"gfortran", "fortran"}, {"fpc", "pascal"}, {"rustc", "rust"}, {"go", "go"}, {"java", "java"}};
+    const QString id = byTool.value(name);
+    if (!id.isEmpty())
+        return byId(id).helloWorld;
+    if (name == QLatin1String("tclsh"))
+        return QStringLiteral("puts \"Hello, World!\"\n");
+    if (name == QLatin1String("awk") || name == QLatin1String("gawk"))
+        return QStringLiteral("BEGIN { print \"Hello, World!\" }\n");
+    return QStringLiteral("Hello, World!\n");
 }
 
 QStringList Language::splitExtensions(const QString &text)

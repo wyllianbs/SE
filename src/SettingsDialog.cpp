@@ -105,6 +105,7 @@ QStringList availableShells()
 
 SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, QWidget *parent)
     : QDialog(parent)
+    , m_detect(settings)
     , m_theme(theme)
     , m_nav(new QListWidget(this))
     , m_pages(new QStackedWidget(this))
@@ -511,9 +512,13 @@ QWidget *SettingsDialog::buildLanguagesPage()
     buttons->addWidget(reset);
     buttons->addWidget(remove);
 
+    m_missingLanguages = new QLabel;
+    m_missingLanguages->setObjectName(QStringLiteral("Hint"));
+    m_missingLanguages->setWordWrap(true);
     auto *box = new QVBoxLayout;
     box->addWidget(m_languages, 1);
     box->addLayout(buttons);
+    box->addWidget(m_missingLanguages);
 
     auto *layout = new QVBoxLayout;
     layout->addWidget(card(QString(), box), 1);
@@ -542,6 +547,8 @@ QWidget *SettingsDialog::buildServersPage()
     m_servers->verticalHeader()->setDefaultSectionSize(38);
 
     for (const QString &id : LspManager::languages()) {
+        if (!m_detect.languageInstalled(id))
+            continue; // servidor de linguagem só para linguagens instaladas
         const int row = m_servers->rowCount();
         m_servers->insertRow(row);
         auto *name = new QTableWidgetItem(Icons::icon(Icons::forLanguage(id), Icons::colorForLanguage(id), 16),
@@ -757,9 +764,23 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_terminalTransparencyLabel->setText(s.terminalTransparency == 0 ? tr("Off")
                                                                       : QStringLiteral("%1%").arg(s.terminalTransparency));
 
+    // Só as linguagens instaladas no sistema; as demais guardam o que tinham.
     m_languages->setRowCount(0);
-    for (const Language &lang : Language::all())
-        addLanguageRow(lang.id, lang.displayName, s.languageConfig(lang.id), false);
+    m_hiddenLanguages.clear();
+    QStringList missing;
+    for (const Language &lang : Language::all()) {
+        if (s.languageInstalled(lang.id)) {
+            addLanguageRow(lang.id, lang.displayName, s.languageConfig(lang.id), false);
+        } else {
+            missing << lang.displayName;
+            if (s.languages.contains(lang.id))
+                m_hiddenLanguages.insert(lang.id, s.languages.value(lang.id));
+        }
+    }
+    m_missingLanguages->setText(missing.isEmpty() ? QString()
+                                                  : tr("Not installed on this system (hidden): %1. Install a "
+                                                       "compiler or interpreter and it appears here.")
+                                                        .arg(missing.join(QStringLiteral(", "))));
     for (const CustomLanguage &c : s.customLanguages)
         addLanguageRow(QString(), c.name, {c.tool, c.flags, c.extensions}, true);
 
@@ -811,6 +832,7 @@ AppSettings SettingsDialog::settings() const
     s.terminalCursorBlink = m_terminalBlink->isChecked();
     s.terminalTransparency = m_terminalTransparency->value();
 
+    s.languages = m_hiddenLanguages;
     for (int row = 0; row < m_languages->rowCount(); ++row) {
         const QTableWidgetItem *nameItem = m_languages->item(row, 0);
         const LanguageConfig cfg{m_languages->item(row, 1)->text().trimmed(), m_languages->item(row, 2)->text().trimmed(),

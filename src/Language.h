@@ -21,6 +21,12 @@ struct Language
     QString runCommand;
     /** Execução interativa (REPL após o programa); vazio = igual a runCommand. */
     QString interactiveCommand;
+    /** Programa "Hello, World!" de um arquivo novo. */
+    QString helloWorld;
+    /** Nome sugerido para um arquivo novo ("hello.c", "Hello.java"…). */
+    QString newFileName;
+    /** Ferramentas além da {tool} que precisam existir (ex.: javac para Java). */
+    QStringList requires;
 
     static const QList<Language> &all();
     static const Language &plainText();
@@ -34,5 +40,7 @@ struct Language
                        bool interactive = false) const;
 
     static Language custom(const QString &name, const QStringList &extensions);
+    /** Hello, World! para um interpretador/compilador pelo nome (linguagens personalizadas). */
+    static QString helloWorldForTool(const QString &tool);
     static QStringList splitExtensions(const QString &text);
 };
