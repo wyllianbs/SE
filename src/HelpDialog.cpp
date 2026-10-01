@@ -79,7 +79,7 @@ QList<HelpTopic> HelpDialog::topics()
          tr("<p>With a language server installed, errors and warnings are underlined (red, yellow, blue) and the "
             "line number takes their color. Hover the underline for the message; the message of the cursor line "
             "is also shown in the status bar.</p>"
-            "<p>Choose the server of each language in <b>Settings → Language Servers</b>; the status column tells "
+            "<p>Choose the server of each language in <b>Settings → Languages</b>; its status tells "
             "whether it is installed and how to install it. For C and C++, clangd uses "
             "<code>compile_commands.json</code> when present, otherwise the flags from Settings → Languages.</p>")},
         {tr("Code folding"), tr("fold unfold collapse expand block folding"),

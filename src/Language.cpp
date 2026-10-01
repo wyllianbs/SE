@@ -160,29 +160,30 @@ QList<Language> buildLanguages()
 
     struct Extra { const char *id; const char *interactive; const char *file; const char *hello; QStringList requires; };
     const QList<Extra> extras{
-        {"c", nullptr, "hello.c",
+        {"c", nullptr, "untitled.c",
          "#include <stdio.h>\n\nint main(void)\n{\n    printf(\"Hello, World!\\n\");\n    return 0;\n}\n", {}},
-        {"cpp", nullptr, "hello.cpp",
+        {"cpp", nullptr, "untitled.cpp",
          "#include <iostream>\n\nint main()\n{\n    std::cout << \"Hello, World!\" << std::endl;\n    return 0;\n}\n", {}},
-        {"python", "{tool} {flags} -i %f", "hello.py", "print(\"Hello, World!\")\n", {}},
-        {"rust", nullptr, "hello.rs", "fn main() {\n    println!(\"Hello, World!\");\n}\n", {}},
-        {"go", nullptr, "hello.go", "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, World!\")\n}\n", {}},
-        {"javascript", "{tool} {flags} -i -e \"$(cat %f)\"", "hello.js", "console.log(\"Hello, World!\");\n", {}},
-        // "java Arquivo.java" precisa do compilador: só o JRE não basta.
-        {"java", nullptr, "Hello.java",
-         "public class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}\n",
+        {"python", "{tool} {flags} -i %f", "untitled.py", "print(\"Hello, World!\")\n", {}},
+        {"rust", nullptr, "untitled.rs", "fn main() {\n    println!(\"Hello, World!\");\n}\n", {}},
+        {"go", nullptr, "untitled.go", "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello, World!\")\n}\n", {}},
+        {"javascript", "{tool} {flags} -i -e \"$(cat %f)\"", "untitled.js", "console.log(\"Hello, World!\");\n", {}},
+        // "java Arquivo.java" precisa do compilador (só o JRE não basta), e a
+        // classe pública tem o nome do arquivo.
+        {"java", nullptr, "Untitled.java",
+         "public class Untitled {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}\n",
          {"javac"}},
-        {"bash", "{tool} {flags} --rcfile %f -i", "hello.sh", "#!/usr/bin/env bash\n\necho \"Hello, World!\"\n", {}},
-        {"ruby", "irb -r ./%f", "hello.rb", "puts \"Hello, World!\"\n", {}},
-        {"perl", nullptr, "hello.pl", "#!/usr/bin/env perl\nuse strict;\nuse warnings;\n\nprint \"Hello, World!\\n\";\n", {}},
-        {"lua", "{tool} {flags} -i %f", "hello.lua", "print(\"Hello, World!\")\n", {}},
-        {"php", nullptr, "hello.php", "<?php\n\necho \"Hello, World!\\n\";\n", {}},
-        {"r", nullptr, "hello.R", "cat(\"Hello, World!\\n\")\n", {}},
-        {"julia", "{tool} {flags} -i %f", "hello.jl", "println(\"Hello, World!\")\n", {}},
-        {"haskell", nullptr, "Hello.hs", "main :: IO ()\nmain = putStrLn \"Hello, World!\"\n", {}},
-        {"fortran", nullptr, "hello.f90",
+        {"bash", "{tool} {flags} --rcfile %f -i", "untitled.sh", "#!/usr/bin/env bash\n\necho \"Hello, World!\"\n", {}},
+        {"ruby", "irb -r ./%f", "untitled.rb", "puts \"Hello, World!\"\n", {}},
+        {"perl", nullptr, "untitled.pl", "#!/usr/bin/env perl\nuse strict;\nuse warnings;\n\nprint \"Hello, World!\\n\";\n", {}},
+        {"lua", "{tool} {flags} -i %f", "untitled.lua", "print(\"Hello, World!\")\n", {}},
+        {"php", nullptr, "untitled.php", "<?php\n\necho \"Hello, World!\\n\";\n", {}},
+        {"r", nullptr, "untitled.R", "cat(\"Hello, World!\\n\")\n", {}},
+        {"julia", "{tool} {flags} -i %f", "untitled.jl", "println(\"Hello, World!\")\n", {}},
+        {"haskell", nullptr, "untitled.hs", "main :: IO ()\nmain = putStrLn \"Hello, World!\"\n", {}},
+        {"fortran", nullptr, "untitled.f90",
          "program hello\n    implicit none\n    print *, \"Hello, World!\"\nend program hello\n", {}},
-        {"pascal", nullptr, "hello.pas", "program Hello;\nbegin\n    writeln('Hello, World!');\nend.\n", {}},
+        {"pascal", nullptr, "untitled.pas", "program Hello;\nbegin\n    writeln('Hello, World!');\nend.\n", {}},
     };
     for (Language &lang : list) {
         for (const Extra &e : extras) {

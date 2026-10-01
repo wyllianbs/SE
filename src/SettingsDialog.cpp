@@ -124,7 +124,6 @@ SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, 
     addPage(tr("Appearance"), Icons::Palette, buildAppearancePage());
     addPage(tr("Terminal"), Icons::Terminal, buildTerminalPage());
     addPage(tr("Languages"), Icons::Languages, buildLanguagesPage());
-    addPage(tr("Language Servers"), Icons::Server, buildServersPage());
     connect(m_nav, &QListWidget::currentRowChanged, m_pages, &QStackedWidget::setCurrentIndex);
     m_nav->setCurrentRow(1);
 
@@ -443,30 +442,104 @@ QWidget *SettingsDialog::buildTerminalPage()
     return makePage(tr("Terminal"), QString(), layout);
 }
 
+/**
+ * Linguagens e servidores de linguagem numa página só: lista à esquerda,
+ * detalhes da linguagem escolhida à direita (execução e LSP).
+ */
 QWidget *SettingsDialog::buildLanguagesPage()
 {
-    m_languages = new QTableWidget(0, 4);
-    m_languages->setObjectName(QStringLiteral("LanguageTable"));
-    m_languages->setHorizontalHeaderLabels({tr("Language"), tr("Tool"), tr("Flags"), tr("Extensions")});
-    m_languages->verticalHeader()->hide();
-    m_languages->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    m_languages->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    m_languages->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    m_languages->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    m_languages->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_languages->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_languages->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed
-                                 | QAbstractItemView::AnyKeyPressed);
-    m_languages->setMinimumHeight(220);
-    m_languages->setShowGrid(false);
-    m_languages->setAlternatingRowColors(true);
+    m_langList = new QListWidget;
+    m_langList->setObjectName(QStringLiteral("ProfileList"));
+    m_langList->setFixedWidth(210);
+    m_langList->setIconSize(QSize(16, 16));
 
     auto *add = new QPushButton(tr("Add Language…"));
-    auto *remove = new QPushButton(tr("Remove"));
-    auto *reset = new QPushButton(tr("Reset Row"));
-    for (QPushButton *b : {add, remove, reset})
+    m_langRemove = new QPushButton(tr("Remove"));
+    m_langReset = new QPushButton(tr("Reset"));
+    for (QPushButton *b : {add, m_langRemove, m_langReset})
         b->setAutoDefault(false);
-    remove->setObjectName(QStringLiteral("Danger"));
+    m_langRemove->setObjectName(QStringLiteral("Danger"));
+
+    // ── Execução ──
+    m_langTool = new QLineEdit;
+    m_langFlags = new QLineEdit;
+    m_langExtensions = new QLineEdit;
+    m_langTool->setPlaceholderText(tr("compiler or interpreter"));
+    m_langExtensions->setPlaceholderText(tr("e.g. rb, rake"));
+    auto *runForm = new QFormLayout;
+    runForm->setHorizontalSpacing(18);
+    runForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    runForm->addRow(tr("Tool"), m_langTool);
+    runForm->addRow(tr("Flags"), m_langFlags);
+    runForm->addRow(tr("Extensions"), m_langExtensions);
+    m_langRunHint = new QLabel;
+    m_langRunHint->setObjectName(QStringLiteral("Hint"));
+    m_langRunHint->setWordWrap(true);
+    m_langRunHint->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_langRunHint->setTextFormat(Qt::PlainText);
+    runForm->addRow(QString(), m_langRunHint);
+
+    // ── Servidor de linguagem ──
+    m_lspOn = new QCheckBox(tr("Use a language server (diagnostics and completion)"));
+    m_lspCommand = new QComboBox;
+    m_lspCommand->setEditable(true);
+    m_lspStatus = new QLabel;
+    m_lspStatus->setWordWrap(true);
+    m_lspStatus->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    auto *lspForm = new QFormLayout;
+    lspForm->setHorizontalSpacing(18);
+    lspForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    m_lspCommand->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    lspForm->addRow(m_lspOn);
+    lspForm->addRow(tr("Server"), m_lspCommand);
+    lspForm->addRow(tr("Status"), m_lspStatus);
+    m_lspCard = card(tr("Language server (LSP)"), lspForm);
+
+    auto *details = new QVBoxLayout;
+    details->setSpacing(12);
+    details->addWidget(card(tr("Run (F5)"), runForm));
+    details->addWidget(m_lspCard);
+    details->addStretch(1);
+
+    auto *listBox = new QVBoxLayout;
+    listBox->addWidget(m_langList, 1);
+    auto *listButtons = new QHBoxLayout;
+    listButtons->addWidget(add);
+    listBox->addLayout(listButtons);
+    auto *detailButtons = new QHBoxLayout;
+    detailButtons->addStretch(1);
+    detailButtons->addWidget(m_langReset);
+    detailButtons->addWidget(m_langRemove);
+    details->addLayout(detailButtons);
+
+    auto *row = new QHBoxLayout;
+    row->setSpacing(14);
+    row->addLayout(listBox);
+    row->addLayout(details, 1);
+
+    m_missingLanguages = new QLabel;
+    m_missingLanguages->setObjectName(QStringLiteral("Hint"));
+    m_missingLanguages->setWordWrap(true);
+
+    auto *layout = new QVBoxLayout;
+    layout->addLayout(row, 1);
+    layout->addWidget(m_missingLanguages);
+
+    connect(m_langList, &QListWidget::currentRowChanged, this, [this](int r) {
+        storeLanguageForm();
+        m_currentEntry = r;
+        loadLanguageForm();
+    });
+    // O que se digita vai para a entrada atual na hora (lista e status refletem).
+    for (QLineEdit *e : {m_langTool, m_langFlags, m_langExtensions})
+        connect(e, &QLineEdit::textEdited, this, [this]() { storeLanguageForm(); updateLanguageStatus(); });
+    connect(m_lspOn, &QCheckBox::toggled, this, [this]() { storeLanguageForm(); updateLanguageStatus(); });
+    connect(m_lspCommand, &QComboBox::currentTextChanged, this, [this]() {
+        if (!m_loadingLanguage) {
+            storeLanguageForm();
+            updateLanguageStatus();
+        }
+    });
 
     connect(add, &QPushButton::clicked, this, [this]() {
         bool ok = false;
@@ -481,134 +554,149 @@ QWidget *SettingsDialog::buildLanguagesPage()
                                 .trimmed();
         if (!ok)
             return;
-        addLanguageRow(QString(), tool, {tool, QString(), ext}, true);
-        m_languages->selectRow(m_languages->rowCount() - 1);
+        storeLanguageForm();
+        m_entries.append({QString(), tool, true, {tool, QString(), ext}, {}});
+        refreshLanguageList(m_entries.size() - 1);
     });
-    connect(remove, &QPushButton::clicked, this, [this]() {
-        const int row = m_languages->currentRow();
-        if (row >= 0 && m_languages->item(row, 0)->data(kCustomRole).toBool())
-            m_languages->removeRow(row);
-    });
-    connect(reset, &QPushButton::clicked, this, [this]() {
-        const int row = m_languages->currentRow();
-        if (row < 0 || m_languages->item(row, 0)->data(kCustomRole).toBool())
+    connect(m_langRemove, &QPushButton::clicked, this, [this]() {
+        if (m_currentEntry < 0 || !m_entries[m_currentEntry].custom)
             return;
-        const LanguageConfig def = AppSettings::defaultLanguageConfig(m_languages->item(row, 0)->data(kIdRole).toString());
-        m_languages->item(row, 1)->setText(def.tool);
-        m_languages->item(row, 2)->setText(def.flags);
-        m_languages->item(row, 3)->setText(def.extensions);
+        m_entries.removeAt(m_currentEntry);
+        m_currentEntry = -1;
+        refreshLanguageList(0);
     });
-    connect(m_languages, &QTableWidget::currentCellChanged, this, [this, remove, reset](int row) {
-        const bool custom = row >= 0 && m_languages->item(row, 0)->data(kCustomRole).toBool();
-        remove->setEnabled(custom);
-        reset->setEnabled(row >= 0 && !custom);
+    connect(m_langReset, &QPushButton::clicked, this, [this]() {
+        if (m_currentEntry < 0 || m_entries[m_currentEntry].custom)
+            return;
+        LangEntry &e = m_entries[m_currentEntry];
+        e.cfg = AppSettings::defaultLanguageConfig(e.id);
+        e.lsp = LspConfig();
+        loadLanguageForm();
     });
 
-    remove->setEnabled(false);
-    reset->setEnabled(false);
-    auto *buttons = new QHBoxLayout;
-    buttons->addWidget(add);
-    buttons->addStretch(1);
-    buttons->addWidget(reset);
-    buttons->addWidget(remove);
-
-    m_missingLanguages = new QLabel;
-    m_missingLanguages->setObjectName(QStringLiteral("Hint"));
-    m_missingLanguages->setWordWrap(true);
-    auto *box = new QVBoxLayout;
-    box->addWidget(m_languages, 1);
-    box->addLayout(buttons);
-    box->addWidget(m_missingLanguages);
-
-    auto *layout = new QVBoxLayout;
-    layout->addWidget(card(QString(), box), 1);
     return makePage(tr("Languages"),
-                    tr("Run (F5) saves the file and runs “tool flags file” in the terminal. C, C++ and Rust are "
-                       "compiled to /tmp/slayer_out and then executed. Double-click a cell to edit it."),
+                    tr("Languages found on this system. Run (F5) saves the file and runs “tool flags file” in the "
+                       "terminal (C, C++, Rust… are compiled to /tmp/slayer_out first). The language server adds "
+                       "diagnostics and completion; turn all servers off in Settings → Editor."),
                     layout, true);
 }
 
-QWidget *SettingsDialog::buildServersPage()
+void SettingsDialog::refreshLanguageList(int select)
 {
-    m_servers = new QTableWidget(0, 4);
-    m_servers->setObjectName(QStringLiteral("LanguageTable"));
-    m_servers->setHorizontalHeaderLabels({tr("Language"), tr("On"), tr("Server command"), tr("Status")});
-    m_servers->verticalHeader()->hide();
-    m_servers->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    m_servers->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
-    m_servers->setColumnWidth(1, 56);
-    m_servers->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    m_servers->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    m_servers->setSelectionMode(QAbstractItemView::NoSelection);
-    m_servers->setFocusPolicy(Qt::NoFocus);
-    m_servers->setShowGrid(false);
-    m_servers->setAlternatingRowColors(true);
-    m_servers->setMinimumHeight(220);
-    m_servers->verticalHeader()->setDefaultSectionSize(38);
-
-    for (const QString &id : LspManager::languages()) {
-        if (!m_detect.languageInstalled(id))
-            continue; // servidor de linguagem só para linguagens instaladas
-        const int row = m_servers->rowCount();
-        m_servers->insertRow(row);
-        auto *name = new QTableWidgetItem(Icons::icon(Icons::forLanguage(id), Icons::colorForLanguage(id), 16),
-                                          Language::byId(id).displayName);
-        name->setData(kIdRole, id);
-        name->setFlags(Qt::ItemIsEnabled);
-        m_servers->setItem(row, 0, name);
-
-        auto *enabledHolder = new QWidget;
-        auto *enabledLayout = new QHBoxLayout(enabledHolder);
-        enabledLayout->setContentsMargins(0, 0, 0, 0);
-        enabledLayout->setAlignment(Qt::AlignCenter);
-        auto *enabledBox = new QCheckBox;
-        enabledBox->setToolTip(tr("Use a language server for %1").arg(Language::byId(id).displayName));
-        enabledLayout->addWidget(enabledBox);
-        m_servers->setCellWidget(row, 1, enabledHolder);
-
-        // Servidores conhecidos + campo livre para outro comando.
-        auto *combo = new QComboBox;
-        combo->setEditable(true);
-        for (const LspPreset &p : LspManager::presets(id))
-            combo->addItem(p.command, p.install);
-        connect(combo, &QComboBox::currentTextChanged, this, [this]() { refreshServerStatus(); });
-        m_servers->setCellWidget(row, 2, combo);
-        m_servers->setItem(row, 3, new QTableWidgetItem);
+    const QSignalBlocker blocker(m_langList);
+    m_langList->clear();
+    for (const LangEntry &e : std::as_const(m_entries)) {
+        const QString iconId = e.custom ? QString() : e.id;
+        auto *item = new QListWidgetItem(Icons::icon(Icons::forLanguage(iconId), Icons::colorForLanguage(iconId), 16),
+                                         e.name);
+        // Indicador do LSP: ● ativo e instalado, ○ ativo mas não encontrado.
+        const QString cmd = effectiveLspCommand(e);
+        if (!e.custom && e.lsp.enabled && !cmd.isEmpty())
+            item->setText(e.name + (LspManager::isInstalled(cmd) ? QStringLiteral("   ●") : QStringLiteral("   ○")));
+        m_langList->addItem(item);
     }
-
-    auto *hint = new QLabel(tr("Servers start when a file of their language is opened. Without compile_commands.json, "
-                               "clangd uses the C/C++ flags from Settings → Languages. Install commands are shown "
-                               "in the status tooltip; nothing is installed automatically."));
-    hint->setObjectName(QStringLiteral("Hint"));
-    hint->setWordWrap(true);
-    auto *box = new QVBoxLayout;
-    box->addWidget(m_servers, 1);
-    box->addWidget(hint);
-    auto *layout = new QVBoxLayout;
-    layout->addWidget(card(QString(), box), 1);
-    return makePage(tr("Language Servers"),
-                    tr("Diagnostics (wavy underlines) and completion from a Language Server Protocol server. "
-                       "Turn all servers on or off in Settings → Editor."),
-                    layout, true);
+    m_currentEntry = qBound(-1, select, int(m_entries.size()) - 1);
+    m_langList->setCurrentRow(m_currentEntry);
+    loadLanguageForm();
 }
 
-void SettingsDialog::refreshServerStatus()
+QString SettingsDialog::effectiveLspCommand(const LangEntry &e) const
 {
-    for (int row = 0; row < m_servers->rowCount(); ++row) {
-        auto *combo = qobject_cast<QComboBox *>(m_servers->cellWidget(row, 2));
-        QTableWidgetItem *status = m_servers->item(row, 3);
-        if (!combo || !status)
-            continue;
-        const QString command = combo->currentText().trimmed();
-        const bool installed = LspManager::isInstalled(command);
-        status->setText(installed ? tr("Installed") : tr("Not found"));
-        status->setForeground(installed ? QColor("#a6e3a1") : QColor("#f38ba8"));
+    if (!e.lsp.command.trimmed().isEmpty())
+        return e.lsp.command.trimmed();
+    const QList<LspPreset> presets = LspManager::presets(e.id);
+    return presets.isEmpty() ? QString() : presets.first().command;
+}
+
+void SettingsDialog::loadLanguageForm()
+{
+    const bool has = m_currentEntry >= 0 && m_currentEntry < m_entries.size();
+    for (QWidget *w : std::initializer_list<QWidget *>{m_langTool, m_langFlags, m_langExtensions, m_lspCard,
+                                                       m_langReset, m_langRemove})
+        w->setEnabled(has);
+    if (!has)
+        return;
+    m_loadingLanguage = true;
+    const LangEntry &e = m_entries[m_currentEntry];
+    m_langTool->setText(e.cfg.tool);
+    m_langFlags->setText(e.cfg.flags);
+    m_langExtensions->setText(e.cfg.extensions);
+    m_langReset->setVisible(!e.custom);
+    m_langRemove->setVisible(e.custom);
+
+    const QList<LspPreset> presets = e.custom ? QList<LspPreset>() : LspManager::presets(e.id);
+    m_lspCard->setVisible(!presets.isEmpty());
+    m_lspCommand->clear();
+    for (const LspPreset &p : presets)
+        m_lspCommand->addItem(QStringLiteral("%1 — %2").arg(p.name, p.command), p.command);
+    m_lspOn->setChecked(e.lsp.enabled);
+    const QString cmd = effectiveLspCommand(e);
+    const int idx = m_lspCommand->findData(cmd);
+    if (idx >= 0)
+        m_lspCommand->setCurrentIndex(idx);
+    else
+        m_lspCommand->setEditText(cmd);
+    m_loadingLanguage = false;
+    updateLanguageStatus();
+}
+
+/** Grava o formulário na entrada atual. */
+void SettingsDialog::storeLanguageForm()
+{
+    if (m_loadingLanguage || m_currentEntry < 0 || m_currentEntry >= m_entries.size())
+        return;
+    LangEntry &e = m_entries[m_currentEntry];
+    e.cfg = {m_langTool->text().trimmed(), m_langFlags->text().trimmed(), m_langExtensions->text().trimmed()};
+    if (e.custom && !e.cfg.tool.isEmpty())
+        e.name = e.name.isEmpty() ? e.cfg.tool : e.name;
+    e.lsp.enabled = m_lspOn->isChecked();
+    // Item da lista guarda o comando; texto digitado vale como comando próprio.
+    const int idx = m_lspCommand->currentIndex();
+    QString cmd = (idx >= 0 && m_lspCommand->itemText(idx) == m_lspCommand->currentText())
+                      ? m_lspCommand->itemData(idx).toString()
+                      : m_lspCommand->currentText().trimmed();
+    const QList<LspPreset> presets = LspManager::presets(e.id);
+    if (!presets.isEmpty() && cmd == presets.first().command)
+        cmd.clear(); // padrão: acompanha mudanças futuras do preset
+    e.lsp.command = cmd;
+}
+
+void SettingsDialog::updateLanguageStatus()
+{
+    if (m_currentEntry < 0 || m_currentEntry >= m_entries.size())
+        return;
+    const LangEntry &e = m_entries[m_currentEntry];
+    // Comando de execução resultante, para conferência.
+    const Language lang = e.custom ? Language::custom(e.name, Language::splitExtensions(e.cfg.extensions))
+                                   : Language::byId(e.id);
+    const QString example = Language::splitExtensions(e.cfg.extensions).value(0, QStringLiteral("txt"));
+    m_langRunHint->setText(tr("Runs: %1")
+                               .arg(lang.commandFor(QStringLiteral("/dir/file.") + example, e.cfg.tool, e.cfg.flags)));
+
+    const QString cmd = effectiveLspCommand(e);
+    m_lspCommand->setEnabled(e.lsp.enabled);
+    if (!e.lsp.enabled) {
+        m_lspStatus->setText(tr("Off"));
+        m_lspStatus->setStyleSheet(QString());
+    } else if (LspManager::isInstalled(cmd)) {
+        m_lspStatus->setText(tr("Installed"));
+        m_lspStatus->setStyleSheet(QStringLiteral("color: #a6e3a1;"));
+    } else {
         QString install;
-        for (const LspPreset &p : LspManager::presets(m_servers->item(row, 0)->data(kIdRole).toString())) {
-            if (p.command == command)
+        for (const LspPreset &p : LspManager::presets(e.id)) {
+            if (p.command == cmd)
                 install = p.install;
         }
-        status->setToolTip(installed || install.isEmpty() ? QString() : tr("Install with:\n%1").arg(install));
+        m_lspStatus->setText(install.isEmpty() ? tr("Not found")
+                                               : tr("Not found — install with: %1").arg(install));
+        m_lspStatus->setStyleSheet(QStringLiteral("color: #f38ba8;"));
+    }
+    // Marcador ●/○ da lista acompanha a mudança.
+    if (QListWidgetItem *item = m_langList->item(m_currentEntry)) {
+        QString text = e.name;
+        if (!e.custom && e.lsp.enabled && !cmd.isEmpty())
+            text += LspManager::isInstalled(cmd) ? QStringLiteral("   ●") : QStringLiteral("   ○");
+        item->setText(text);
     }
 }
 
@@ -700,25 +788,6 @@ void SettingsDialog::refreshProfiles()
         m_activeProfile->setText(tr("No saved profiles yet."));
 }
 
-void SettingsDialog::addLanguageRow(const QString &id, const QString &name, const LanguageConfig &cfg, bool custom)
-{
-    const int row = m_languages->rowCount();
-    m_languages->insertRow(row);
-    auto *nameItem = new QTableWidgetItem(name);
-    nameItem->setData(kIdRole, id);
-    nameItem->setData(kCustomRole, custom);
-    const QString iconId = custom ? QString() : id;
-    nameItem->setIcon(Icons::icon(Icons::forLanguage(iconId), Icons::colorForLanguage(iconId), 16));
-    if (!custom)
-        nameItem->setFlags(nameItem->flags() & ~Qt::ItemIsEditable);
-    m_languages->setItem(row, 0, nameItem);
-    m_languages->setItem(row, 1, new QTableWidgetItem(cfg.tool));
-    auto *flagsItem = new QTableWidgetItem(cfg.flags);
-    flagsItem->setToolTip(cfg.flags);
-    m_languages->setItem(row, 2, flagsItem);
-    m_languages->setItem(row, 3, new QTableWidgetItem(cfg.extensions));
-}
-
 void SettingsDialog::setForm(const AppSettings &s)
 {
     QFont ef(s.editorFont.isEmpty() ? Icons::monoFamily() : s.editorFont);
@@ -732,12 +801,6 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_completion->setChecked(s.codeCompletion);
     m_folding->setChecked(s.codeFolding);
     m_lspEnabled->setChecked(s.lspEnabled);
-    for (int row = 0; row < m_servers->rowCount(); ++row) {
-        const LspConfig cfg = s.lspConfig(m_servers->item(row, 0)->data(kIdRole).toString());
-        m_servers->cellWidget(row, 1)->findChild<QCheckBox *>()->setChecked(cfg.enabled);
-        qobject_cast<QComboBox *>(m_servers->cellWidget(row, 2))->setEditText(cfg.command);
-    }
-    refreshServerStatus();
     m_insertSpaces->setChecked(s.insertSpaces);
     m_editorBlink->setChecked(s.editorCursorBlink);
 
@@ -765,25 +828,29 @@ void SettingsDialog::setForm(const AppSettings &s)
                                                                       : QStringLiteral("%1%").arg(s.terminalTransparency));
 
     // Só as linguagens instaladas no sistema; as demais guardam o que tinham.
-    m_languages->setRowCount(0);
+    m_entries.clear();
     m_hiddenLanguages.clear();
+    m_hiddenLsp.clear();
     QStringList missing;
     for (const Language &lang : Language::all()) {
         if (s.languageInstalled(lang.id)) {
-            addLanguageRow(lang.id, lang.displayName, s.languageConfig(lang.id), false);
+            m_entries.append({lang.id, lang.displayName, false, s.languageConfig(lang.id), s.lsp.value(lang.id)});
         } else {
             missing << lang.displayName;
             if (s.languages.contains(lang.id))
                 m_hiddenLanguages.insert(lang.id, s.languages.value(lang.id));
+            if (s.lsp.contains(lang.id))
+                m_hiddenLsp.insert(lang.id, s.lsp.value(lang.id));
         }
     }
+    for (const CustomLanguage &c : s.customLanguages)
+        m_entries.append({QString(), c.name, true, {c.tool, c.flags, c.extensions}, {}});
     m_missingLanguages->setText(missing.isEmpty() ? QString()
                                                   : tr("Not installed on this system (hidden): %1. Install a "
                                                        "compiler or interpreter and it appears here.")
                                                         .arg(missing.join(QStringLiteral(", "))));
-    for (const CustomLanguage &c : s.customLanguages)
-        addLanguageRow(QString(), c.name, {c.tool, c.flags, c.extensions}, true);
-
+    m_currentEntry = -1;
+    refreshLanguageList(0);
 }
 
 AppSettings SettingsDialog::settings() const
@@ -800,16 +867,6 @@ AppSettings SettingsDialog::settings() const
     s.codeCompletion = m_completion->isChecked();
     s.codeFolding = m_folding->isChecked();
     s.lspEnabled = m_lspEnabled->isChecked();
-    for (int row = 0; row < m_servers->rowCount(); ++row) {
-        const QString id = m_servers->item(row, 0)->data(kIdRole).toString();
-        const bool on = m_servers->cellWidget(row, 1)->findChild<QCheckBox *>()->isChecked();
-        QString command = qobject_cast<QComboBox *>(m_servers->cellWidget(row, 2))->currentText().trimmed();
-        const QList<LspPreset> presets = LspManager::presets(id);
-        if (!presets.isEmpty() && command == presets.first().command)
-            command.clear(); // padrão: acompanha mudanças futuras do preset
-        if (!on || !command.isEmpty())
-            s.lsp.insert(id, {on, command});
-    }
     s.insertSpaces = m_insertSpaces->isChecked();
     s.editorCursorBlink = m_editorBlink->isChecked();
 
@@ -832,22 +889,22 @@ AppSettings SettingsDialog::settings() const
     s.terminalCursorBlink = m_terminalBlink->isChecked();
     s.terminalTransparency = m_terminalTransparency->value();
 
+    const_cast<SettingsDialog *>(this)->storeLanguageForm();
     s.languages = m_hiddenLanguages;
-    for (int row = 0; row < m_languages->rowCount(); ++row) {
-        const QTableWidgetItem *nameItem = m_languages->item(row, 0);
-        const LanguageConfig cfg{m_languages->item(row, 1)->text().trimmed(), m_languages->item(row, 2)->text().trimmed(),
-                                 m_languages->item(row, 3)->text().trimmed()};
-        if (nameItem->data(kCustomRole).toBool()) {
-            const QString name = nameItem->text().trimmed();
-            if (!name.isEmpty())
-                s.customLanguages.append({name, cfg.tool.isEmpty() ? name : cfg.tool, cfg.flags, cfg.extensions});
-        } else {
-            const QString id = nameItem->data(kIdRole).toString();
-            // Só guarda o que difere do padrão: padrões futuros continuam valendo.
-            const LanguageConfig def = AppSettings::defaultLanguageConfig(id);
-            if (cfg.tool != def.tool || cfg.flags != def.flags || cfg.extensions != def.extensions)
-                s.languages.insert(id, cfg);
+    s.lsp = m_hiddenLsp;
+    for (const LangEntry &e : m_entries) {
+        if (e.custom) {
+            if (!e.name.trimmed().isEmpty())
+                s.customLanguages.append({e.name.trimmed(), e.cfg.tool.isEmpty() ? e.name : e.cfg.tool, e.cfg.flags,
+                                          e.cfg.extensions});
+            continue;
         }
+        // Só guarda o que difere do padrão: padrões futuros continuam valendo.
+        const LanguageConfig def = AppSettings::defaultLanguageConfig(e.id);
+        if (e.cfg.tool != def.tool || e.cfg.flags != def.flags || e.cfg.extensions != def.extensions)
+            s.languages.insert(e.id, e.cfg);
+        if (!e.lsp.enabled || !e.lsp.command.isEmpty())
+            s.lsp.insert(e.id, e.lsp);
     }
 
     return s;

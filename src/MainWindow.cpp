@@ -182,6 +182,11 @@ MainWindow::MainWindow(QWidget *parent)
                 }
                 if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
                     nav->setCurrentRow(qEnvironmentVariableIntValue("SLAYER_DEBUG_SETTINGS"));
+                // SLAYER_DEBUG_LANGROW: linha selecionada na lista de linguagens.
+                if (qEnvironmentVariableIsSet("SLAYER_DEBUG_LANGROW"))
+                    for (auto *list : dialog->findChildren<QListWidget *>(QStringLiteral("ProfileList")))
+                        if (list->count() > 5)
+                            list->setCurrentRow(qEnvironmentVariableIntValue("SLAYER_DEBUG_LANGROW"));
                 QTimer::singleShot(300, this, [dialog, out]() {
                     dialog->grab().save(out);
                     qApp->exit(0);
@@ -1064,7 +1069,7 @@ void MainWindow::buildStatusBar()
             showSettings();
             if (auto *dialog = findChild<SettingsDialog *>())
                 if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
-                    nav->setCurrentRow(5);
+                    nav->setCurrentRow(4); // Linguagens (com os servidores de linguagem)
         });
     });
 

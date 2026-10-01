@@ -289,10 +289,6 @@ sudo apt install gdb</translation>
         <translation>lsp language server clangd pylsp pyright diagnostics errors warnings underline servidor de linguagem diagnósticos erros avisos sublinhado</translation>
     </message>
     <message>
-        <source>&lt;p&gt;With a language server installed, errors and warnings are underlined (red, yellow, blue) and the line number takes their color. Hover the underline for the message; the message of the cursor line is also shown in the status bar.&lt;/p&gt;&lt;p&gt;Choose the server of each language in &lt;b&gt;Settings → Language Servers&lt;/b&gt;; the status column tells whether it is installed and how to install it. For C and C++, clangd uses &lt;code&gt;compile_commands.json&lt;/code&gt; when present, otherwise the flags from Settings → Languages.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;Com um servidor de linguagem instalado, erros e avisos ficam sublinhados (vermelho, amarelo, azul) e o número da linha assume a cor deles. Passe o mouse sobre o sublinhado para ver a mensagem; a mensagem da linha do cursor também aparece na barra de status.&lt;/p&gt;&lt;p&gt;Escolha o servidor de cada linguagem em &lt;b&gt;Configurações → Servidores de linguagem&lt;/b&gt;; a coluna Estado informa se ele está instalado e como instalá-lo. Para C e C++, o clangd usa o &lt;code&gt;compile_commands.json&lt;/code&gt; quando existe, senão as flags de Configurações → Linguagens.&lt;/p&gt;</translation>
-    </message>
-    <message>
         <source>Code folding</source>
         <translation>Dobramento de código</translation>
     </message>
@@ -387,6 +383,10 @@ sudo apt install gdb</translation>
     <message>
         <source>No topic matches.</source>
         <translation>Nenhum tópico encontrado.</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;With a language server installed, errors and warnings are underlined (red, yellow, blue) and the line number takes their color. Hover the underline for the message; the message of the cursor line is also shown in the status bar.&lt;/p&gt;&lt;p&gt;Choose the server of each language in &lt;b&gt;Settings → Languages&lt;/b&gt;; its status tells whether it is installed and how to install it. For C and C++, clangd uses &lt;code&gt;compile_commands.json&lt;/code&gt; when present, otherwise the flags from Settings → Languages.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Com um servidor de linguagem instalado, erros e avisos ficam sublinhados (vermelho, amarelo, azul) e o número da linha assume a cor deles. Passe o mouse sobre o sublinhado para ver a mensagem; a mensagem da linha do cursor também aparece na barra de status.&lt;/p&gt;&lt;p&gt;Escolha o servidor de cada linguagem em &lt;b&gt;Configurações → Linguagens&lt;/b&gt;; o estado informa se ele está instalado e como instalá-lo. Para C e C++, o clangd usa o &lt;code&gt;compile_commands.json&lt;/code&gt; quando existe, senão as flags de Configurações → Linguagens.&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -1037,10 +1037,6 @@ sudo apt install gdb</translation>
         <translation>Linguagens</translation>
     </message>
     <message>
-        <source>Language Servers</source>
-        <translation>Servidores de linguagem</translation>
-    </message>
-    <message>
         <source>Restore Defaults</source>
         <translation>Restaurar padrões</translation>
     </message>
@@ -1205,10 +1201,6 @@ sudo apt install gdb</translation>
         <translation>Remover</translation>
     </message>
     <message>
-        <source>Reset Row</source>
-        <translation>Restaurar linha</translation>
-    </message>
-    <message>
         <source>Add Language</source>
         <translation>Adicionar linguagem</translation>
     </message>
@@ -1221,32 +1213,8 @@ sudo apt install gdb</translation>
         <translation>Extensões de arquivo (ex.: rb):</translation>
     </message>
     <message>
-        <source>Run (F5) saves the file and runs “tool flags file” in the terminal. C, C++ and Rust are compiled to /tmp/slayer_out and then executed. Double-click a cell to edit it.</source>
-        <translation>Executar (F5) salva o arquivo e roda “ferramenta flags arquivo” no terminal. C, C++ e Rust são compilados em /tmp/slayer_out e depois executados. Dê um duplo clique numa célula para editá-la.</translation>
-    </message>
-    <message>
-        <source>On</source>
-        <translation>Ativo</translation>
-    </message>
-    <message>
-        <source>Server command</source>
-        <translation>Comando do servidor</translation>
-    </message>
-    <message>
         <source>Status</source>
         <translation>Estado</translation>
-    </message>
-    <message>
-        <source>Use a language server for %1</source>
-        <translation>Usar um servidor de linguagem para %1</translation>
-    </message>
-    <message>
-        <source>Servers start when a file of their language is opened. Without compile_commands.json, clangd uses the C/C++ flags from Settings → Languages. Install commands are shown in the status tooltip; nothing is installed automatically.</source>
-        <translation>Os servidores iniciam quando um arquivo da linguagem é aberto. Sem compile_commands.json, o clangd usa as flags de C/C++ de Configurações → Linguagens. Os comandos de instalação aparecem na dica da coluna Estado; nada é instalado automaticamente.</translation>
-    </message>
-    <message>
-        <source>Diagnostics (wavy underlines) and completion from a Language Server Protocol server. Turn all servers on or off in Settings → Editor.</source>
-        <translation>Diagnósticos (sublinhado ondulado) e autocompletar de um servidor Language Server Protocol. Ligue ou desligue todos em Configurações → Editor.</translation>
     </message>
     <message>
         <source>Installed</source>
@@ -1255,12 +1223,6 @@ sudo apt install gdb</translation>
     <message>
         <source>Not found</source>
         <translation>Não encontrado</translation>
-    </message>
-    <message>
-        <source>Install with:
-%1</source>
-        <translation>Instale com:
-%1</translation>
     </message>
     <message>
         <source>No active profile</source>
@@ -1329,6 +1291,46 @@ sudo apt install gdb</translation>
     <message>
         <source>Not installed on this system (hidden): %1. Install a compiler or interpreter and it appears here.</source>
         <translation>Não instaladas neste sistema (ocultas): %1. Instale o compilador ou interpretador e a linguagem aparece aqui.</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>Restaurar</translation>
+    </message>
+    <message>
+        <source>compiler or interpreter</source>
+        <translation>compilador ou interpretador</translation>
+    </message>
+    <message>
+        <source>e.g. rb, rake</source>
+        <translation>ex.: rb, rake</translation>
+    </message>
+    <message>
+        <source>Use a language server (diagnostics and completion)</source>
+        <translation>Usar um servidor de linguagem (diagnósticos e autocompletar)</translation>
+    </message>
+    <message>
+        <source>Server</source>
+        <translation>Servidor</translation>
+    </message>
+    <message>
+        <source>Language server (LSP)</source>
+        <translation>Servidor de linguagem (LSP)</translation>
+    </message>
+    <message>
+        <source>Run (F5)</source>
+        <translation>Executar (F5)</translation>
+    </message>
+    <message>
+        <source>Languages found on this system. Run (F5) saves the file and runs “tool flags file” in the terminal (C, C++, Rust… are compiled to /tmp/slayer_out first). The language server adds diagnostics and completion; turn all servers off in Settings → Editor.</source>
+        <translation>Linguagens encontradas neste sistema. Executar (F5) salva o arquivo e roda “ferramenta flags arquivo” no terminal (C, C++, Rust… são compilados antes em /tmp/slayer_out). O servidor de linguagem acrescenta diagnósticos e autocompletar; desligue todos em Configurações → Editor.</translation>
+    </message>
+    <message>
+        <source>Runs: %1</source>
+        <translation>Executa: %1</translation>
+    </message>
+    <message>
+        <source>Not found — install with: %1</source>
+        <translation>Não encontrado — instale com: %1</translation>
     </message>
 </context>
 <context>

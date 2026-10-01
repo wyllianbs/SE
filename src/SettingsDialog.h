@@ -15,6 +15,7 @@ class QSlider;
 class QSpinBox;
 class QStackedWidget;
 class QTableWidget;
+class QPushButton;
 
 /**
  * Configurações, no mesmo espírito do painel do Slayer Editor para Android:
@@ -38,15 +39,25 @@ private:
     QWidget *buildAppearancePage();
     QWidget *buildTerminalPage();
     QWidget *buildLanguagesPage();
-    QWidget *buildServersPage();
-    void refreshServerStatus();
+    struct LangEntry
+    {
+        QString id;      //< vazio = linguagem personalizada
+        QString name;
+        bool custom = false;
+        LanguageConfig cfg;
+        LspConfig lsp;
+    };
+    void refreshLanguageList(int select);
+    void loadLanguageForm();
+    void storeLanguageForm();
+    void updateLanguageStatus();
+    QString effectiveLspCommand(const LangEntry &e) const;
     void rebuildThemeList(const QString &selectId);
     QString currentThemeId() const;
     void addPage(const QString &title, char32_t glyph, QWidget *page);
 
     void setForm(const AppSettings &s);
     void refreshProfiles();
-    void addLanguageRow(const QString &id, const QString &name, const LanguageConfig &cfg, bool custom);
 
     AppSettings m_detect; //< configurações iniciais, para detectar o que está instalado
     Theme m_theme;
@@ -69,15 +80,14 @@ private:
     QCheckBox *m_completion = nullptr;
     QCheckBox *m_folding = nullptr;
     QCheckBox *m_lspEnabled = nullptr;
-    QTableWidget *m_servers = nullptr;
     QCheckBox *m_insertSpaces = nullptr;
     QCheckBox *m_editorBlink = nullptr;
 
     // Aparência
     QListWidget *m_themes = nullptr;
     QList<Theme> m_userThemes; //< em edição; vão para AppSettings::userThemes
-    class QPushButton *m_modeDark = nullptr;
-    class QPushButton *m_modeLight = nullptr;
+    QPushButton *m_modeDark = nullptr;
+    QPushButton *m_modeLight = nullptr;
     QCheckBox *m_followSystem = nullptr;
     bool m_showDark = true;
     void setMode(bool dark);
@@ -95,8 +105,22 @@ private:
     QSlider *m_terminalTransparency = nullptr;
     QLabel *m_terminalTransparencyLabel = nullptr;
 
-    // Linguagens
-    QTableWidget *m_languages = nullptr;
+    // Linguagens (com o servidor de linguagem de cada uma)
+    QListWidget *m_langList = nullptr;
+    QList<LangEntry> m_entries;
+    int m_currentEntry = -1;
+    bool m_loadingLanguage = false;
+    QLineEdit *m_langTool = nullptr;
+    QLineEdit *m_langFlags = nullptr;
+    QLineEdit *m_langExtensions = nullptr;
+    QLabel *m_langRunHint = nullptr;
+    QPushButton *m_langReset = nullptr;
+    QPushButton *m_langRemove = nullptr;
+    QWidget *m_lspCard = nullptr;
+    QCheckBox *m_lspOn = nullptr;
+    QComboBox *m_lspCommand = nullptr;
+    QLabel *m_lspStatus = nullptr;
     QLabel *m_missingLanguages = nullptr;
     QMap<QString, LanguageConfig> m_hiddenLanguages; //< configs de linguagens não instaladas, preservadas
+    QMap<QString, LspConfig> m_hiddenLsp;
 };

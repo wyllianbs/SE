@@ -90,6 +90,11 @@ if(BUILD_TESTING)
                    src/LspClient.cpp src/Document.cpp src/Folding.cpp src/SyntaxHighlighter.cpp src/Theme.cpp)
     target_link_libraries(tst_languages PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME languages COMMAND tst_languages)
+    add_executable(tst_settings tests/tst_settings.cpp src/SettingsDialog.cpp src/ThemeEditor.cpp src/Settings.cpp
+                   src/LspManager.cpp src/LspClient.cpp src/Language.cpp src/Theme.cpp src/Icons.cpp
+                   src/SyntaxHighlighter.cpp src/Document.cpp src/Folding.cpp resources/resources.qrc)
+    target_link_libraries(tst_settings PRIVATE Qt6::Widgets Qt6::Test)
+    add_test(NAME settings COMMAND tst_settings)
     add_executable(tst_viewspace tests/tst_viewspace.cpp src/ViewSpace.cpp src/CodeEditor.cpp src/Document.cpp
                    src/Folding.cpp src/SyntaxHighlighter.cpp src/Language.cpp src/Theme.cpp src/Icons.cpp
                    resources/resources.qrc)
