@@ -42,6 +42,8 @@ public:
     QString suggestedName() const { return m_suggestedName; }
     void setSuggestedName(const QString &name) { m_suggestedName = name; Q_EMIT changed(); }
     bool isModified() const;
+    /** O texto atual passa a ser o "salvo" (sem marca de alterado). */
+    void markClean();
     bool isUntitledAndEmpty() const;
 
     const Language &language() const { return m_language; }
@@ -117,6 +119,7 @@ private:
     Language m_language;
     QString m_filePath;
     QString m_suggestedName;
+    QString m_cleanText; //< texto do último salvamento/carregamento
     QString m_encoding = QStringLiteral("UTF-8");
     bool m_bom = false;
     QList<Diagnostic> m_diagnostics;

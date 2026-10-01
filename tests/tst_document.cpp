@@ -4,6 +4,7 @@
 #include <QTemporaryDir>
 #include <QSignalSpy>
 #include <QTest>
+#include <QTextCursor>
 #include <QTextDocument>
 
 class TestDocument : public QObject
@@ -81,6 +82,28 @@ private Q_SLOTS:
         QVERIFY(!doc.save(m_dir.filePath("f.txt"), &error));
         QVERIFY(!error.isEmpty());
     }
+    void backToSavedTextIsNotModified()
+    {
+        Document doc;
+        QVERIFY(doc.load(write("clean.txt", "abc\n")));
+        QTextCursor c(doc.text());
+        c.movePosition(QTextCursor::End);
+        c.insertText(" ");                       // digita um espaço…
+        QVERIFY(doc.isModified());
+        c.deletePreviousChar();                  // …e apaga à mão (sem Desfazer)
+        QVERIFY(!doc.isModified());
+        c.movePosition(QTextCursor::Start);
+        c.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor);
+        c.insertText("a");                       // troca "a" por "a": igual ao salvo
+        QVERIFY(!doc.isModified());
+        c.insertText("z");
+        QVERIFY(doc.isModified());
+        QVERIFY(doc.save(m_dir.filePath("clean.txt")));
+        QVERIFY(!doc.isModified());
+        c.deletePreviousChar();                  // agora o salvo é "azbc"
+        QVERIFY(doc.isModified());
+    }
+
     // ── Comandos de dobramento do Kate ──
     void kateFoldingCommands()
     {

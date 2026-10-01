@@ -58,6 +58,13 @@ Document::Document(QObject *parent)
     m_text->setDocumentLayout(new QPlainTextDocumentLayout(m_text));
     m_highlighter = new SyntaxHighlighter(m_text);
     connect(m_text, &QTextDocument::modificationChanged, this, &Document::changed);
+    // Voltou a ser exatamente o texto salvo (apagou o que digitou, digitou de
+    // novo o mesmo…): deixa de estar alterado. O Desfazer o Qt já trata.
+    connect(m_text, &QTextDocument::contentsChanged, this, [this]() {
+        if (m_text->isModified() && m_text->characterCount() == m_cleanText.size() + 1
+            && m_text->toPlainText() == m_cleanText)
+            m_text->setModified(false);
+    });
 }
 
 void Document::setFilePath(const QString &path)
@@ -77,6 +84,12 @@ QString Document::displayName() const
 bool Document::isModified() const
 {
     return m_text->isModified();
+}
+
+void Document::markClean()
+{
+    m_cleanText = m_text->toPlainText();
+    m_text->setModified(false);
 }
 
 bool Document::isUntitledAndEmpty() const
@@ -416,7 +429,7 @@ bool Document::load(const QString &path, QString *error, const QString &encoding
     m_encoding = name;
     m_bom = bom;
     m_text->setPlainText(text);
-    m_text->setModified(false);
+    markClean();
     setFilePath(path);
     rememberDiskState();
     return true;
@@ -449,7 +462,7 @@ bool Document::save(const QString &path, QString *error)
             *error = file.errorString();
         return false;
     }
-    m_text->setModified(false);
+    markClean();
     setFilePath(path);
     rememberDiskState(); // o próprio salvamento não conta como mudança externa
     return true;

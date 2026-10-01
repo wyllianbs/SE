@@ -975,7 +975,7 @@ void MainWindow::newFileFromTemplate()
     doc->setLanguage(lang);
     doc->setSuggestedName(name);
     doc->text()->setPlainText(dialog.content());
-    doc->text()->setModified(false); // fechar sem editar não pergunta nada
+    doc->markClean(); // fechar sem editar não pergunta nada
     // Cursor no fim do corpo do programa, pronto para editar.
     QTextCursor c(doc->text());
     c.movePosition(QTextCursor::End);
