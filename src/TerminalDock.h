@@ -80,6 +80,8 @@ private:
     bool m_cursorBlink = true;
     int m_transparency = 0;
     QColor m_background;
+    QString m_scrollbarStyle; //< QSS do scrollbar do terminal, nas cores do tema
+    void applyScrollbarStyle(QTermWidget *term) const;
     void updateContainerBackground();
     qreal opacity() const;   //< transparência só vale destacado
     void applyOpacity();

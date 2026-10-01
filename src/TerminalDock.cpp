@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QProcessEnvironment>
+#include <QScrollBar>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMainWindow>
@@ -264,6 +265,7 @@ QTermWidget *TerminalDock::createTerminal()
     if (m_font != QFont())
         term->setTerminalFont(m_font);
     term->setTerminalOpacity(opacity());
+    applyScrollbarStyle(term);
     return term;
 }
 
@@ -325,6 +327,7 @@ QString TerminalDock::newTeletype(const QString &title)
     if (m_font != QFont())
         term->setTerminalFont(m_font);
     term->setTerminalOpacity(opacity());
+    applyScrollbarStyle(term);
     term->startShellProgram();
     const int fd = term->getPtySlaveFd();
     const char *name = fd >= 0 ? ::ttyname(fd) : nullptr;
@@ -506,9 +509,33 @@ void TerminalDock::setTheme(const Theme &theme)
         m_schemeName = schemeDir() + QLatin1Char('/') + name + QStringLiteral(".colorscheme");
     }
     m_background = theme.terminalBackground;
+    // O scrollbar do QTermWidget não segue o esquema de cores: fica escuro nos
+    // temas claros. Estiliza-se com as cores do terminal.
+    const QColor track = theme.terminalBackground;
+    QColor handle = theme.dark ? track.lighter(170) : track.darker(135);
+    QColor handleHover = theme.dark ? track.lighter(210) : track.darker(160);
+    m_scrollbarStyle = QStringLiteral(
+        "QScrollBar:vertical { background: %1; width: 12px; margin: 0; }"
+        "QScrollBar::handle:vertical { background: %2; border-radius: 4px; min-height: 28px; margin: 2px; }"
+        "QScrollBar::handle:vertical:hover { background: %3; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: %1; }")
+        .arg(track.name(), handle.name(), handleHover.name());
     updateContainerBackground();
-    for (QTermWidget *t : terminals())
+    for (QTermWidget *t : terminals()) {
         t->setColorScheme(m_schemeName);
+        applyScrollbarStyle(t);
+    }
+}
+
+/** Aplica ao scrollbar do terminal as cores do tema (ele não segue o esquema). */
+void TerminalDock::applyScrollbarStyle(QTermWidget *term) const
+{
+    if (!term || m_scrollbarStyle.isEmpty())
+        return;
+    const auto bars = term->findChildren<QScrollBar *>();
+    for (QScrollBar *bar : bars)
+        bar->setStyleSheet(m_scrollbarStyle);
 }
 
 /** Margens em volta do terminal com a mesma opacidade dele. */
