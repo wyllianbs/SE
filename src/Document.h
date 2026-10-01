@@ -59,6 +59,13 @@ public:
     void setFolded(int headerLine, bool folded);
     void foldAll();
     void unfoldAll();
+    // Comandos do Kate (Exibir → Dobramento de código).
+    /** Dobra/desdobra o bloco mais interno que contém a linha. */
+    void toggleCurrentNode(int line);
+    /** Alterna os blocos dentro do bloco atual (todos dobram, ou todos abrem). */
+    void toggleContainedNodes(int line);
+    /** Blocos que não estão dentro de outro (funções, classes…). */
+    void setToplevelFolded(bool folded);
     /** Desdobra o que esconder a linha (o cursor entrou nela). */
     void revealLine(int line);
 

@@ -55,7 +55,6 @@ public:
     void lineNumberAreaClicked(const QPoint &pos);
     void lineNumberAreaHovered(const QPoint &pos);
 
-    void foldAtCursor(bool fold);
 
 Q_SIGNALS:
     void overwriteModeToggled(bool overwrite);

@@ -73,7 +73,7 @@ QList<HelpTopic> HelpDialog::topics()
         {tr("Code completion"), tr("completion autocomplete suggestion popup ctrl space intellisense"),
          tr("<p>Suggestions appear after two letters: words of the file, language keywords and, when a language "
             "server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.</p>"
-            "<p>Turn it off in <b>Settings → Editor → Features</b>.</p>")
+            "<p>Turn it on or off in <b>View</b> or <b>Settings → Editor → Features</b>.</p>")
              .arg(keys("Ctrl+Space"), keys("Enter"), keys("Tab"), keys("Esc"))},
         {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright diagnostics errors warnings underline"),
          tr("<p>With a language server installed, errors and warnings are underlined (red, yellow, blue) and the "
@@ -82,10 +82,10 @@ QList<HelpTopic> HelpDialog::topics()
             "<p>Choose the server of each language in <b>Settings → Languages</b>; its status tells "
             "whether it is installed and how to install it. For C and C++, clangd uses "
             "<code>compile_commands.json</code> when present, otherwise the flags from Settings → Languages.</p>")},
-        {tr("Code folding"), tr("fold unfold collapse expand block folding"),
+        {tr("Code folding"), tr("fold unfold collapse expand block folding node toplevel"),
          tr("<p>Click the arrow next to a line number to fold its block (C, C++, Java, JavaScript, Rust, Go and "
-            "Python). Folded lines end with ⋯. %1 / %2 fold or unfold the block of the cursor, %3 / %4 all "
-            "blocks.</p>")
+            "Python). Folded lines end with ⋯. <b>View → Code Folding</b> has the Kate commands: %1 toggles the "
+            "current node, %2 the nodes contained in it, %3 / %4 fold or unfold the toplevel nodes.</p>")
              .arg(keys("Ctrl+Shift+["), keys("Ctrl+Shift+]"), keys("Ctrl+Alt+["), keys("Ctrl+Alt+]"))},
         {tr("Brackets, indentation and tabs"), tr("auto closing pairs brackets quotes indent tab spaces soft tabs width"),
          tr("<p>Brackets and quotes are closed automatically; typing the closing one just steps over it. Enter "
@@ -102,9 +102,10 @@ QList<HelpTopic> HelpDialog::topics()
          tr("<p>From left to right: git branch, message of the cursor line, language server, line:column, "
             "INSERT/OVERWRITE (%1 toggles), tabs, encoding and language (click to change the highlighting).</p>")
              .arg(keys("Insert"))},
-        {tr("Themes and appearance"), tr("theme dark light color appearance scale font size zoom"),
+        {tr("Themes and appearance"), tr("theme dark light color appearance scale font size zoom toolbar icons text configure"),
          tr("<p>Pick a theme in <b>View → Theme</b> or <b>Settings → Appearance</b>; it also colors the terminal. "
-            "%1 / %2 / %3 zoom the editor. Button and interface scale are in Settings → Appearance.</p>")
+            "%1 / %2 / %3 zoom the editor. Right-click the toolbar for text position, icon size, lock and "
+            "<b>Configure Toolbars…</b> (choose and order its buttons).</p>")
              .arg(keys("Ctrl++"), keys("Ctrl+-"), keys("Ctrl+0"))},
         {tr("Profiles"), tr("profile profiles save load settings setup preset"),
          tr("<p><b>Settings → Profiles</b> stores every setting under a name, so you can switch setups (class, "

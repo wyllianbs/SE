@@ -57,7 +57,12 @@ struct AppSettings
     // Aparência
     QString theme = QStringLiteral("catppuccin-mocha");
     bool themeFollowSystem = false; //< usa a variante clara/escura conforme o desktop
-    int buttonScale = 100;       //< % do tamanho dos ícones da barra
+    int buttonScale = 100;       //< (obsoleto; substituído por toolbarIconSize)
+    // Barra de ferramentas (botão direito nela, como no Kate)
+    int toolbarIconSize = 22;    //< 16, 22, 32 ou 48
+    int toolbarStyle = 0;        //< Qt::ToolButtonStyle (0 = só ícones)
+    bool toolbarLocked = false;
+    QStringList toolbarActions;  //< ids na ordem; vazio = padrão
     int uiScale = 100;           //< % — aplicado ao reiniciar
     QString uiLanguage = QStringLiteral("auto"); //< "auto" (pt_BR do sistema, senão en), "en", "pt_BR"
 

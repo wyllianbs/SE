@@ -10,6 +10,7 @@
 #include "SettingsDialog.h"
 #include "TerminalDock.h"
 #include "ThemeEditor.h"
+#include "ToolbarDialog.h"
 #include "ViewSpace.h"
 
 #include <QAction>
@@ -250,10 +251,16 @@ void MainWindow::createActions()
         return a;
     };
 
+    // Ações que podem ir para a barra (Configurar barras de ferramentas).
+    auto reg = [this](const QString &id, QAction *action) {
+        m_toolbarRegistry.append({id, action});
+        return action;
+    };
+
     QMenu *file = menuBar()->addMenu(tr("&File"));
     QAction *newA = add(file, tr("&New…"), QKeySequence::New, [this]() { newFileFromTemplate(); }, Icons::NewFile);
     newA->setToolTip(tr("New file with a Hello, World! template (Ctrl+N)"));
-    add(file, tr("New &Empty File"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_N), [this]() { newTab(); });
+    reg(QStringLiteral("newEmpty"), add(file, tr("New &Empty File"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_N), [this]() { newTab(); }));
     QAction *openA = add(file, tr("&Open…"), QKeySequence::Open, [this]() {
         const QStringList paths = QFileDialog::getOpenFileNames(this, tr("Open File"), m_lastDir);
         openFiles(paths);
@@ -265,9 +272,9 @@ void MainWindow::createActions()
     saveAsA->setToolTip(tr("Save As (Ctrl+Shift+S)"));
     saveAllA->setToolTip(tr("Save All (Ctrl+L)"));
     file->addSeparator();
-    add(file, tr("&Close Tab"), QKeySequence(Qt::CTRL | Qt::Key_W), [this]() {
+    reg(QStringLiteral("closeTab"), add(file, tr("&Close Tab"), QKeySequence(Qt::CTRL | Qt::Key_W), [this]() {
         closeTab(m_activeSpace, m_activeSpace->currentIndex());
-    }, Icons::Close);
+    }, Icons::Close));
     add(file, tr("&Quit"), QKeySequence::Quit, [this]() { close(); });
 
     QMenu *edit = menuBar()->addMenu(tr("&Edit"));
@@ -279,27 +286,14 @@ void MainWindow::createActions()
     }, Icons::Redo);
     edit->addSeparator();
     QAction *findA = add(edit, tr("&Find…"), QKeySequence::Find, [this]() { m_findBar->activate(false); }, Icons::Search);
-    add(edit, tr("&Replace…"), QKeySequence(Qt::CTRL | Qt::Key_H), [this]() { m_findBar->activate(true); });
+    reg(QStringLiteral("replace"), add(edit, tr("&Replace…"), QKeySequence(Qt::CTRL | Qt::Key_H), [this]() { m_findBar->activate(true); }));
     add(edit, tr("Find &Next"), QKeySequence::FindNext, [this]() { m_findBar->findNext(); });
     add(edit, tr("Find &Previous"), QKeySequence::FindPrevious, [this]() { m_findBar->findPrevious(); });
     edit->addSeparator();
-    add(edit, tr("Toggle &Comment"), QKeySequence(Qt::CTRL | Qt::Key_Slash), [this]() {
+    reg(QStringLiteral("toggleComment"), add(edit, tr("Toggle &Comment"), QKeySequence(Qt::CTRL | Qt::Key_Slash), [this]() {
         if (auto *e = currentEditor()) e->toggleComment();
-    });
-    add(edit, tr("&Go to Line…"), QKeySequence(Qt::CTRL | Qt::Key_G), [this]() { goToLine(); });
-    QMenu *folding = edit->addMenu(tr("Code &Folding"));
-    add(folding, tr("&Fold Block"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_BracketLeft), [this]() {
-        if (auto *e = currentEditor()) e->foldAtCursor(true);
-    });
-    add(folding, tr("&Unfold Block"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_BracketRight), [this]() {
-        if (auto *e = currentEditor()) e->foldAtCursor(false);
-    });
-    add(folding, tr("Fold &All"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_BracketLeft), [this]() {
-        if (auto *e = currentEditor()) e->doc()->foldAll();
-    });
-    add(folding, tr("Unfold A&ll"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_BracketRight), [this]() {
-        if (auto *e = currentEditor()) e->doc()->unfoldAll();
-    });
+    }));
+    reg(QStringLiteral("goToLine"), add(edit, tr("&Go to Line…"), QKeySequence(Qt::CTRL | Qt::Key_G), [this]() { goToLine(); }));
     edit->addSeparator();
     // Chaves rápidas das opções de Settings → Editor → Features.
     auto toggle = [this](QMenu *menu, const QString &text, bool AppSettings::*field, const QString &on,
@@ -317,15 +311,9 @@ void MainWindow::createActions()
         m_settingToggles.append({a, field});
         return a;
     };
-    toggle(edit, tr("Code Com&pletion"), &AppSettings::codeCompletion, tr("Code completion enabled"),
-           tr("Code completion disabled"));
-    toggle(edit, tr("Auto-Close &Brackets and Quotes"), &AppSettings::autoClosePairs, tr("Auto-closing pairs enabled"),
-           tr("Auto-closing pairs disabled"));
-    toggle(edit, tr("Code F&olding Markers"), &AppSettings::codeFolding, tr("Code folding enabled"),
-           tr("Code folding disabled"));
     edit->addSeparator();
-    add(edit, tr("&Settings…"), QKeySequence(Qt::CTRL | Qt::Key_Comma),
-                             [this]() { showSettings(); }, Icons::Settings);
+    reg(QStringLiteral("settings"), add(edit, tr("&Settings…"), QKeySequence(Qt::CTRL | Qt::Key_Comma),
+                             [this]() { showSettings(); }, Icons::Settings));
 
     QMenu *view = menuBar()->addMenu(tr("&View"));
     QAction *termA = add(view, tr("Show/Hide &Terminal"), QKeySequence(Qt::CTRL | Qt::Key_QuoteLeft), [this]() {
@@ -337,10 +325,10 @@ void MainWindow::createActions()
             m_terminal->focusTerminal();
         }
     }, Icons::Terminal);
-    add(view, tr("New Terminal Ta&b"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_QuoteLeft), [this]() {
+    reg(QStringLiteral("newTerminalTab"), add(view, tr("New Terminal Ta&b"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_QuoteLeft), [this]() {
         m_terminal->show();
         m_terminal->newTerminal();
-    }, Icons::Add);
+    }, Icons::Add));
     QMenu *pos = view->addMenu(tr("Terminal &Position"));
     const QList<QPair<QString, QString>> positions{
         {tr("Left"), "left"}, {tr("Top"), "top"}, {tr("Right"), "right"}, {tr("Bottom"), "bottom"}};
@@ -351,10 +339,10 @@ void MainWindow::createActions()
     }
     view->addSeparator();
     QMenu *split = view->addMenu(tr("&Split View"));
-    add(split, tr("Split &Vertical"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_L),
-        [this]() { splitSpace(m_activeSpace, Qt::Horizontal, false); }, Icons::SplitSideBySide);
-    add(split, tr("Split &Horizontal"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_T),
-        [this]() { splitSpace(m_activeSpace, Qt::Vertical, false); }, Icons::SplitStacked);
+    reg(QStringLiteral("splitVertical"), add(split, tr("Split &Vertical"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_L),
+        [this]() { splitSpace(m_activeSpace, Qt::Horizontal, false); }, Icons::SplitSideBySide));
+    reg(QStringLiteral("splitHorizontal"), add(split, tr("Split &Horizontal"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_T),
+        [this]() { splitSpace(m_activeSpace, Qt::Vertical, false); }, Icons::SplitStacked));
     add(split, tr("&Close Current View"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R),
         [this]() { closeSpace(m_activeSpace); }, Icons::Close);
     // F8 é "Continuar" do depurador (como no Thonny).
@@ -383,12 +371,37 @@ void MainWindow::createActions()
         });
     });
     view->addSeparator();
+    // Dobramento de código, como no Kate.
+    QMenu *folding = view->addMenu(tr("Code &Folding"));
+    toggle(folding, tr("Show &Folding Markers"), &AppSettings::codeFolding, tr("Code folding enabled"),
+           tr("Code folding disabled"));
+    folding->addSeparator();
+    reg(QStringLiteral("toggleNode"),
+        add(folding, tr("&Toggle Current Node"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_BracketLeft), [this]() {
+            if (auto *e = currentEditor()) e->doc()->toggleCurrentNode(e->textCursor().blockNumber());
+        }));
+    add(folding, tr("Toggle &Contained Nodes"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_BracketRight), [this]() {
+        if (auto *e = currentEditor()) e->doc()->toggleContainedNodes(e->textCursor().blockNumber());
+    });
+    folding->addSeparator();
+    reg(QStringLiteral("foldTop"),
+        add(folding, tr("F&old Toplevel Nodes"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_BracketLeft), [this]() {
+            if (auto *e = currentEditor()) e->doc()->setToplevelFolded(true);
+        }));
+    reg(QStringLiteral("unfoldTop"),
+        add(folding, tr("&Unfold Toplevel Nodes"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_BracketRight), [this]() {
+            if (auto *e = currentEditor()) e->doc()->setToplevelFolded(false);
+        }));
+    toggle(view, tr("Code Com&pletion"), &AppSettings::codeCompletion, tr("Code completion enabled"),
+           tr("Code completion disabled"));
+    toggle(view, tr("Auto-Close &Brackets and Quotes"), &AppSettings::autoClosePairs, tr("Auto-closing pairs enabled"),
+           tr("Auto-closing pairs disabled"));
     // Como no Kate: arquivo alterado por outro programa é relido sozinho.
     QAction *autoReloadA = toggle(view, tr("Auto &Reload Document"), &AppSettings::autoReload,
                                   tr("Files changed by other programs will reload automatically"),
                                   tr("Auto reload disabled: you will be asked when a file changes on disk"));
     autoReloadA->setToolTip(tr("Reload files changed by other programs (unless they have unsaved changes)"));
-    add(view, tr("Re&load Document"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F5), [this]() {
+    reg(QStringLiteral("reload"), add(view, tr("Re&load Document"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F5), [this]() {
         if (CodeEditor *e = currentEditor(); e && !e->filePath().isEmpty()) {
             if (e->doc()->isModified()
                 && QMessageBox::question(this, tr("Reload Document"),
@@ -400,10 +413,10 @@ void MainWindow::createActions()
             m_diskChanged.remove(e->doc());
             updateDiskBar();
         }
-    });
+    }));
     view->addSeparator();
-    add(view, tr("Zoom &In"), QKeySequence::ZoomIn, [this]() { applyFontSize(m_settings.editorFontSize + 1); });
-    add(view, tr("Zoom &Out"), QKeySequence::ZoomOut, [this]() { applyFontSize(m_settings.editorFontSize - 1); });
+    reg(QStringLiteral("zoomIn"), add(view, tr("Zoom &In"), QKeySequence::ZoomIn, [this]() { applyFontSize(m_settings.editorFontSize + 1); }));
+    reg(QStringLiteral("zoomOut"), add(view, tr("Zoom &Out"), QKeySequence::ZoomOut, [this]() { applyFontSize(m_settings.editorFontSize - 1); }));
     add(view, tr("&Reset Zoom"), QKeySequence(Qt::CTRL | Qt::Key_0),
         [this]() { applyFontSize(AppSettings::defaults().editorFontSize); });
 
@@ -478,37 +491,121 @@ void MainWindow::createActions()
     debug->addAction(panelA);
 
     QMenu *help = menuBar()->addMenu(tr("&Help"));
-    add(help, tr("Slayer Editor &Help"), QKeySequence(Qt::Key_F1), [this]() { showHelp(); }, Icons::Help);
+    reg(QStringLiteral("help"), add(help, tr("Slayer Editor &Help"), QKeySequence(Qt::Key_F1), [this]() { showHelp(); }, Icons::Help));
 
     QMenu *about = menuBar()->addMenu(tr("&About"));
-    add(about, tr("&About Slayer Editor"), QKeySequence(), [this]() { showAbout(); }, Icons::Info);
+    reg(QStringLiteral("about"), add(about, tr("&About Slayer Editor"), QKeySequence(), [this]() { showAbout(); }, Icons::Info));
     add(about, tr("About &Qt"), QKeySequence(), [this]() { QMessageBox::aboutQt(this); });
 
-    // Barra de ferramentas plana, só ícones.
-    m_toolbar = addToolBar(tr("Main Toolbar"));
-    m_toolbar->setObjectName(QStringLiteral("MainToolbar"));
-    m_toolbar->setMovable(false);
-    m_toolbar->setIconSize(QSize(18, 18));
-    m_toolbar->addActions({newA, openA, saveA, saveAsA, saveAllA});
-    m_toolbar->addSeparator();
-    m_toolbar->addActions({undoA, redoA, findA});
-    m_toolbar->addSeparator();
-    m_toolbar->addAction(termA);
     // Ação própria para o botão da barra: ícone escuro sobre o fundo azul; no
     // menu, o ícone de Run usa a cor dos demais.
     m_runToolbarAction = new QAction(tr("Run"), this);
     m_runToolbarAction->setToolTip(m_runAction->toolTip());
     connect(m_runToolbarAction, &QAction::triggered, this, [this]() { runCurrent(); });
-    m_toolbar->addAction(m_runToolbarAction);
-    m_toolbar->addAction(m_runInteractiveAction);
-    m_toolbar->addSeparator();
-    m_toolbar->addAction(m_debugAction);
-    m_toolbar->addActions(m_stepActions);
-    m_toolbar->addAction(m_stopDebugAction);
 
-    if (auto *runButton = m_toolbar->widgetForAction(m_runToolbarAction)) {
-        runButton->setObjectName(QStringLiteral("RunButton"));
+    // Na ordem em que aparecem em "Ações disponíveis".
+    const QList<QPair<QString, QAction *>> main{
+        {"new", newA}, {"open", openA}, {"save", saveA}, {"saveAs", saveAsA}, {"saveAll", saveAllA},
+        {"undo", undoA}, {"redo", redoA}, {"find", findA}, {"terminal", termA}, {"run", m_runToolbarAction},
+        {"runInteractive", m_runInteractiveAction}, {"debug", m_debugAction}, {"stepOver", m_stepActions[0]},
+        {"stepInto", m_stepActions[1]}, {"stepOut", m_stepActions[2]}, {"continue", m_stepActions[3]},
+        {"stopDebug", m_stopDebugAction}};
+    m_toolbarRegistry = main + m_toolbarRegistry;
+
+    m_toolbar = addToolBar(tr("Main Toolbar"));
+    m_toolbar->setObjectName(QStringLiteral("MainToolbar"));
+    m_toolbar->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_toolbar, &QToolBar::customContextMenuRequested, this,
+            [this](const QPoint &pos) { showToolbarMenu(m_toolbar->mapToGlobal(pos)); });
+}
+
+QStringList MainWindow::defaultToolbarActions()
+{
+    return {"new", "open", "save", "saveAs", "saveAll", "separator", "undo", "redo", "find", "separator",
+            "terminal", "run", "runInteractive", "separator", "debug", "stepOver", "stepInto", "stepOut",
+            "continue", "stopDebug"};
+}
+
+/** Monta a barra conforme as configurações (ações, texto, ícones, trava). */
+void MainWindow::rebuildToolbar()
+{
+    m_toolbar->clear();
+    for (const QString &id : m_settings.toolbarActions.isEmpty() ? defaultToolbarActions() : m_settings.toolbarActions) {
+        if (id == QLatin1String("separator")) {
+            m_toolbar->addSeparator();
+            continue;
+        }
+        for (const auto &[aid, action] : std::as_const(m_toolbarRegistry)) {
+            if (aid == id)
+                m_toolbar->addAction(action);
+        }
     }
+    if (auto *runButton = m_toolbar->widgetForAction(m_runToolbarAction))
+        runButton->setObjectName(QStringLiteral("RunButton"));
+    m_toolbar->setToolButtonStyle(Qt::ToolButtonStyle(m_settings.toolbarStyle));
+    const int size = m_settings.toolbarIconSize;
+    m_toolbar->setIconSize(QSize(size, size));
+    m_toolbar->setMovable(!m_settings.toolbarLocked);
+}
+
+/** Botão direito na barra, como no Kate. */
+void MainWindow::showToolbarMenu(const QPoint &globalPos)
+{
+    QMenu menu(this);
+    auto change = [this](auto apply) {
+        AppSettings s = m_settings;
+        apply(s);
+        applySettings(s);
+    };
+
+    QMenu *text = menu.addMenu(tr("Text Position"));
+    auto *textGroup = new QActionGroup(text);
+    const QList<QPair<QString, Qt::ToolButtonStyle>> styles{
+        {tr("Icons Only"), Qt::ToolButtonIconOnly}, {tr("Text Only"), Qt::ToolButtonTextOnly},
+        {tr("Text Alongside Icons"), Qt::ToolButtonTextBesideIcon}, {tr("Text Under Icons"), Qt::ToolButtonTextUnderIcon}};
+    for (const auto &[label, style] : styles) {
+        QAction *a = text->addAction(label);
+        a->setCheckable(true);
+        a->setChecked(m_settings.toolbarStyle == int(style));
+        textGroup->addAction(a);
+        const int value = int(style);
+        connect(a, &QAction::triggered, this, [change, value]() { change([value](AppSettings &s) { s.toolbarStyle = value; }); });
+    }
+
+    QMenu *size = menu.addMenu(tr("Icon Size"));
+    auto *sizeGroup = new QActionGroup(size);
+    const QList<QPair<QString, int>> sizes{{tr("Small (16x16)"), 16}, {tr("Medium (22x22)"), 22},
+                                           {tr("Large (32x32)"), 32}, {tr("Huge (48x48)"), 48}};
+    for (const auto &[label, px] : sizes) {
+        QAction *a = size->addAction(label);
+        a->setCheckable(true);
+        a->setChecked(m_settings.toolbarIconSize == px);
+        sizeGroup->addAction(a);
+        const int value = px;
+        connect(a, &QAction::triggered, this, [change, value]() { change([value](AppSettings &s) { s.toolbarIconSize = value; }); });
+    }
+
+    menu.addSeparator();
+    QAction *lock = menu.addAction(tr("Lock Toolbar Positions"));
+    lock->setCheckable(true);
+    lock->setChecked(m_settings.toolbarLocked);
+    connect(lock, &QAction::toggled, this, [change](bool on) { change([on](AppSettings &s) { s.toolbarLocked = on; }); });
+    menu.addSeparator();
+    connect(menu.addAction(Icons::icon(Icons::Settings, m_theme.textSecondary, 16), tr("Configure Toolbars…")),
+            &QAction::triggered, this, &MainWindow::configureToolbars);
+    menu.exec(globalPos);
+}
+
+void MainWindow::configureToolbars()
+{
+    ToolbarDialog dialog(m_toolbarRegistry,
+                         m_settings.toolbarActions.isEmpty() ? defaultToolbarActions() : m_settings.toolbarActions,
+                         defaultToolbarActions(), this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    AppSettings s = m_settings;
+    s.toolbarActions = dialog.currentIds() == defaultToolbarActions() ? QStringList() : dialog.currentIds();
+    applySettings(s);
 }
 
 // --------------------------------------------------------------- abas
@@ -1738,8 +1835,7 @@ void MainWindow::applySettings(const AppSettings &settings)
     }
 
     QApplication::setCursorFlashTime(m_settings.editorCursorBlink ? 1000 : 0);
-    const int iconSize = qRound(18 * m_settings.buttonScale / 100.0);
-    m_toolbar->setIconSize(QSize(iconSize, iconSize));
+    rebuildToolbar();
 
     m_lsp->setSettings(m_settings);
     if (m_lspAction) {

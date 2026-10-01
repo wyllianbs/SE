@@ -82,6 +82,11 @@ private:
     void showAbout();
     void showHelp();
     void saveAll();
+    // Barra de ferramentas configurável (como no Kate)
+    static QStringList defaultToolbarActions();
+    void rebuildToolbar();
+    void showToolbarMenu(const QPoint &globalPos);
+    void configureToolbars();
     QWidget *buildDiskBar();
     void updateDiskBar();
     void showDiskDifference(Document *doc);
@@ -146,4 +151,5 @@ private:
     QPushButton *m_diskIgnore = nullptr;
     QAction *m_lspAction = nullptr;
     QList<QPair<QAction *, bool AppSettings::*>> m_settingToggles;
+    QList<QPair<QString, QAction *>> m_toolbarRegistry; //< id → ação que pode ir para a barra
 };

@@ -81,6 +81,40 @@ private Q_SLOTS:
         QVERIFY(!doc.save(m_dir.filePath("f.txt"), &error));
         QVERIFY(!error.isEmpty());
     }
+    // ── Comandos de dobramento do Kate ──
+    void kateFoldingCommands()
+    {
+        Document doc;
+        doc.setLanguage(Language::byId("c"));
+        doc.text()->setPlainText(
+            "int a(void) {\n"          // 0  topo
+            "    if (1) {\n"           // 1    contido
+            "        x();\n"
+            "    }\n"
+            "    while (1) {\n"        // 4    contido
+            "        y();\n"
+            "    }\n"
+            "}\n"
+            "int b(void) {\n"          // 8  topo
+            "    return 0;\n"
+            "}\n");
+        QTRY_VERIFY(doc.regionAt(0) && doc.regionAt(1) && doc.regionAt(4) && doc.regionAt(8));
+        doc.toggleCurrentNode(5);                      // dentro do while: o mais interno
+        QVERIFY(doc.isFolded(4) && !doc.isFolded(0));
+        doc.toggleCurrentNode(5);
+        QVERIFY(!doc.isFolded(4));
+        doc.toggleContainedNodes(2);                   // dentro do if: bloco atual é o "if" (sem filhos)
+        QVERIFY(!doc.isFolded(1));
+        doc.toggleContainedNodes(0);                   // na função: dobra if e while
+        QVERIFY(doc.isFolded(1) && doc.isFolded(4) && !doc.isFolded(0));
+        doc.toggleContainedNodes(0);                   // de novo: abre os dois
+        QVERIFY(!doc.isFolded(1) && !doc.isFolded(4));
+        doc.setToplevelFolded(true);
+        QVERIFY(doc.isFolded(0) && doc.isFolded(8) && !doc.isFolded(1));
+        doc.setToplevelFolded(false);
+        QVERIFY(!doc.isFolded(0) && !doc.isFolded(8));
+    }
+
     // ── Alterações feitas por outros programas ──
     static void writeExternally(const QString &path, const QByteArray &data, bool atomic = false)
     {

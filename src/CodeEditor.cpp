@@ -232,6 +232,18 @@ int CodeEditor::breakpointWidth() const
 
 void CodeEditor::onFoldingChanged()
 {
+    // Cursor dentro de um bloco que acabou de dobrar: vai para o cabeçalho
+    // (senão a próxima tecla desdobraria o bloco de novo).
+    QTextBlock b = textCursor().block();
+    if (!b.isVisible()) {
+        while (b.isValid() && !b.isVisible())
+            b = b.previous();
+        if (b.isValid()) {
+            QTextCursor c(b);
+            c.movePosition(QTextCursor::EndOfBlock);
+            setTextCursor(c);
+        }
+    }
     updateLineNumberAreaWidth();
     resizeEvent(nullptr);
     m_lineNumberArea->update();
@@ -267,27 +279,6 @@ void CodeEditor::lineNumberAreaClicked(const QPoint &pos)
     const int line = c.blockNumber();
     if (m_doc->regionAt(line))
         m_doc->toggleFold(line);
-}
-
-void CodeEditor::foldAtCursor(bool fold)
-{
-    const int line = textCursor().blockNumber();
-    // A dobra mais interna que contém a linha do cursor.
-    const FoldRegion *best = nullptr;
-    for (const FoldRegion &r : m_doc->foldRegions()) {
-        if (line >= r.headerLine && line <= r.lastLine && (!best || r.headerLine > best->headerLine)
-            && (fold ? !m_doc->isFolded(r.headerLine) : m_doc->isFolded(r.headerLine)))
-            best = &r;
-    }
-    if (!best)
-        return;
-    const int header = best->headerLine;
-    m_doc->setFolded(header, fold);
-    if (fold) {
-        QTextCursor c(document()->findBlockByNumber(header));
-        c.movePosition(QTextCursor::EndOfBlock);
-        setTextCursor(c);
-    }
 }
 
 void CodeEditor::updateLineNumberAreaWidth()

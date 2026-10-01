@@ -143,6 +143,70 @@ void Document::unfoldAll()
     applyFolding();
 }
 
+namespace {
+/** Bloco mais interno que contém a linha (cabeçalho incluído), ou nullptr. */
+const FoldRegion *innermost(const QList<FoldRegion> &regions, int line)
+{
+    const FoldRegion *best = nullptr;
+    for (const FoldRegion &r : regions) {
+        if (line >= r.headerLine && line <= r.lastLine && (!best || r.headerLine > best->headerLine))
+            best = &r;
+    }
+    return best;
+}
+
+bool isInside(const FoldRegion &inner, const FoldRegion &outer)
+{
+    return inner.headerLine > outer.headerLine && inner.lastLine <= outer.lastLine;
+}
+} // namespace
+
+void Document::toggleCurrentNode(int line)
+{
+    if (const FoldRegion *r = innermost(m_regions, line))
+        toggleFold(r->headerLine);
+}
+
+void Document::toggleContainedNodes(int line)
+{
+    const FoldRegion *outer = innermost(m_regions, line);
+    if (!outer)
+        return;
+    QList<int> inner;
+    bool anyOpen = false;
+    for (const FoldRegion &r : std::as_const(m_regions)) {
+        if (isInside(r, *outer)) {
+            inner << r.headerLine;
+            anyOpen |= !m_folded.contains(r.headerLine);
+        }
+    }
+    if (inner.isEmpty())
+        return;
+    for (int h : std::as_const(inner)) {
+        if (anyOpen)
+            m_folded.insert(h);
+        else
+            m_folded.remove(h);
+    }
+    applyFolding();
+}
+
+void Document::setToplevelFolded(bool folded)
+{
+    for (const FoldRegion &r : std::as_const(m_regions)) {
+        bool toplevel = true;
+        for (const FoldRegion &o : std::as_const(m_regions))
+            toplevel = toplevel && !isInside(r, o);
+        if (!toplevel)
+            continue;
+        if (folded)
+            m_folded.insert(r.headerLine);
+        else
+            m_folded.remove(r.headerLine);
+    }
+    applyFolding();
+}
+
 void Document::revealLine(int line)
 {
     bool changed = false;

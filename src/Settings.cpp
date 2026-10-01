@@ -133,6 +133,10 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("theme")] = theme;
     o[QStringLiteral("themeFollowSystem")] = themeFollowSystem;
     o[QStringLiteral("buttonScale")] = buttonScale;
+    o[QStringLiteral("toolbarIconSize")] = toolbarIconSize;
+    o[QStringLiteral("toolbarStyle")] = toolbarStyle;
+    o[QStringLiteral("toolbarLocked")] = toolbarLocked;
+    o[QStringLiteral("toolbarActions")] = QJsonArray::fromStringList(toolbarActions);
     o[QStringLiteral("uiScale")] = uiScale;
     o[QStringLiteral("uiLanguage")] = uiLanguage;
     o[QStringLiteral("terminalFont")] = terminalFont;
@@ -185,6 +189,16 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.theme = str("theme", s.theme);
     s.themeFollowSystem = flag("themeFollowSystem", s.themeFollowSystem);
     s.buttonScale = qBound(80, num("buttonScale", s.buttonScale), 200);
+    // Configurações antigas: escala dos botões vira o tamanho mais próximo.
+    const int legacy = qRound(18 * s.buttonScale / 100.0);
+    const int fallbackSize = legacy <= 19 ? 16 : legacy <= 27 ? 22 : legacy <= 40 ? 32 : 48;
+    s.toolbarIconSize = num("toolbarIconSize", o.contains(QLatin1String("buttonScale")) ? fallbackSize : s.toolbarIconSize);
+    if (!QList<int>{16, 22, 32, 48}.contains(s.toolbarIconSize))
+        s.toolbarIconSize = 22;
+    s.toolbarStyle = qBound(0, num("toolbarStyle", s.toolbarStyle), 3);
+    s.toolbarLocked = flag("toolbarLocked", s.toolbarLocked);
+    for (const QJsonValue &v : o.value(QStringLiteral("toolbarActions")).toArray())
+        s.toolbarActions << v.toString();
     s.uiScale = qBound(80, num("uiScale", s.uiScale), 200);
     s.uiLanguage = str("uiLanguage", s.uiLanguage);
     s.terminalFont = str("terminalFont", s.terminalFont);

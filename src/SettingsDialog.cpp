@@ -327,7 +327,12 @@ QWidget *SettingsDialog::buildAppearancePage()
 
     auto *scale = new QFormLayout;
     scale->setHorizontalSpacing(24);
-    scale->addRow(tr("Toolbar buttons"), makeSlider(m_buttonScale, m_buttonScaleLabel, 80, 200));
+    m_toolbarIconSize = new QComboBox;
+    for (const auto &[label, px] : QList<QPair<QString, int>>{{tr("Small (16x16)"), 16}, {tr("Medium (22x22)"), 22},
+                                                              {tr("Large (32x32)"), 32}, {tr("Huge (48x48)"), 48}})
+        m_toolbarIconSize->addItem(label, px);
+    m_toolbarIconSize->setToolTip(tr("More options: right-click the toolbar"));
+    scale->addRow(tr("Toolbar icons"), m_toolbarIconSize);
     scale->addRow(tr("Interface"), makeSlider(m_uiScale, m_uiScaleLabel, 80, 200));
 
     m_uiLanguage = new QComboBox;
@@ -809,9 +814,8 @@ void SettingsDialog::setForm(const AppSettings &s)
         m_userThemes << Theme::fromJson(v.toObject());
     rebuildThemeList(s.theme);
     m_followSystem->setChecked(s.themeFollowSystem);
-    m_buttonScale->setValue(s.buttonScale / 10);
+    m_toolbarIconSize->setCurrentIndex(qMax(0, m_toolbarIconSize->findData(s.toolbarIconSize)));
     m_uiScale->setValue(s.uiScale / 10);
-    m_buttonScaleLabel->setText(QStringLiteral("%1%").arg(m_buttonScale->value() * 10));
     m_uiScaleLabel->setText(QStringLiteral("%1%").arg(m_uiScale->value() * 10));
     m_uiLanguage->setCurrentIndex(qMax(0, m_uiLanguage->findData(s.uiLanguage)));
 
@@ -875,7 +879,11 @@ AppSettings SettingsDialog::settings() const
     for (const Theme &t : m_userThemes)
         s.userThemes.append(t.toJson());
     s.themeFollowSystem = m_followSystem->isChecked();
-    s.buttonScale = m_buttonScale->value() * 10;
+    s.toolbarIconSize = m_toolbarIconSize->currentData().toInt();
+    // Opções da barra que não estão neste formulário (botão direito nela).
+    s.toolbarStyle = m_detect.toolbarStyle;
+    s.toolbarLocked = m_detect.toolbarLocked;
+    s.toolbarActions = m_detect.toolbarActions;
     s.uiScale = m_uiScale->value() * 10;
     s.uiLanguage = m_uiLanguage->currentData().toString();
 

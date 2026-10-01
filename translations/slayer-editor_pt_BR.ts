@@ -277,10 +277,6 @@ sudo apt install gdb</translation>
         <translation>completion autocomplete suggestion popup ctrl space intellisense autocompletar completar sugestão sugestões</translation>
     </message>
     <message>
-        <source>&lt;p&gt;Suggestions appear after two letters: words of the file, language keywords and, when a language server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.&lt;/p&gt;&lt;p&gt;Turn it off in &lt;b&gt;Settings → Editor → Features&lt;/b&gt;.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;As sugestões aparecem depois de duas letras: palavras do arquivo, palavras-chave da linguagem e, quando há um servidor de linguagem, os itens dele (mostrados primeiro). %1 abre a lista a qualquer momento. %2 ou %3 aceitam, %4 fecha.&lt;/p&gt;&lt;p&gt;Desligue em &lt;b&gt;Configurações → Editor → Recursos&lt;/b&gt;.&lt;/p&gt;</translation>
-    </message>
-    <message>
         <source>Language servers (LSP)</source>
         <translation>Servidores de linguagem (LSP)</translation>
     </message>
@@ -291,14 +287,6 @@ sudo apt install gdb</translation>
     <message>
         <source>Code folding</source>
         <translation>Dobramento de código</translation>
-    </message>
-    <message>
-        <source>fold unfold collapse expand block folding</source>
-        <translation>fold unfold collapse expand block folding dobrar desdobrar recolher expandir bloco dobramento</translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;Click the arrow next to a line number to fold its block (C, C++, Java, JavaScript, Rust, Go and Python). Folded lines end with ⋯. %1 / %2 fold or unfold the block of the cursor, %3 / %4 all blocks.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;Clique na seta ao lado do número da linha para dobrar o bloco (C, C++, Java, JavaScript, Rust, Go e Python). Linhas dobradas terminam com ⋯. %1 / %2 dobram ou desdobram o bloco do cursor, %3 / %4 todos os blocos.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Brackets, indentation and tabs</source>
@@ -341,14 +329,6 @@ sudo apt install gdb</translation>
         <translation>Temas e aparência</translation>
     </message>
     <message>
-        <source>theme dark light color appearance scale font size zoom</source>
-        <translation>theme dark light color appearance scale font size zoom tema escuro claro cor aparência escala fonte tamanho</translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;Pick a theme in &lt;b&gt;View → Theme&lt;/b&gt; or &lt;b&gt;Settings → Appearance&lt;/b&gt;; it also colors the terminal. %1 / %2 / %3 zoom the editor. Button and interface scale are in Settings → Appearance.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;Escolha um tema em &lt;b&gt;Exibir → Tema&lt;/b&gt; ou &lt;b&gt;Configurações → Aparência&lt;/b&gt;; ele também colore o terminal. %1 / %2 / %3 controlam o zoom do editor. A escala dos botões e da interface fica em Configurações → Aparência.&lt;/p&gt;</translation>
-    </message>
-    <message>
         <source>Profiles</source>
         <translation>Perfis</translation>
     </message>
@@ -387,6 +367,26 @@ sudo apt install gdb</translation>
     <message>
         <source>&lt;p&gt;With a language server installed, errors and warnings are underlined (red, yellow, blue) and the line number takes their color. Hover the underline for the message; the message of the cursor line is also shown in the status bar.&lt;/p&gt;&lt;p&gt;Choose the server of each language in &lt;b&gt;Settings → Languages&lt;/b&gt;; its status tells whether it is installed and how to install it. For C and C++, clangd uses &lt;code&gt;compile_commands.json&lt;/code&gt; when present, otherwise the flags from Settings → Languages.&lt;/p&gt;</source>
         <translation>&lt;p&gt;Com um servidor de linguagem instalado, erros e avisos ficam sublinhados (vermelho, amarelo, azul) e o número da linha assume a cor deles. Passe o mouse sobre o sublinhado para ver a mensagem; a mensagem da linha do cursor também aparece na barra de status.&lt;/p&gt;&lt;p&gt;Escolha o servidor de cada linguagem em &lt;b&gt;Configurações → Linguagens&lt;/b&gt;; o estado informa se ele está instalado e como instalá-lo. Para C e C++, o clangd usa o &lt;code&gt;compile_commands.json&lt;/code&gt; quando existe, senão as flags de Configurações → Linguagens.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Suggestions appear after two letters: words of the file, language keywords and, when a language server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.&lt;/p&gt;&lt;p&gt;Turn it on or off in &lt;b&gt;View&lt;/b&gt; or &lt;b&gt;Settings → Editor → Features&lt;/b&gt;.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;As sugestões aparecem depois de duas letras: palavras do arquivo, palavras-chave da linguagem e, quando há um servidor de linguagem, os itens dele (mostrados primeiro). %1 abre a lista a qualquer momento. %2 ou %3 aceitam, %4 fecha.&lt;/p&gt;&lt;p&gt;Ligue ou desligue em &lt;b&gt;Exibir&lt;/b&gt; ou &lt;b&gt;Configurações → Editor → Recursos&lt;/b&gt;.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>fold unfold collapse expand block folding node toplevel</source>
+        <translation>fold unfold collapse expand block folding node toplevel dobrar desdobrar recolher expandir bloco dobramento nó nível superior</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Click the arrow next to a line number to fold its block (C, C++, Java, JavaScript, Rust, Go and Python). Folded lines end with ⋯. &lt;b&gt;View → Code Folding&lt;/b&gt; has the Kate commands: %1 toggles the current node, %2 the nodes contained in it, %3 / %4 fold or unfold the toplevel nodes.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Clique na seta ao lado do número da linha para dobrar o bloco (C, C++, Java, JavaScript, Rust, Go e Python). Linhas dobradas terminam com ⋯. &lt;b&gt;Exibir → Dobramento de código&lt;/b&gt; traz os comandos do Kate: %1 alterna o nó atual, %2 os nós contidos nele, %3 / %4 dobram ou desdobram os nós de nível superior.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>theme dark light color appearance scale font size zoom toolbar icons text configure</source>
+        <translation>theme dark light color appearance scale font size zoom toolbar icons text configure tema escuro claro cor aparência escala fonte tamanho barra de ferramentas ícones texto configurar</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Pick a theme in &lt;b&gt;View → Theme&lt;/b&gt; or &lt;b&gt;Settings → Appearance&lt;/b&gt;; it also colors the terminal. %1 / %2 / %3 zoom the editor. Right-click the toolbar for text position, icon size, lock and &lt;b&gt;Configure Toolbars…&lt;/b&gt; (choose and order its buttons).&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Escolha um tema em &lt;b&gt;Exibir → Tema&lt;/b&gt; ou &lt;b&gt;Configurações → Aparência&lt;/b&gt;; ele também colore o terminal. %1 / %2 / %3 controlam o zoom do editor. Clique com o botão direito na barra de ferramentas para a posição do texto, o tamanho dos ícones, travar e &lt;b&gt;Configurar barras de ferramentas…&lt;/b&gt; (escolher e ordenar os botões).&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -502,22 +502,6 @@ sudo apt install gdb</translation>
     <message>
         <source>Code &amp;Folding</source>
         <translation>&amp;Dobramento de código</translation>
-    </message>
-    <message>
-        <source>&amp;Fold Block</source>
-        <translation>&amp;Dobrar bloco</translation>
-    </message>
-    <message>
-        <source>&amp;Unfold Block</source>
-        <translation>D&amp;esdobrar bloco</translation>
-    </message>
-    <message>
-        <source>Fold &amp;All</source>
-        <translation>Dobrar &amp;tudo</translation>
-    </message>
-    <message>
-        <source>Unfold A&amp;ll</source>
-        <translation>Desdobrar t&amp;udo</translation>
     </message>
     <message>
         <source>&amp;Settings…</source>
@@ -819,10 +803,6 @@ sudo apt install gdb</translation>
         <translation>Fechamento automático de pares desativado</translation>
     </message>
     <message>
-        <source>Code F&amp;olding Markers</source>
-        <translation>Marcadores de &amp;dobramento</translation>
-    </message>
-    <message>
         <source>Code folding enabled</source>
         <translation>Dobramento de código ativado</translation>
     </message>
@@ -1070,6 +1050,74 @@ sudo apt install gdb</translation>
         <source>No differences.</source>
         <translation>Sem diferenças.</translation>
     </message>
+    <message>
+        <source>Show &amp;Folding Markers</source>
+        <translation>Mostrar &amp;marcadores de dobramento</translation>
+    </message>
+    <message>
+        <source>&amp;Toggle Current Node</source>
+        <translation>Alternar nó &amp;atual</translation>
+    </message>
+    <message>
+        <source>Toggle &amp;Contained Nodes</source>
+        <translation>Alternar nós &amp;contidos</translation>
+    </message>
+    <message>
+        <source>F&amp;old Toplevel Nodes</source>
+        <translation>&amp;Dobrar nós de nível superior</translation>
+    </message>
+    <message>
+        <source>&amp;Unfold Toplevel Nodes</source>
+        <translation>D&amp;esdobrar nós de nível superior</translation>
+    </message>
+    <message>
+        <source>Text Position</source>
+        <translation>Posição do texto</translation>
+    </message>
+    <message>
+        <source>Icons Only</source>
+        <translation>Somente ícones</translation>
+    </message>
+    <message>
+        <source>Text Only</source>
+        <translation>Somente texto</translation>
+    </message>
+    <message>
+        <source>Text Alongside Icons</source>
+        <translation>Texto ao lado dos ícones</translation>
+    </message>
+    <message>
+        <source>Text Under Icons</source>
+        <translation>Texto abaixo dos ícones</translation>
+    </message>
+    <message>
+        <source>Icon Size</source>
+        <translation>Tamanho dos ícones</translation>
+    </message>
+    <message>
+        <source>Small (16x16)</source>
+        <translation>Pequeno (16x16)</translation>
+    </message>
+    <message>
+        <source>Medium (22x22)</source>
+        <translation>Médio (22x22)</translation>
+    </message>
+    <message>
+        <source>Large (32x32)</source>
+        <translation>Grande (32x32)</translation>
+    </message>
+    <message>
+        <source>Huge (48x48)</source>
+        <translation>Enorme (48x48)</translation>
+    </message>
+    <message>
+        <source>Lock Toolbar Positions</source>
+        <translation>Travar posições das barras de ferramentas</translation>
+    </message>
+    <message>
+        <source>Configure Toolbars…</source>
+        <translation>Configurar barras de ferramentas…</translation>
+    </message>
 </context>
 <context>
     <name>NewFileDialog</name>
@@ -1235,10 +1283,6 @@ sudo apt install gdb</translation>
     <message>
         <source>Features</source>
         <translation>Recursos</translation>
-    </message>
-    <message>
-        <source>Toolbar buttons</source>
-        <translation>Botões da barra</translation>
     </message>
     <message>
         <source>Theme</source>
@@ -1419,6 +1463,30 @@ sudo apt install gdb</translation>
     <message>
         <source>Not found — install with: %1</source>
         <translation>Não encontrado — instale com: %1</translation>
+    </message>
+    <message>
+        <source>Small (16x16)</source>
+        <translation>Pequeno (16x16)</translation>
+    </message>
+    <message>
+        <source>Medium (22x22)</source>
+        <translation>Médio (22x22)</translation>
+    </message>
+    <message>
+        <source>Large (32x32)</source>
+        <translation>Grande (32x32)</translation>
+    </message>
+    <message>
+        <source>Huge (48x48)</source>
+        <translation>Enorme (48x48)</translation>
+    </message>
+    <message>
+        <source>More options: right-click the toolbar</source>
+        <translation>Mais opções: clique com o botão direito na barra</translation>
+    </message>
+    <message>
+        <source>Toolbar icons</source>
+        <translation>Ícones da barra</translation>
     </message>
 </context>
 <context>
@@ -1612,6 +1680,49 @@ sudo apt install gdb</translation>
     <message>
         <source>Choose Color</source>
         <translation>Escolher cor</translation>
+    </message>
+</context>
+<context>
+    <name>ToolbarDialog</name>
+    <message>
+        <source>Configure Toolbars</source>
+        <translation>Configurar barras de ferramentas</translation>
+    </message>
+    <message>
+        <source>Add to the toolbar</source>
+        <translation>Adicionar à barra</translation>
+    </message>
+    <message>
+        <source>Remove from the toolbar</source>
+        <translation>Remover da barra</translation>
+    </message>
+    <message>
+        <source>Move up</source>
+        <translation>Mover para cima</translation>
+    </message>
+    <message>
+        <source>Move down</source>
+        <translation>Mover para baixo</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation>Filtrar</translation>
+    </message>
+    <message>
+        <source>Available actions:</source>
+        <translation>Ações disponíveis:</translation>
+    </message>
+    <message>
+        <source>Current actions:</source>
+        <translation>Ações atuais:</translation>
+    </message>
+    <message>
+        <source>Defaults</source>
+        <translation>Padrões</translation>
+    </message>
+    <message>
+        <source>--- separator ---</source>
+        <translation>--- separador ---</translation>
     </message>
 </context>
 <context>

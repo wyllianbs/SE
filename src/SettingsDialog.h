@@ -91,8 +91,7 @@ private:
     QCheckBox *m_followSystem = nullptr;
     bool m_showDark = true;
     void setMode(bool dark);
-    QSlider *m_buttonScale = nullptr;
-    QLabel *m_buttonScaleLabel = nullptr;
+    QComboBox *m_toolbarIconSize = nullptr;
     QSlider *m_uiScale = nullptr;
     QComboBox *m_uiLanguage = nullptr;
     QLabel *m_uiScaleLabel = nullptr;
