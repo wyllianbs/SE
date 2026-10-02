@@ -11,7 +11,7 @@
     compile and run C, C++, Python, Rust, Go, JavaScript, Java and shell scripts.</p>
   </description>
   <launchable type="desktop-id">slayer-editor.desktop</launchable>
-  <developer id="io.github.wyllianbs"><name>Prof. Wyllian</name></developer>
+  <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
   <releases>
     <release version="0.3.0" date="2026-09-30"/>
     <release version="0.2.0" date="2026-09-30"/>

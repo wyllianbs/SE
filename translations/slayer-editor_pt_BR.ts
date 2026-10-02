@@ -763,10 +763,6 @@ sudo apt install gdb</translation>
         <translation>Versão</translation>
     </message>
     <message>
-        <source>A lightweight code editor with an embedded terminal.&lt;br&gt;© Prof. Wyllian</source>
-        <translation>Um editor de código leve com terminal embutido.&lt;br&gt;© Prof. Wyllian</translation>
-    </message>
-    <message>
         <source>Language Servers (&amp;LSP)</source>
         <translation>Servidores de linguagem (&amp;LSP)</translation>
     </message>
@@ -1117,6 +1113,10 @@ sudo apt install gdb</translation>
     <message>
         <source>Configure Toolbars…</source>
         <translation>Configurar barras de ferramentas…</translation>
+    </message>
+    <message>
+        <source>A lightweight code editor with an embedded terminal.&lt;br&gt;© Wyllian Bezerra da Silva</source>
+        <translation>Um editor de código leve com terminal embutido.&lt;br&gt;© Wyllian Bezerra da Silva</translation>
     </message>
 </context>
 <context>

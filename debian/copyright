@@ -2,7 +2,7 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: slayer-editor
 
 Files: *
-Copyright: 2026 Prof. Wyllian <wyllianbs@gmail.com>
+Copyright: 2026 Wyllian Bezerra da Silva <wyllianbs@gmail.com>
 License: GPL-3.0-or-later
 
 Files: resources/fonts/*

@@ -1744,7 +1744,7 @@ void MainWindow::showAbout()
     box.setText(QStringLiteral("<h2>Slayer Editor</h2><p>%1 %2</p>")
                     .arg(tr("Version"), QStringLiteral(SLAYER_VERSION)));
     box.setInformativeText(tr("A lightweight code editor with an embedded terminal.<br>"
-                              "© Prof. Wyllian"));
+                              "© Wyllian Bezerra da Silva"));
     box.exec();
 }
 
