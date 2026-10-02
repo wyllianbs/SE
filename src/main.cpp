@@ -3,6 +3,7 @@
 #include "Settings.h"
 
 #include <QApplication>
+#include <QIcon>
 #include <QCommandLineParser>
 #include <QLibraryInfo>
 #include <QLocale>
@@ -28,6 +29,16 @@ int main(int argc, char *argv[])
     QApplication::setApplicationVersion(QStringLiteral(SLAYER_VERSION));
     QApplication::setDesktopFileName(QStringLiteral("slayer-editor"));
     QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+
+    // Ícone da aplicação, com vários tamanhos para a barra de título ficar
+    // nítida. No Wayland, o compositor normalmente pega o ícone do .desktop
+    // instalado (pelo app_id); com o protocolo xdg-toplevel-icon (Qt 6.8+ e
+    // KWin recentes) este ícone vale mesmo sem instalar o pacote.
+    QIcon appIcon;
+    for (int size : {16, 22, 24, 32, 48, 64, 128})
+        appIcon.addFile(QStringLiteral(":/icons/hicolor/%1.png").arg(size), QSize(size, size));
+    appIcon.addFile(QStringLiteral(":/icons/slayer-editor.png"), QSize(256, 256));
+    QApplication::setWindowIcon(appIcon);
 
     // Idioma: inglês por padrão; pt-BR quando escolhido ou quando o sistema é pt_BR.
     QString language = settings.uiLanguage;
