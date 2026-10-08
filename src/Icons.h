@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QColor>
+#include <QFont>
 #include <QIcon>
 #include <QString>
 
@@ -74,6 +75,12 @@ enum Glyph : char32_t {
 void loadFonts();
 QString symbolFamily();
 QString monoFamily();
+/**
+ * Fonte monoespaçada do editor sem ligaduras de programação (<=, ->, != viram
+ * ≤, →, ≠ em fontes como a JetBrains Mono). Na área de edição cada símbolo tem
+ * de aparecer como foi digitado.
+ */
+QFont editorFont(const QString &family, int pointSize);
 
 QIcon icon(Glyph glyph, const QColor &color, int size = 18);
 QString glyphText(Glyph glyph);

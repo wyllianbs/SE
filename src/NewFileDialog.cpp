@@ -62,7 +62,7 @@ NewFileDialog::NewFileDialog(const AppSettings &settings, const QString &lastLan
 
     m_preview->setReadOnly(true);
     m_preview->setObjectName(QStringLiteral("NewFilePreview"));
-    m_preview->setFont(QFont(Icons::monoFamily(), 10));
+    m_preview->setFont(Icons::editorFont(Icons::monoFamily(), 10));
     m_preview->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_highlighter = new SyntaxHighlighter(m_preview->document());
     m_highlighter->setTheme(theme);

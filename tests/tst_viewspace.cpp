@@ -1,4 +1,5 @@
 #include "../src/CodeEditor.h"
+#include "../src/Icons.h"
 #include "../src/ViewSpace.h"
 
 #include <QApplication>
@@ -73,6 +74,17 @@ private Q_SLOTS:
                                     .arg(c.id, c.line).arg(c.opens)));
         }
     }
+    void editorFontHasNoLigatures()
+    {
+        const QFont f = Icons::editorFont(QStringLiteral("JetBrainsMono Nerd Font"), 12);
+        // calt/liga/clig/dlig desligados: <= -> != aparecem como digitados.
+        QCOMPARE(f.featureValue(QFont::Tag("calt")), 0u);
+        QCOMPARE(f.featureValue(QFont::Tag("liga")), 0u);
+        QCOMPARE(f.featureValue(QFont::Tag("clig")), 0u);
+        QCOMPARE(f.featureValue(QFont::Tag("dlig")), 0u);
+        QCOMPARE(f.styleHint(), QFont::Monospace);
+    }
+
     void clickGutterTogglesBreakpoint()
     {
         Document doc;

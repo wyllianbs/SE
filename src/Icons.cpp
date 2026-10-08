@@ -26,6 +26,19 @@ void Icons::loadFonts()
 }
 
 QString Icons::symbolFamily() { return s_symbols; }
+
+QFont Icons::editorFont(const QString &family, int pointSize)
+{
+    QFont f(family, pointSize);
+    f.setStyleHint(QFont::Monospace);
+    // Desliga as ligaduras OpenType (contextuais e padrão): cada caractere
+    // digitado é mostrado como é, sem virar outro símbolo.
+    f.setFeature("calt", 0);
+    f.setFeature("liga", 0);
+    f.setFeature("clig", 0);
+    f.setFeature("dlig", 0);
+    return f;
+}
 QString Icons::monoFamily() { return s_mono; }
 
 QString Icons::glyphText(Glyph glyph)

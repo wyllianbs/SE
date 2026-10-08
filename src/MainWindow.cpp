@@ -1769,10 +1769,8 @@ void MainWindow::applyFontSize(int pointSize)
 
 QFont MainWindow::editorFont() const
 {
-    QFont f(m_settings.editorFont.isEmpty() ? Icons::monoFamily() : m_settings.editorFont);
-    f.setStyleHint(QFont::Monospace);
-    f.setPointSize(m_settings.editorFontSize);
-    return f;
+    return Icons::editorFont(m_settings.editorFont.isEmpty() ? Icons::monoFamily() : m_settings.editorFont,
+                             m_settings.editorFontSize);
 }
 
 QFont MainWindow::terminalFont() const
