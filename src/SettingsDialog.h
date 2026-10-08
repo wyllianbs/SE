@@ -39,6 +39,8 @@ private:
     QWidget *buildAppearancePage();
     QWidget *buildTerminalPage();
     QWidget *buildLanguagesPage();
+    QWidget *buildSymbolsPage();
+    void addSymbolRow(const SymbolRule &rule);
     struct LangEntry
     {
         QString id;      //< vazio = linguagem personalizada
@@ -82,6 +84,8 @@ private:
     QCheckBox *m_lspEnabled = nullptr;
     QCheckBox *m_insertSpaces = nullptr;
     QCheckBox *m_editorBlink = nullptr;
+    QCheckBox *m_prettySymbols = nullptr;
+    class QTableWidget *m_symbolsTable = nullptr;
 
     // Aparência
     QListWidget *m_themes = nullptr;

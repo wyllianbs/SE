@@ -29,6 +29,7 @@ enum Glyph : char32_t {
     Profiles = 0xEB99,
     Code = 0xEAC4,
     Languages = 0xF1AB,
+    Symbols = 0xEB64,
     Folder = 0xEA83,
     Check = 0xEAB2,
     ChevronUp = 0xEAB7,

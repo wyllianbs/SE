@@ -1792,6 +1792,10 @@ void MainWindow::configureEditor(CodeEditor *editor) const
     editor->setAutoClosePairs(m_settings.autoClosePairs);
     editor->setCodeCompletion(m_settings.codeCompletion);
     editor->setInsertSpaces(m_settings.insertSpaces);
+    QList<QPair<QString, QString>> symbolRules;
+    for (const SymbolRule &r : m_settings.effectiveSymbols())
+        symbolRules.append({r.sequence, r.symbol});
+    editor->setPrettySymbols(m_settings.prettySymbols, symbolRules);
     Document *doc = editor->doc();
     LspManager *lsp = m_lsp;
     const bool useLsp = m_settings.lspEnabled;

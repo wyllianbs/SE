@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include <algorithm>
 #include "Language.h"
 #include "LspManager.h"
 
@@ -14,6 +15,39 @@ namespace {
 const QString kSettingsKey = QStringLiteral("settings/json");
 const QString kProfilesGroup = QStringLiteral("profiles");
 const QString kActiveProfileKey = QStringLiteral("settings/activeProfile");
+}
+
+QList<SymbolRule> AppSettings::defaultSymbols()
+{
+    // Operadores comuns; o usuário liga/desliga cada um e acrescenta os seus.
+    return {
+        {QStringLiteral("<="), QString::fromUtf8("\u2264"), true},   // ≤
+        {QStringLiteral(">="), QString::fromUtf8("\u2265"), true},   // ≥
+        {QStringLiteral("!="), QString::fromUtf8("\u2260"), true},   // ≠
+        {QStringLiteral("=="), QString::fromUtf8("\u2A75"), true},   // ⩵
+        {QStringLiteral("->"), QString::fromUtf8("\u2192"), true},   // →
+        {QStringLiteral("<-"), QString::fromUtf8("\u2190"), true},   // ←
+        {QStringLiteral("=>"), QString::fromUtf8("\u21D2"), true},   // ⇒
+        {QStringLiteral("<=>"), QString::fromUtf8("\u21D4"), true},  // ⇔
+        {QStringLiteral("::"), QString::fromUtf8("\u2237"), true},   // ∷
+        {QStringLiteral("&&"), QString::fromUtf8("\u2227"), true},   // ∧
+        {QStringLiteral("||"), QString::fromUtf8("\u2228"), true},   // ∨
+        {QStringLiteral(">>"), QString::fromUtf8("\u226B"), true},   // ≫
+        {QStringLiteral("<<"), QString::fromUtf8("\u226A"), true},   // ≪
+        {QStringLiteral("..."), QString::fromUtf8("\u2026"), true},  // …
+        {QStringLiteral("/="), QString::fromUtf8("\u2260"), true},   // ≠ (Haskell/Lua)
+        {QStringLiteral("~="), QString::fromUtf8("\u2260"), true},   // ≠ (Lua)
+    };
+}
+
+QList<SymbolRule> AppSettings::effectiveSymbols() const
+{
+    QList<SymbolRule> rules = symbols.isEmpty() ? defaultSymbols() : symbols;
+    rules.removeIf([](const SymbolRule &r) { return !r.enabled || r.sequence.isEmpty() || r.symbol.isEmpty(); });
+    // Mais longa primeiro: "<=>" casa antes de "<=".
+    std::stable_sort(rules.begin(), rules.end(),
+                     [](const SymbolRule &a, const SymbolRule &b) { return a.sequence.size() > b.sequence.size(); });
+    return rules;
 }
 
 LanguageConfig AppSettings::defaultLanguageConfig(const QString &id)
@@ -137,6 +171,11 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("toolbarStyle")] = toolbarStyle;
     o[QStringLiteral("toolbarLocked")] = toolbarLocked;
     o[QStringLiteral("toolbarActions")] = QJsonArray::fromStringList(toolbarActions);
+    o[QStringLiteral("prettySymbols")] = prettySymbols;
+    QJsonArray symbolsArray;
+    for (const SymbolRule &r : symbols)
+        symbolsArray.append(QJsonObject{{"sequence", r.sequence}, {"symbol", r.symbol}, {"enabled", r.enabled}});
+    o[QStringLiteral("symbols")] = symbolsArray;
     o[QStringLiteral("uiScale")] = uiScale;
     o[QStringLiteral("uiLanguage")] = uiLanguage;
     o[QStringLiteral("terminalFont")] = terminalFont;
@@ -199,6 +238,14 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.toolbarLocked = flag("toolbarLocked", s.toolbarLocked);
     for (const QJsonValue &v : o.value(QStringLiteral("toolbarActions")).toArray())
         s.toolbarActions << v.toString();
+    s.prettySymbols = flag("prettySymbols", s.prettySymbols);
+    if (o.contains(QLatin1String("symbols"))) {
+        for (const QJsonValue &v : o.value(QStringLiteral("symbols")).toArray()) {
+            const QJsonObject r = v.toObject();
+            s.symbols.append({r.value("sequence").toString(), r.value("symbol").toString(),
+                              r.value("enabled").toBool(true)});
+        }
+    }
     s.uiScale = qBound(80, num("uiScale", s.uiScale), 200);
     s.uiLanguage = str("uiLanguage", s.uiLanguage);
     s.terminalFont = str("terminalFont", s.terminalFont);

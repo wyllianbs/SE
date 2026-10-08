@@ -31,6 +31,24 @@ private Q_SLOTS:
         QVERIFY(!out.languages.contains("cpp"));
         QVERIFY(!out.lsp.contains("cpp"));
     }
+
+    void symbolsRoundTrip()
+    {
+        AppSettings in = AppSettings::defaults();
+        in.prettySymbols = true;
+        in.symbols = AppSettings::defaultSymbols();
+        in.symbols[0].enabled = false;                    // desliga o primeiro (<=)
+        in.symbols.append({"<>", QString::fromUtf8("≠"), true}); // adiciona um
+        SettingsDialog dialog(in, Theme::builtIns().first());
+        const AppSettings out = dialog.settings();
+        QVERIFY(out.prettySymbols);
+        bool hasCustom = false, firstOff = false;
+        for (const SymbolRule &r : out.symbols) {
+            if (r.sequence == QLatin1String("<>") && r.symbol == QString::fromUtf8("≠")) hasCustom = true;
+            if (r.sequence == QLatin1String("<=") && !r.enabled) firstOff = true;
+        }
+        QVERIFY(hasCustom && firstOff);
+    }
 };
 
 int main(int argc, char **argv)

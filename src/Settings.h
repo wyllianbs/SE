@@ -18,6 +18,16 @@ struct LanguageConfig
 };
 
 /** Servidor LSP de uma linguagem. */
+/** Substituição de exibição: a sequência é mostrada como símbolo (texto intacto). */
+struct SymbolRule
+{
+    QString sequence;
+    QString symbol;
+    bool enabled = true;
+    bool operator==(const SymbolRule &o) const
+    { return sequence == o.sequence && symbol == o.symbol && enabled == o.enabled; }
+};
+
 struct LspConfig
 {
     bool enabled = true;
@@ -53,6 +63,8 @@ struct AppSettings
     bool lspEnabled = true;      //< chave geral dos servidores de linguagem
     bool insertSpaces = true;    //< Tab insere espaços (tabulações emuladas)
     bool editorCursorBlink = true;
+    bool prettySymbols = false;  //< exibir sequências como símbolos (<= vira ≤); texto não muda
+    QList<SymbolRule> symbols;   //< regras de exibição; vazio = conjunto padrão
 
     // Aparência
     QString theme = QStringLiteral("catppuccin-mocha");
@@ -82,6 +94,10 @@ struct AppSettings
 
     static AppSettings defaults();
     static LanguageConfig defaultLanguageConfig(const QString &languageId);
+    /** Conjunto padrão de substituições de símbolos. */
+    static QList<SymbolRule> defaultSymbols();
+    /** Regras ativas, ordenadas da sequência mais longa para a mais curta. */
+    QList<SymbolRule> effectiveSymbols() const;
 
     /** Config efetiva de uma linguagem embutida (com os padrões preenchidos). */
     LanguageConfig languageConfig(const QString &languageId) const;

@@ -35,6 +35,8 @@ public:
     void setHighlightCurrentLine(bool enabled);
     void setCodeCompletion(bool enabled) { m_completionEnabled = enabled; }
     void setInsertSpaces(bool spaces) { m_insertSpaces = spaces; }
+    /** Substituição de exibição de símbolos (texto intacto); vazio = desligado. */
+    void setPrettySymbols(bool enabled, const QList<QPair<QString, QString>> &rules);
 
     /** Sugestão do servidor: rótulo exibido e texto inserido. */
     struct ServerItem { QString label; QString insert; };
@@ -75,6 +77,7 @@ private:
     void highlightCurrentLine() { updateExtraSelections(); }
     bool handleAutoPair(QKeyEvent *event);
     void insertNewlineWithIndent();
+    void paintPrettySymbols(class QPainter &p);
     QString wordUnderCursor() const;
     int foldMarkerWidth() const;
     int breakpointWidth() const;
@@ -94,6 +97,8 @@ private:
     bool m_highlightLine = true;
     bool m_completionEnabled = true;
     bool m_insertSpaces = true;
+    bool m_prettySymbols = false;
+    QList<QPair<QString, QString>> m_symbols; //< (sequência, símbolo), mais longa primeiro
     int m_hoverBreakpointLine = -1;
     int m_reloadLine = 0;
     int m_reloadColumn = 0;

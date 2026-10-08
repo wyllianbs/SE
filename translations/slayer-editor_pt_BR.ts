@@ -1488,6 +1488,34 @@ sudo apt install gdb</translation>
         <source>Toolbar icons</source>
         <translation>Ícones da barra</translation>
     </message>
+    <message>
+        <source>Symbols</source>
+        <translation>Símbolos</translation>
+    </message>
+    <message>
+        <source>Display sequences as symbols (the file text is not changed)</source>
+        <translation>Exibir sequências como símbolos (o texto do arquivo não muda)</translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation>Ativo</translation>
+    </message>
+    <message>
+        <source>Sequence</source>
+        <translation>Sequência</translation>
+    </message>
+    <message>
+        <source>Symbol</source>
+        <translation>Símbolo</translation>
+    </message>
+    <message>
+        <source>Add Symbol</source>
+        <translation>Adicionar símbolo</translation>
+    </message>
+    <message>
+        <source>Show typed sequences as symbols without changing the file: for example “&lt;=” as ≤, “-&gt;” as →. Off by default. The sequence under the cursor is shown as typed so you can edit it. Double-click a cell to change it.</source>
+        <translation>Exibe as sequências digitadas como símbolos sem alterar o arquivo: por exemplo “&lt;=” como ≤, “-&gt;” como →. Desligado por padrão. A sequência sob o cursor aparece como foi digitada, para você editá-la. Dê um duplo clique numa célula para alterá-la.</translation>
+    </message>
 </context>
 <context>
     <name>TerminalDock</name>

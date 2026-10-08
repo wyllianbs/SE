@@ -124,6 +124,7 @@ SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, 
     addPage(tr("Appearance"), Icons::Palette, buildAppearancePage());
     addPage(tr("Terminal"), Icons::Terminal, buildTerminalPage());
     addPage(tr("Languages"), Icons::Languages, buildLanguagesPage());
+    addPage(tr("Symbols"), Icons::Symbols, buildSymbolsPage());
     connect(m_nav, &QListWidget::currentRowChanged, m_pages, &QStackedWidget::setCurrentIndex);
     m_nav->setCurrentRow(1);
 
@@ -297,6 +298,87 @@ QWidget *SettingsDialog::buildEditorPage()
     layout->addWidget(card(tr("Display"), display));
     layout->addWidget(card(tr("Features"), typing));
     return makePage(tr("Editor"), QString(), layout);
+}
+
+QWidget *SettingsDialog::buildSymbolsPage()
+{
+    m_prettySymbols = new QCheckBox(tr("Display sequences as symbols (the file text is not changed)"));
+
+    m_symbolsTable = new QTableWidget(0, 3);
+    m_symbolsTable->setObjectName(QStringLiteral("LanguageTable"));
+    m_symbolsTable->setHorizontalHeaderLabels({tr("On"), tr("Sequence"), tr("Symbol")});
+    m_symbolsTable->verticalHeader()->hide();
+    m_symbolsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    m_symbolsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    m_symbolsTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    m_symbolsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_symbolsTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_symbolsTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed
+                                    | QAbstractItemView::AnyKeyPressed);
+    m_symbolsTable->setShowGrid(false);
+    m_symbolsTable->setAlternatingRowColors(true);
+    m_symbolsTable->setEnabled(m_prettySymbols->isChecked());
+    connect(m_prettySymbols, &QCheckBox::toggled, m_symbolsTable, &QWidget::setEnabled);
+
+    auto *add = new QPushButton(tr("Add Symbol"));
+    auto *remove = new QPushButton(tr("Remove"));
+    auto *restore = new QPushButton(tr("Restore Defaults"));
+    for (QPushButton *b : {add, remove, restore})
+        b->setAutoDefault(false);
+    remove->setObjectName(QStringLiteral("Danger"));
+    connect(add, &QPushButton::clicked, this, [this]() {
+        addSymbolRow({QStringLiteral("<>"), QString::fromUtf8("≠"), true});
+        m_symbolsTable->setCurrentCell(m_symbolsTable->rowCount() - 1, 1);
+        m_symbolsTable->editItem(m_symbolsTable->item(m_symbolsTable->rowCount() - 1, 1));
+    });
+    connect(remove, &QPushButton::clicked, this, [this]() {
+        if (m_symbolsTable->currentRow() >= 0)
+            m_symbolsTable->removeRow(m_symbolsTable->currentRow());
+    });
+    connect(restore, &QPushButton::clicked, this, [this]() {
+        m_symbolsTable->setRowCount(0);
+        for (const SymbolRule &r : AppSettings::defaultSymbols())
+            addSymbolRow(r);
+    });
+
+    auto *buttons = new QHBoxLayout;
+    buttons->addWidget(add);
+    buttons->addWidget(restore);
+    buttons->addStretch(1);
+    buttons->addWidget(remove);
+
+    auto *box = new QVBoxLayout;
+    box->addWidget(m_prettySymbols);
+    box->addWidget(m_symbolsTable, 1);
+    box->addLayout(buttons);
+
+    auto *layout = new QVBoxLayout;
+    layout->addWidget(card(QString(), box), 1);
+    return makePage(tr("Symbols"),
+                    tr("Show typed sequences as symbols without changing the file: for example “<=” as ≤, “->” as "
+                       "→. Off by default. The sequence under the cursor is shown as typed so you can edit it. "
+                       "Double-click a cell to change it."),
+                    layout, true);
+}
+
+void SettingsDialog::addSymbolRow(const SymbolRule &rule)
+{
+    const int row = m_symbolsTable->rowCount();
+    m_symbolsTable->insertRow(row);
+    auto *onHolder = new QWidget;
+    auto *onLayout = new QHBoxLayout(onHolder);
+    onLayout->setContentsMargins(0, 0, 0, 0);
+    onLayout->setAlignment(Qt::AlignCenter);
+    auto *on = new QCheckBox;
+    on->setChecked(rule.enabled);
+    onLayout->addWidget(on);
+    m_symbolsTable->setCellWidget(row, 0, onHolder);
+    m_symbolsTable->setItem(row, 1, new QTableWidgetItem(rule.sequence));
+    auto *sym = new QTableWidgetItem(rule.symbol);
+    QFont f = sym->font();
+    f.setPointSize(f.pointSize() + 2);
+    sym->setFont(f);
+    m_symbolsTable->setItem(row, 2, sym);
 }
 
 QWidget *SettingsDialog::buildAppearancePage()
@@ -807,6 +889,12 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_folding->setChecked(s.codeFolding);
     m_lspEnabled->setChecked(s.lspEnabled);
     m_insertSpaces->setChecked(s.insertSpaces);
+    m_prettySymbols->setChecked(s.prettySymbols);
+    m_symbolsTable->setEnabled(s.prettySymbols);
+    m_symbolsTable->setRowCount(0);
+    const QList<SymbolRule> rules = s.symbols.isEmpty() ? AppSettings::defaultSymbols() : s.symbols;
+    for (const SymbolRule &r : rules)
+        addSymbolRow(r);
     m_editorBlink->setChecked(s.editorCursorBlink);
 
     m_userThemes.clear();
@@ -872,6 +960,17 @@ AppSettings SettingsDialog::settings() const
     s.codeFolding = m_folding->isChecked();
     s.lspEnabled = m_lspEnabled->isChecked();
     s.insertSpaces = m_insertSpaces->isChecked();
+    s.prettySymbols = m_prettySymbols->isChecked();
+    for (int row = 0; row < m_symbolsTable->rowCount(); ++row) {
+        const bool on = m_symbolsTable->cellWidget(row, 0)->findChild<QCheckBox *>()->isChecked();
+        const QString seq = m_symbolsTable->item(row, 1) ? m_symbolsTable->item(row, 1)->text() : QString();
+        const QString sym = m_symbolsTable->item(row, 2) ? m_symbolsTable->item(row, 2)->text() : QString();
+        if (!seq.isEmpty() && !sym.isEmpty())
+            s.symbols.append({seq, sym, on});
+    }
+    // Igual ao padrão? Não grava, para acompanhar mudanças futuras do padrão.
+    if (s.symbols == AppSettings::defaultSymbols())
+        s.symbols.clear();
     s.editorCursorBlink = m_editorBlink->isChecked();
 
     if (auto *item = m_themes->currentItem())

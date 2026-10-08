@@ -66,6 +66,22 @@ private Q_SLOTS:
         QVERIFY2(p.exitCode() == 0 && out.contains("Hello, World!"), qPrintable(id + ": " + out));
     }
 
+    void effectiveSymbolsOrderingAndFilter()
+    {
+        AppSettings s;
+        s.symbols = {{"<=", "≤", true}, {"<=>", "⇔", true}, {"->", "→", false},
+                     {"", "x", true}, {"&&", "", true}};
+        const QList<SymbolRule> eff = s.effectiveSymbols();
+        // Desligados e vazios saem; mais longo primeiro.
+        QCOMPARE(eff.size(), 2);
+        QCOMPARE(eff.first().sequence, QStringLiteral("<=>"));
+        QCOMPARE(eff.last().sequence, QStringLiteral("<="));
+        // Vazio usa o conjunto padrão.
+        AppSettings d;
+        QVERIFY(d.effectiveSymbols().size() >= 10);
+        QVERIFY(AppSettings::defaults().prettySymbols == false); // padrão: desligado
+    }
+
     void customLanguageTemplates()
     {
         QVERIFY(Language::helloWorldForTool("ruby").contains("puts"));

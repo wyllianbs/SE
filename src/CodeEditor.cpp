@@ -97,6 +97,10 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
     connect(this, &QPlainTextEdit::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
     connect(this, &QPlainTextEdit::updateRequest, this, &CodeEditor::updateLineNumberArea);
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, &CodeEditor::highlightCurrentLine);
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
+        if (m_prettySymbols)
+            viewport()->update();
+    });
     // O cursor nunca fica numa linha escondida: desdobra o bloco.
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
         if (!textCursor().block().isVisible())
@@ -875,13 +879,80 @@ void CodeEditor::insertCompletion(const QString &label)
 }
 
 /** Marcador "⋯" no fim das linhas cujo bloco está dobrado. */
+void CodeEditor::setPrettySymbols(bool enabled, const QList<QPair<QString, QString>> &rules)
+{
+    m_prettySymbols = enabled;
+    m_symbols = rules;
+    viewport()->update();
+}
+
+/**
+ * Desenha os "símbolos bonitos": onde o texto tem uma sequência configurada
+ * (ex.: "<="), pinta por cima o símbolo (≤). O texto do documento não muda —
+ * só a exibição. A sequência sob o cursor fica visível (para editar).
+ */
+void CodeEditor::paintPrettySymbols(QPainter &p)
+{
+    const QTextCursor tc = textCursor();
+    const int cursorPos = tc.position();
+    const int selStart = tc.selectionStart();
+    const int selEnd = tc.selectionEnd();
+    p.setFont(font());
+    for (QTextBlock b = firstVisibleBlock(); b.isValid(); b = b.next()) {
+        const QRectF geo = blockBoundingGeometry(b).translated(contentOffset());
+        if (geo.top() > viewport()->height())
+            break;
+        if (!b.isVisible())
+            continue;
+        const QString text = b.text();
+        const QList<QTextLayout::FormatRange> formats = b.layout()->formats();
+        const bool currentLine = (b.blockNumber() == tc.blockNumber()) && m_highlightLine;
+        for (int col = 0; col < text.size();) {
+            bool matched = false;
+            for (const auto &[seq, sym] : std::as_const(m_symbols)) {
+                if (col + seq.size() > text.size() || QStringView(text).mid(col, seq.size()) != seq)
+                    continue;
+                const int len = seq.size();
+                const int abs = b.position() + col;
+                // Revela a sequência sob o cursor ou dentro de uma seleção.
+                const bool nearCursor = cursorPos >= abs && cursorPos <= abs + len;
+                const bool inSelection = selStart < abs + len && selEnd > abs;
+                if (!nearCursor && !inSelection) {
+                    const QTextLine line = b.layout()->lineForTextPosition(col);
+                    if (line.isValid()) {
+                        const qreal x0 = geo.left() + line.cursorToX(col);
+                        const qreal x1 = geo.left() + line.cursorToX(col + len);
+                        const QRectF rect(x0, geo.top() + line.y(), x1 - x0, line.height());
+                        QColor fg = m_theme.text;
+                        for (const QTextLayout::FormatRange &fr : formats) {
+                            if (col >= fr.start && col < fr.start + fr.length
+                                && fr.format.foreground().style() != Qt::NoBrush)
+                                fg = fr.format.foreground().color();
+                        }
+                        p.fillRect(rect, currentLine ? m_theme.currentLine : m_theme.surface);
+                        p.setPen(fg);
+                        p.drawText(rect, Qt::AlignCenter, sym);
+                    }
+                }
+                col += len;
+                matched = true;
+                break;
+            }
+            if (!matched)
+                ++col;
+        }
+    }
+}
+
 void CodeEditor::paintEvent(QPaintEvent *event)
 {
     QPlainTextEdit::paintEvent(event);
-    if (!m_doc->foldingEnabled())
-        return;
     QPainter p(viewport());
     p.setRenderHint(QPainter::Antialiasing);
+    if (m_prettySymbols && !m_symbols.isEmpty())
+        paintPrettySymbols(p);
+    if (!m_doc->foldingEnabled())
+        return;
     const QFontMetrics fm(font());
     for (QTextBlock b = firstVisibleBlock(); b.isValid(); b = b.next()) {
         const QRectF geo = blockBoundingGeometry(b).translated(contentOffset());
