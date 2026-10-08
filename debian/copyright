@@ -6,8 +6,8 @@ Copyright: 2026 Wyllian Bezerra da Silva <wyllianbs@gmail.com>
 License: GPL-3.0-or-later
 
 Files: resources/fonts/*
-Copyright: 2020 JetBrains s.r.o.; 2014 Ryan L McIntyre (Nerd Fonts)
-License: OFL-1.1 and MIT
+Copyright: 2018 Source Foundry Authors (Hack); 2020 JetBrains s.r.o.; 2014 Ryan L McIntyre (Nerd Fonts)
+License: Expat and OFL-1.1 and Bitstream-Vera
 
 License: GPL-3.0-or-later
  On Debian systems, the full text is in /usr/share/common-licenses/GPL-3.

@@ -9,6 +9,8 @@
         <file>icons/hicolor/48.png</file>
         <file>icons/hicolor/64.png</file>
         <file>icons/hicolor/128.png</file>
+        <file>fonts/HackNerdFontMono-Regular.ttf</file>
+        <file>fonts/HackNerdFontMono-Bold.ttf</file>
         <file>fonts/JetBrainsMonoNerdFont-Regular.ttf</file>
         <file>fonts/SymbolsNerdFontMono-Regular.ttf</file>
     </qresource>

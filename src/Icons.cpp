@@ -10,19 +10,23 @@
 
 namespace {
 QString s_symbols = QStringLiteral("Symbols Nerd Font Mono");
-QString s_mono = QStringLiteral("JetBrainsMono Nerd Font");
+QString s_mono = QStringLiteral("Hack Nerd Font Mono"); //< padrão do editor e do terminal
 }
 
 void Icons::loadFonts()
 {
-    auto load = [](const QString &path, QString &family) {
+    auto load = [](const QString &path, QString *family = nullptr) {
         const int id = QFontDatabase::addApplicationFont(path);
         const QStringList families = QFontDatabase::applicationFontFamilies(id);
-        if (!families.isEmpty())
-            family = families.first();
+        if (family && !families.isEmpty())
+            *family = families.first();
     };
-    load(QStringLiteral(":/fonts/SymbolsNerdFontMono-Regular.ttf"), s_symbols);
-    load(QStringLiteral(":/fonts/JetBrainsMonoNerdFont-Regular.ttf"), s_mono);
+    load(QStringLiteral(":/fonts/SymbolsNerdFontMono-Regular.ttf"), &s_symbols);
+    // Fonte padrão: Hack Nerd Font Mono (Regular + Bold embutidos).
+    load(QStringLiteral(":/fonts/HackNerdFontMono-Regular.ttf"), &s_mono);
+    load(QStringLiteral(":/fonts/HackNerdFontMono-Bold.ttf"));
+    // JetBrains continua disponível para quem já a escolheu nas configurações.
+    load(QStringLiteral(":/fonts/JetBrainsMonoNerdFont-Regular.ttf"));
 }
 
 QString Icons::symbolFamily() { return s_symbols; }
