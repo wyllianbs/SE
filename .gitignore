@@ -8,3 +8,5 @@ debian/*.log
 debian/debhelper-build-stamp
 *.user
 dist/
+flatpak/local.yaml
+.flatpak-builder/

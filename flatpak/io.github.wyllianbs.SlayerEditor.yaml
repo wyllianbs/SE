@@ -27,6 +27,7 @@ cleanup:
 modules:
   - name: utf8proc
     buildsystem: cmake-ninja
+    builddir: true
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_SHARED_LIBS=ON
@@ -36,8 +37,19 @@ modules:
         url: https://github.com/JuliaStrings/utf8proc/archive/refs/tags/v2.9.0.tar.gz
         sha256: 18c1626e9fc5a2e192311e36b3010bfc698078f692888940f1fa150547abb0c1
 
+  - name: lxqt-build-tools
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: archive
+        url: https://github.com/lxqt/lxqt-build-tools/releases/download/2.1.0/lxqt-build-tools-2.1.0.tar.xz
+        sha256: 2458b629936f5e1ff8850e9953e49d66b96ac419cb484fed0a4d28a711fd8ef9
+
   - name: qtermwidget
     buildsystem: cmake-ninja
+    builddir: true
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_EXAMPLE=OFF
@@ -49,6 +61,7 @@ modules:
 
   - name: slayer-editor
     buildsystem: cmake-ninja
+    builddir: true
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_TESTING=OFF

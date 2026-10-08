@@ -200,6 +200,8 @@ QString TerminalDock::effectiveShell() const
 {
     if (!m_shell.trimmed().isEmpty())
         return m_shell.trimmed();
+    if (Sandbox::inFlatpak())
+        return Sandbox::hostLoginShell();
     return qEnvironmentVariable("SHELL", QStringLiteral("/bin/bash"));
 }
 
@@ -248,8 +250,8 @@ void TerminalDock::restartShell()
 QTermWidget *TerminalDock::createTerminal()
 {
     auto *term = new QTermWidget(0, m_tabs);
-    // Em Flatpak, o shell do usuário roda no hospedeiro (flatpak-spawn --host).
-    const auto [prog, args] = Sandbox::command(effectiveShell());
+    // Em Flatpak, o shell do usuário roda no hospedeiro, com pty via "script".
+    const auto [prog, args] = Sandbox::hostTerminalCommand(effectiveShell());
     term->setShellProgram(prog);
     if (!args.isEmpty())
         term->setArgs(args);
