@@ -233,6 +233,9 @@ MainWindow::MainWindow(QWidget *parent)
             // SLAYER_DEBUG_SPLIT: sequência de divisões, "h" lado a lado e "v" empilhado.
             for (QChar c : qEnvironmentVariable("SLAYER_DEBUG_SPLIT"))
                 splitSpace(m_activeSpace, c == QLatin1Char('h') ? Qt::Horizontal : Qt::Vertical, false);
+            // SLAYER_DEBUG_RUN: executa o arquivo atual (para screenshots).
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_RUN"))
+                runCurrent();
             // SLAYER_DEBUG_AFTER: espera extra antes da captura (ex.: o depurador parar).
             QTimer::singleShot(300 + qEnvironmentVariableIntValue("SLAYER_DEBUG_AFTER"), this, [this, out]() {
                 grab().save(out);
