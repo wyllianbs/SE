@@ -1,4 +1,5 @@
 #include "DebugSession.h"
+#include "Sandbox.h"
 #include "DapClient.h"
 #include "TerminalDock.h"
 
@@ -91,7 +92,8 @@ void DebugSession::compileAsync(const QString &filePath, const QString &id, cons
         done(binary);
     });
     Q_EMIT status(tr("Compiling %1 with -g…").arg(QFileInfo(filePath).fileName()));
-    cc->start(cfg.tool, before + QStringList{"-g", "-O0", filePath, "-o", binary} + after);
+    const auto [ccProg, ccArgs] = Sandbox::command(cfg.tool, before + QStringList{"-g", "-O0", filePath, "-o", binary} + after);
+    cc->start(ccProg, ccArgs);
 }
 
 void DebugSession::start(const QString &filePath, const QString &id, const AppSettings &settings,
@@ -107,7 +109,8 @@ void DebugSession::start(const QString &filePath, const QString &id, const AppSe
     if (id == QLatin1String("python")) {
         const QString python = settings.languageConfig(id).tool;
         QProcess probe;
-        probe.start(python, {"-c", "import debugpy"});
+        const auto [probeProg, probeArgs] = Sandbox::command(python, {"-c", "import debugpy"});
+        probe.start(probeProg, probeArgs);
         probe.waitForFinished(5000);
         if (probe.exitStatus() != QProcess::NormalExit || probe.exitCode() != 0) {
             Q_EMIT error(tr("debugpy is not installed for %1.\n\nInstall it with:\nsudo apt install python3-debugpy")
@@ -123,7 +126,7 @@ void DebugSession::start(const QString &filePath, const QString &id, const AppSe
     }
 
     // C / C++: gdb com DAP nativo (gdb 14+).
-    if (QStandardPaths::findExecutable(QStringLiteral("gdb")).isEmpty()) {
+    if (!Sandbox::hasExecutable(QStringLiteral("gdb"))) {
         Q_EMIT error(tr("gdb is not installed.\n\nInstall it with:\nsudo apt install gdb"));
         return;
     }

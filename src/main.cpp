@@ -27,7 +27,9 @@ int main(int argc, char *argv[])
     QApplication::setApplicationDisplayName(QStringLiteral("Slayer Editor"));
     QApplication::setOrganizationName(QStringLiteral("slayer-editor"));
     QApplication::setApplicationVersion(QStringLiteral(SLAYER_VERSION));
-    QApplication::setDesktopFileName(QStringLiteral("slayer-editor"));
+    // app_id = basename do .desktop instalado, para o compositor achar o ícone.
+    // No Flatpak é o FLATPAK_ID (= o app-id); fora dele, o mesmo app-id.
+    QApplication::setDesktopFileName(qEnvironmentVariable("FLATPAK_ID", QStringLiteral("io.github.wyllianbs.SlayerEditor")));
     QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
 
     // Ícone da aplicação, com vários tamanhos para a barra de título ficar

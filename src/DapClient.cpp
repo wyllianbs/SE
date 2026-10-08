@@ -1,4 +1,5 @@
 #include "DapClient.h"
+#include "Sandbox.h"
 #include "LspClient.h"
 
 #include <QProcess>
@@ -24,7 +25,8 @@ bool DapClient::start(const QString &program, const QStringList &arguments, cons
     m_process->setWorkingDirectory(workingDir);
     connect(m_process, &QProcess::readyReadStandardOutput, this, &DapClient::onReadyRead);
     connect(m_process, &QProcess::finished, this, &DapClient::exited);
-    m_process->start(program, arguments);
+    const auto [prog, args] = Sandbox::command(program, arguments);
+    m_process->start(prog, args);
     return m_process->waitForStarted(3000);
 }
 

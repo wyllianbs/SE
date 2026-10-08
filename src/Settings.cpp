@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "Language.h"
 #include "LspManager.h"
+#include "Sandbox.h"
 
 #include <QProcess>
 #include <QStandardPaths>
@@ -113,10 +114,10 @@ bool AppSettings::languageInstalled(const QString &id) const
     if (lang.id != id)
         return false;
     const QStringList tool = QProcess::splitCommand(languageConfig(id).tool);
-    if (tool.isEmpty() || QStandardPaths::findExecutable(tool.first()).isEmpty())
+    if (tool.isEmpty() || !Sandbox::hasExecutable(tool.first()))
         return false;
     for (const QString &r : lang.requires) {
-        if (QStandardPaths::findExecutable(r).isEmpty())
+        if (!Sandbox::hasExecutable(r))
             return false;
     }
     return true;

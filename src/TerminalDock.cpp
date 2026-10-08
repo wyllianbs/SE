@@ -1,4 +1,5 @@
 #include "TerminalDock.h"
+#include "Sandbox.h"
 
 #include <QAction>
 #include <QActionGroup>
@@ -247,7 +248,11 @@ void TerminalDock::restartShell()
 QTermWidget *TerminalDock::createTerminal()
 {
     auto *term = new QTermWidget(0, m_tabs);
-    term->setShellProgram(effectiveShell());
+    // Em Flatpak, o shell do usuário roda no hospedeiro (flatpak-spawn --host).
+    const auto [prog, args] = Sandbox::command(effectiveShell());
+    term->setShellProgram(prog);
+    if (!args.isEmpty())
+        term->setArgs(args);
     QStringList env = QProcessEnvironment::systemEnvironment().toStringList();
     env << QStringLiteral("TERM=xterm-256color");
     term->setEnvironment(env);

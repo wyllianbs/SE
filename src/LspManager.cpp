@@ -1,4 +1,5 @@
 #include "LspManager.h"
+#include "Sandbox.h"
 #include "Document.h"
 #include "LspClient.h"
 
@@ -76,7 +77,7 @@ QList<LspPreset> LspManager::presets(const QString &id)
 bool LspManager::isInstalled(const QString &command)
 {
     const QStringList args = QProcess::splitCommand(command);
-    return !args.isEmpty() && !QStandardPaths::findExecutable(args.first()).isEmpty();
+    return !args.isEmpty() && Sandbox::hasExecutable(args.first());
 }
 
 QString LspManager::lspLanguageId(const QString &id)
