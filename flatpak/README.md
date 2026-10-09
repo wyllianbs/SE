@@ -32,9 +32,31 @@ flatpak run io.github.wyllianbs.SlayerEditor
 
 ## Publicar no Flathub
 
-1. Repositório público e licença GPL-3.0.
-2. `metainfo` com ao menos uma screenshot hospedada (URL `https`).
-3. No manifesto, o módulo `slayer-editor` usa `type: git` com `tag` e `commit`
-   fixos.
-4. Pull request para `flathub/flathub` com este manifesto. O Flathub compila
-   para x86_64 e aarch64.
+Já pronto neste repositório:
+
+- [x] Manifesto com dependências e `slayer-editor` fixado em `tag: v0.3.0` +
+      `commit:` (reprodutível). Build verificado localmente (x86_64).
+- [x] `metainfo` válido (`appstreamcli validate`), com 6 screenshots `https`
+      em `screenshots/` (servidas via `raw.githubusercontent.com`).
+- [x] `.desktop` e ícones nomeados pelo app-id `io.github.wyllianbs.SlayerEditor`.
+- [x] `LICENSE` (GPL-3.0) na raiz; `project_license` declarado no `metainfo`.
+
+Falta (decisões/ações suas):
+
+1. **Tornar o repositório público.** O Flathub compila a partir da URL git
+   pública e as screenshots do `metainfo` só resolvem com o repo público.
+2. **Confirmar a licença GPL-3.0-or-later** como pública (o binário liga o
+   QTermWidget, GPL-2.0-or-later, então o conjunto é GPL).
+3. **Abrir o PR no `flathub/flathub`:**
+   - Faça fork de `github.com/flathub/flathub` e crie um branch chamado
+     `io.github.wyllianbs.SlayerEditor` (o mesmo app-id).
+   - Adicione o arquivo `io.github.wyllianbs.SlayerEditor.yaml` (este manifesto,
+     com `tag`+`commit`) na raiz do branch e abra o PR.
+   - O Flathub compila para `x86_64` e `aarch64` e um revisor avalia o PR.
+
+> Atenção na revisão: o app usa `--filesystem=host` e
+> `--talk-name=org.freedesktop.Flatpak` (para rodar as ferramentas do
+> hospedeiro via `flatpak-spawn --host`). São permissões amplas e os revisores
+> do Flathub costumam questioná-las — vale explicar no PR que o editor é um
+> front-end para o toolchain do usuário (compiladores, `gdb`, LSP, shell), que
+> não faz sentido embutir no sandbox.
