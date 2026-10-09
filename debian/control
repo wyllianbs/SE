@@ -1,7 +1,7 @@
 Source: slayer-editor
 Section: editors
 Priority: optional
-Maintainer: Prof. Wyllian <wyllianbs@gmail.com>
+Maintainer: Wyllian Bezerra da Silva <wyllianbs@gmail.com>
 Build-Depends: debhelper-compat (= 13),
  cmake,
  qt6-base-dev,
