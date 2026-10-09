@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(slayer-editor VERSION 0.3.0 LANGUAGES CXX)
+project(slayer-editor VERSION 0.4.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -57,6 +57,8 @@ install(FILES data/io.github.wyllianbs.SlayerEditor.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 install(FILES data/io.github.wyllianbs.SlayerEditor.metainfo.xml
         DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
+install(FILES data/slayer-editor.1
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 foreach(size 16 22 24 32 48 64 128 256 512)
     install(FILES resources/icons/hicolor/${size}.png
             DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/${size}x${size}/apps

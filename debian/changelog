@@ -1,3 +1,20 @@
+slayer-editor (0.4.0) unstable; urgency=medium
+
+  * Default font: bundled Hack Nerd Font Mono, in the editor and the terminal.
+  * Optional symbol display ("prettify"), off by default, with a Symbols
+    settings page to add and customize sequences.
+  * Terminal: theme-aware scrollbar and margins, plus a context menu
+    (copy, paste, paste selection, clear).
+  * Flatpak support: the user's host tools (shell, compilers, gdb and
+    language servers) run on the host via flatpak-spawn --host.
+  * Files named after the application ID (io.github.wyllianbs.SlayerEditor)
+    for a correct icon and Wayland association once installed.
+  * Ship the GPL-3.0 license text and a slayer-editor(1) manual page.
+  * English, self-describing screenshots in the AppStream metadata.
+  * About shows the full author name.
+
+ -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Thu, 08 Oct 2026 22:15:00 -0300
+
 slayer-editor (0.3.0) unstable; urgency=medium
 
   * Kate-style split view with shared documents.

@@ -1,0 +1,56 @@
+.TH SLAYER\-EDITOR 1 "2026-10-08" "slayer-editor 0.4.0" "User Commands"
+.SH NAME
+slayer\-editor \- lightweight code editor with an embedded terminal
+.SH SYNOPSIS
+.B slayer\-editor
+.RI [ OPTIONS ]
+.RI [ FILE ...]
+.SH DESCRIPTION
+.B Slayer Editor
+is a Qt\ 6 code editor with tabs, syntax highlighting, auto\-indentation,
+auto\-closing pairs, find/replace and several color themes. The view can be
+split Kate\-style into several panes that share the same document.
+.PP
+An embedded terminal (QTermWidget) can be docked on the left, top, right or
+bottom of the window, or detached. Press
+.B F5
+to compile and run the current file: C, C++, Python, Rust, Go, JavaScript,
+Java and shell scripts are supported out of the box.
+.PP
+When the matching language server is installed, Slayer Editor provides
+diagnostics and completion over the Language Server Protocol (for example
+.BR clangd ,
+.BR pylsp ,
+.BR rust\-analyzer ,
+.BR gopls ) ,
+and a visual debugger over the Debug Adapter Protocol
+.RB ( gdb
+for C/C++,
+.B debugpy
+for Python).
+.PP
+Any number of
+.I FILE
+arguments are opened in tabs on startup.
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Show a help message and exit.
+.TP
+.BR \-v ", " \-\-version
+Show version information and exit.
+.SH FILES
+.TP
+.I ~/.config/slayer\-editor/slayer\-editor.conf
+Per\-user settings (theme, fonts, toolbar, language servers and custom
+symbols). Remove this file to restore the defaults.
+.SH ENVIRONMENT
+.TP
+.B QT_SCALE_FACTOR
+Overrides the interface scale set in
+.BR Settings\ \->\ Appearance .
+.SH AUTHOR
+Written by Wyllian Bezerra da Silva <wyllianbs@gmail.com>.
+.SH SEE ALSO
+.BR gdb (1),
+.BR clangd (1)
