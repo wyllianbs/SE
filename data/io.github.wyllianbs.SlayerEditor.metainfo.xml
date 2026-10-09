@@ -13,16 +13,36 @@
   <launchable type="desktop-id">io.github.wyllianbs.SlayerEditor.desktop</launchable>
   <url type="homepage">https://github.com/wyllianbs/SlayerEditor-Linux</url>
   <url type="bugtracker">https://github.com/wyllianbs/SlayerEditor-Linux/issues</url>
-  <!-- Flathub exige ao menos uma screenshot hospedada publicamente (URL https). -->
+  <!-- Flathub exige screenshots hospedadas publicamente (URL https). -->
   <screenshots>
     <screenshot type="default">
+      <caption>Code and run in one place, with a built-in terminal</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SlayerEditor-Linux/main/screenshots/meta-01-run.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A visual debugger: breakpoints, variables and call stack</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SlayerEditor-Linux/main/screenshots/meta-02-debug.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Split the view like Kate across several panes</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SlayerEditor-Linux/main/screenshots/meta-03-split.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Real-time diagnostics and completion from language servers</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SlayerEditor-Linux/main/screenshots/meta-04-lsp.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Dozens of light and dark themes that can follow the system</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SlayerEditor-Linux/main/screenshots/meta-05-themes.png</image>
+    </screenshot>
+    <screenshot>
       <caption>Editing C with the embedded terminal</caption>
       <image>https://raw.githubusercontent.com/wyllianbs/SlayerEditor-Linux/main/screenshots/editor.png</image>
     </screenshot>
   </screenshots>
   <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
   <releases>
-    <release version="0.3.0" date="2026-09-30"/>
+    <release version="0.3.0" date="2026-10-08"/>
     <release version="0.2.0" date="2026-09-30"/>
     <release version="0.1.0" date="2026-09-30"/>
   </releases>
