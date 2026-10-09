@@ -71,5 +71,5 @@ modules:
       #         path: ..
       - type: git
         url: https://github.com/wyllianbs/SlayerEditor-Linux.git
-        tag: v0.3.0
-        commit: c38dc393dc54488db393d34668750bfae7de201a
+        tag: v0.4.0
+        commit: 1f2c44201f4e4f1bb584bd68ad97bc77da1bda30
