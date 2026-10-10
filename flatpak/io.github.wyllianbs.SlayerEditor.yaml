@@ -72,4 +72,4 @@ modules:
       - type: git
         url: https://github.com/wyllianbs/SE.git
         tag: v0.4.0
-        commit: 1f2c44201f4e4f1bb584bd68ad97bc77da1bda30
+        commit: 0b6a5a02f6202f207990d897737fec04f2331998
