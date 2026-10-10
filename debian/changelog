@@ -1,6 +1,6 @@
 slayer-editor (0.4.0-1) unstable; urgency=medium
 
-  * Initial release. (Closes: #000000)
+  * Initial release. (Closes: #1150574)
     Qt 6 code editor with a tabbed interface, an embedded QTermWidget
     terminal dockable on any edge, F5 to compile and run (C, C++, Python,
     Rust, Go, JavaScript, Java and shell), Language Server Protocol
