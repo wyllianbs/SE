@@ -8,7 +8,10 @@ Build-Depends: debhelper-compat (= 13),
  libqtermwidget-dev,
  qt6-l10n-tools,
  libutf8proc-dev
-Standards-Version: 4.7.0
+Standards-Version: 4.7.2
+Homepage: https://github.com/wyllianbs/SE
+Vcs-Browser: https://github.com/wyllianbs/SE
+Vcs-Git: https://github.com/wyllianbs/SE.git
 Rules-Requires-Root: no
 
 Package: slayer-editor

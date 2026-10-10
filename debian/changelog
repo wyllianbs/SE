@@ -1,49 +1,11 @@
-slayer-editor (0.4.0) unstable; urgency=medium
+slayer-editor (0.4.0-1) unstable; urgency=medium
 
-  * Default font: bundled Hack Nerd Font Mono, in the editor and the terminal.
-  * Optional symbol display ("prettify"), off by default, with a Symbols
-    settings page to add and customize sequences.
-  * Terminal: theme-aware scrollbar and margins, plus a context menu
-    (copy, paste, paste selection, clear).
-  * Flatpak support: the user's host tools (shell, compilers, gdb and
-    language servers) run on the host via flatpak-spawn --host.
-  * Files named after the application ID (io.github.wyllianbs.SlayerEditor)
-    for a correct icon and Wayland association once installed.
-  * Ship the GPL-3.0 license text and a slayer-editor(1) manual page.
-  * English, self-describing screenshots in the AppStream metadata.
-  * About shows the full author name.
+  * Initial release. (Closes: #000000)
+    Qt 6 code editor with a tabbed interface, an embedded QTermWidget
+    terminal dockable on any edge, F5 to compile and run (C, C++, Python,
+    Rust, Go, JavaScript, Java and shell), Language Server Protocol
+    diagnostics and completion, Debug Adapter Protocol debugging, a
+    Kate-style split view and status bar, several color themes and an
+    optional symbol display.
 
- -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Thu, 08 Oct 2026 22:15:00 -0300
-
-slayer-editor (0.3.0) unstable; urgency=medium
-
-  * Kate-style split view with shared documents.
-  * Code folding (braces and Python indentation).
-  * Language Server Protocol: diagnostics and completion (clangd, pylsp,
-    Pyright, Ruff, typescript-language-server, rust-analyzer, gopls, jdtls,
-    bash-language-server), configurable per language.
-  * Kate-style status bar: git branch, cursor, insert mode, tabs, encoding.
-  * Text encoding per document (reload/save with encoding, BOM detection).
-  * Help with keyword search (F1), About menu, Save As / Save All buttons.
-  * Closing the last tab shows a welcome screen; no default project folder.
-  * Removed the destructive command guard (Android only).
-
- -- Prof. Wyllian <wyllianbs@gmail.com>  Wed, 30 Sep 2026 14:30:00 -0300
-
-slayer-editor (0.2.0) unstable; urgency=medium
-
-  * Settings dialog: profiles, editor, appearance, terminal, languages,
-    security and files.
-  * Per-language tool, flags and extensions; custom languages.
-  * Destructive command guard for the embedded bash terminal.
-  * Code completion (file words + keywords), line numbers, word wrap,
-    current-line highlight and cursor blink toggles.
-  * Toolbar button and interface scale.
-
- -- Prof. Wyllian <wyllianbs@gmail.com>  Wed, 30 Sep 2026 13:10:00 -0300
-
-slayer-editor (0.1.0) unstable; urgency=medium
-
-  * Initial release.
-
- -- Prof. Wyllian <wyllianbs@gmail.com>  Wed, 30 Sep 2026 12:00:00 -0300
+ -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Sat, 10 Oct 2026 10:00:00 -0300
