@@ -50,7 +50,7 @@ struct CustomLanguage
 struct AppSettings
 {
     // Editor
-    QString editorFont;          //< vazio = JetBrainsMono Nerd Font embutida
+    QString editorFont;          //< vazio = Hack (fonts-hack)
     int editorFontSize = 11;
     int tabWidth = 4;
     bool lineNumbers = true;

@@ -1,4 +1,4 @@
-slayer-editor (0.4.0-1) unstable; urgency=medium
+slayer-editor (0.4.1-1) unstable; urgency=medium
 
   * Initial release. (Closes: #1150574)
     Qt 6 code editor with a tabbed interface, an embedded QTermWidget
@@ -8,4 +8,4 @@ slayer-editor (0.4.0-1) unstable; urgency=medium
     Kate-style split view and status bar, several color themes and an
     optional symbol display.
 
- -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Sat, 10 Oct 2026 10:00:00 -0300
+ -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Sat, 10 Oct 2026 20:30:00 -0300

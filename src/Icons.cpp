@@ -10,23 +10,19 @@
 
 namespace {
 QString s_symbols = QStringLiteral("Symbols Nerd Font Mono");
-QString s_mono = QStringLiteral("Hack Nerd Font Mono"); //< padrão do editor e do terminal
+QString s_mono = QStringLiteral("Hack"); //< padrão do editor e do terminal (pacote fonts-hack)
 }
 
 void Icons::loadFonts()
 {
-    auto load = [](const QString &path, QString *family = nullptr) {
-        const int id = QFontDatabase::addApplicationFont(path);
-        const QStringList families = QFontDatabase::applicationFontFamilies(id);
-        if (family && !families.isEmpty())
-            *family = families.first();
-    };
-    load(QStringLiteral(":/fonts/SymbolsNerdFontMono-Regular.ttf"), &s_symbols);
-    // Fonte padrão: Hack Nerd Font Mono (Regular + Bold embutidos).
-    load(QStringLiteral(":/fonts/HackNerdFontMono-Regular.ttf"), &s_mono);
-    load(QStringLiteral(":/fonts/HackNerdFontMono-Bold.ttf"));
-    // JetBrains continua disponível para quem já a escolheu nas configurações.
-    load(QStringLiteral(":/fonts/JetBrainsMonoNerdFont-Regular.ttf"));
+    // Só a Symbols Nerd Font é embutida (desenha os ícones da interface); não
+    // está no Debian. As fontes de texto vêm do sistema: Hack (fonts-hack, o
+    // padrão) e JetBrains Mono (fonts-jetbrains-mono, opcional nas Configurações).
+    // O Qt usa a Symbols como fallback para glifos ausentes nelas.
+    const int id = QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/SymbolsNerdFontMono-Regular.ttf"));
+    const QStringList families = QFontDatabase::applicationFontFamilies(id);
+    if (!families.isEmpty())
+        s_symbols = families.first();
 }
 
 QString Icons::symbolFamily() { return s_symbols; }

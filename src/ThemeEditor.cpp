@@ -126,7 +126,7 @@ ThemeEditor::ThemeEditor(const QList<Theme> &userThemes, const QString &currentI
     m_preview->setReadOnly(true);
     m_preview->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_preview->setPlainText(QString::fromUtf8(kSample));
-    m_preview->setFont(Icons::editorFont(QStringLiteral("JetBrainsMono Nerd Font"), 10));
+    m_preview->setFont(Icons::editorFont(Icons::monoFamily(), 10));
     m_highlighter = new SyntaxHighlighter(m_preview->document());
     m_highlighter->setLanguage(Language::byId(QStringLiteral("c")));
     m_terminalPreview->setReadOnly(true);
