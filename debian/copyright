@@ -28,6 +28,10 @@ Files: resources/fonts/SymbolsNerdFontMono-Regular.ttf
 Copyright: 2014 Ryan L McIntyre and the Nerd Fonts contributors
 License: Expat
 
+Files: data/io.github.wyllianbs.SlayerEditor.metainfo.xml
+Copyright: 2026 Wyllian Bezerra da Silva <wyllianbs@gmail.com>
+License: CC0-1.0
+
 License: GPL-3.0-or-later
  This program is free software: you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the Free
@@ -187,3 +191,22 @@ License: Bitstream-Vera
  sale, use or other dealings in this Font Software without prior written
  authorization from the Gnome Foundation or Bitstream Inc., respectively. For
  further information, contact: fonts at gnome dot org.
+
+License: CC0-1.0
+ To the extent possible under law, the author has waived all copyright and
+ related or neighboring rights to this metadata file. This work is published
+ from Brazil.
+ .
+ This metainfo file is licensed under the Creative Commons Zero v1.0 Universal
+ (CC0-1.0) public domain dedication. The licensor waives, to the extent allowed
+ by law, all of their rights to the work worldwide under copyright law,
+ including all related and neighboring rights.
+ .
+ THE WORK IS PROVIDED "AS-IS" AND THE LICENSOR MAKES NO REPRESENTATIONS OR
+ WARRANTIES OF ANY KIND CONCERNING THE WORK, EXPRESS, IMPLIED, STATUTORY OR
+ OTHERWISE, INCLUDING WITHOUT LIMITATION WARRANTIES OF TITLE, MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR THE ABSENCE OF LATENT
+ OR OTHER DEFECTS, ACCURACY, OR THE PRESENT OR ABSENCE OF ERRORS.
+ .
+ The complete legal text of CC0 1.0 is available at
+ <https://creativecommons.org/publicdomain/zero/1.0/legalcode>.
