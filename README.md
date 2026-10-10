@@ -36,7 +36,7 @@ page and install it with `apt`, which pulls in the required Qt 6 and QTermWidget
 libraries:
 
 ```bash
-sudo apt install ./slayer-editor_0.4.0-1_amd64.deb
+sudo apt install ./slayer-editor_0.4.1-1_amd64.deb
 ```
 
 To run programs from the editor, install the relevant toolchains (for example
