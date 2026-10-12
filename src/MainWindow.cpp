@@ -708,6 +708,10 @@ ViewSpace *MainWindow::createViewSpace()
         setActiveSpace(s);
         newTab();
     });
+    connect(space, &ViewSpace::filesDropped, this, [this, space](const QStringList &paths) {
+        setActiveSpace(space);
+        openFiles(paths);
+    });
     connect(space, &ViewSpace::tabActionRequested, this, &MainWindow::tabAction);
     connect(space, &ViewSpace::closeViewRequested, this, &MainWindow::closeSpace);
     connect(space, &ViewSpace::closeInactiveViewsRequested, this, [this](ViewSpace *keep) {
@@ -947,6 +951,11 @@ CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
             updateStatus();
     });
     connect(editor, &CodeEditor::overwriteModeToggled, this, [this]() { updateStatus(); });
+    // Arrastar arquivos para o editor abre-os em novas abas (no espaço do editor).
+    connect(editor, &CodeEditor::filesDropped, this, [this, space](const QStringList &paths) {
+        setActiveSpace(space);
+        openFiles(paths);
+    });
     updateDocumentTitles(doc);
     updateEmptyState();
     return editor;

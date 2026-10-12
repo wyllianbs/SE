@@ -4,11 +4,16 @@
 
 #include <QHBoxLayout>
 #include <QContextMenuEvent>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
 #include <QMenu>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QStyle>
 #include <QTabBar>
 #include <QToolButton>
+#include <QUrl>
 
 ViewSpace::ViewSpace(QWidget *parent)
     : QTabWidget(parent)
@@ -18,6 +23,7 @@ ViewSpace::ViewSpace(QWidget *parent)
     setDocumentMode(true);
     setTabsClosable(true);
     setMovable(true);
+    setAcceptDrops(true); //< soltar arquivos na faixa de abas abre em novas abas
     tabBar()->setExpanding(false);
     tabBar()->setElideMode(Qt::ElideMiddle);
     tabBar()->setUsesScrollButtons(true);
@@ -142,6 +148,47 @@ void ViewSpace::contextMenuEvent(QContextMenuEvent *event)
         return;
     }
     QTabWidget::contextMenuEvent(event);
+}
+
+// Soltar arquivos na barra de abas (ou na área livre dela) abre em novas abas.
+// A área de cada editor é tratada pelo próprio CodeEditor.
+static QStringList localFiles(const QMimeData *mime)
+{
+    QStringList files;
+    if (mime && mime->hasUrls()) {
+        for (const QUrl &url : mime->urls()) {
+            if (url.isLocalFile())
+                files << url.toLocalFile();
+        }
+    }
+    return files;
+}
+
+void ViewSpace::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (!localFiles(event->mimeData()).isEmpty())
+        event->acceptProposedAction();
+    else
+        QTabWidget::dragEnterEvent(event);
+}
+
+void ViewSpace::dragMoveEvent(QDragMoveEvent *event)
+{
+    if (!localFiles(event->mimeData()).isEmpty())
+        event->acceptProposedAction();
+    else
+        QTabWidget::dragMoveEvent(event);
+}
+
+void ViewSpace::dropEvent(QDropEvent *event)
+{
+    const QStringList files = localFiles(event->mimeData());
+    if (!files.isEmpty()) {
+        event->acceptProposedAction();
+        Q_EMIT filesDropped(files);
+        return;
+    }
+    QTabWidget::dropEvent(event);
 }
 
 bool ViewSpace::eventFilter(QObject *watched, QEvent *event)

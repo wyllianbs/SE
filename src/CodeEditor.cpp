@@ -4,6 +4,8 @@
 #include <QAbstractItemView>
 #include <QCompleter>
 #include <QFile>
+#include <QMimeData>
+#include <QUrl>
 #include <QScrollBar>
 #include <QStringListModel>
 #include <QFileInfo>
@@ -985,4 +987,39 @@ void CodeEditor::wheelEvent(QWheelEvent *event)
         return;
     }
     QPlainTextEdit::wheelEvent(event);
+}
+
+// Arquivos locais arrastados de fora (gerenciador de arquivos, outra aba) devem
+// abrir em novas abas, não inserir o caminho como texto. O QPlainTextEdit roteia
+// o drop (e a colagem) pelo controle de texto, que chama insertFromMimeData —
+// este é o ponto correto para interceptar. Qualquer outro conteúdo (texto
+// arrastado/colado) mantém o comportamento padrão.
+static QStringList localFilesFromMime(const QMimeData *mime)
+{
+    QStringList files;
+    if (mime && mime->hasUrls()) {
+        const QList<QUrl> urls = mime->urls();
+        for (const QUrl &url : urls) {
+            if (url.isLocalFile())
+                files << url.toLocalFile();
+        }
+    }
+    return files;
+}
+
+bool CodeEditor::canInsertFromMimeData(const QMimeData *source) const
+{
+    if (!localFilesFromMime(source).isEmpty())
+        return true;
+    return QPlainTextEdit::canInsertFromMimeData(source);
+}
+
+void CodeEditor::insertFromMimeData(const QMimeData *source)
+{
+    const QStringList files = localFilesFromMime(source);
+    if (!files.isEmpty()) {
+        Q_EMIT filesDropped(files);
+        return;
+    }
+    QPlainTextEdit::insertFromMimeData(source);
 }

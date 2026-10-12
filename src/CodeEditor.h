@@ -11,6 +11,7 @@
 
 class QCompleter;
 class QStringListModel;
+class QMimeData;
 
 /** Editor de código: numeração de linhas, realce, indentação e pares automáticos. */
 class CodeEditor : public QPlainTextEdit
@@ -63,6 +64,8 @@ public:
 
 Q_SIGNALS:
     void overwriteModeToggled(bool overwrite);
+    /** Arquivos locais soltos sobre o editor: devem abrir em novas abas. */
+    void filesDropped(const QStringList &paths);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -70,6 +73,9 @@ protected:
     void wheelEvent(QWheelEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
     bool viewportEvent(QEvent *event) override;
+    // Arrastar/colar URLs de arquivos locais abre em novas abas em vez de inserir texto.
+    bool canInsertFromMimeData(const QMimeData *source) const override;
+    void insertFromMimeData(const QMimeData *source) override;
 
 private:
     void updateLineNumberAreaWidth();

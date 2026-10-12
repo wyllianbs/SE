@@ -1,11 +1,11 @@
-slayer-editor (0.4.1-1) unstable; urgency=medium
+slayer-editor (0.4.2-1) unstable; urgency=medium
 
   * Initial release. (Closes: #1150574)
     Qt 6 code editor with a tabbed interface, an embedded QTermWidget
     terminal dockable on any edge, F5 to compile and run (C, C++, Python,
     Rust, Go, JavaScript, Java and shell), Language Server Protocol
     diagnostics and completion, Debug Adapter Protocol debugging, a
-    Kate-style split view and status bar, several color themes and an
-    optional symbol display.
+    Kate-style split view and status bar, several color themes, an optional
+    symbol display, and drag-and-drop of files to open them in new tabs.
 
- -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Sat, 10 Oct 2026 20:30:00 -0300
+ -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Mon, 12 Oct 2026 10:00:00 -0300

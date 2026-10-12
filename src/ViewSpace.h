@@ -37,12 +37,17 @@ Q_SIGNALS:
     /** Menu de contexto / duplo clique na barra de abas. */
     void newTabRequested(ViewSpace *space);
     void tabActionRequested(ViewSpace *space, int index, const QString &action);
+    /** Arquivos locais soltos sobre a barra de abas: abrir em novas abas. */
+    void filesDropped(const QStringList &paths);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     // A área vazia à direita das abas pertence ao QTabWidget, não à QTabBar.
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 
 private:
     bool inEmptyTabStrip(const QPoint &pos) const;
