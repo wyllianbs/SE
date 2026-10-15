@@ -13,6 +13,7 @@ class FindBar;
 class QAction;
 class QComboBox;
 class QLabel;
+class QMenu;
 class QPushButton;
 class QStackedWidget;
 class QSplitter;
@@ -76,6 +77,9 @@ private:
     void tabAction(ViewSpace *space, int index, const QString &action);
     void renameFile(CodeEditor *editor);
     void openFile(const QString &path);
+    // Arquivos recentes (como no Kate): lista persistida em QSettings.
+    void addRecentFile(const QString &path);
+    void rebuildRecentMenu();
     bool save(CodeEditor *editor);
     bool saveAs(CodeEditor *editor);
     bool closeTab(ViewSpace *space, int index);
@@ -144,6 +148,8 @@ private:
     Theme m_theme;
     AppSettings m_settings;
     QString m_lastDir;
+    QMenu *m_recentMenu = nullptr;      //< submenu "Open Recent"
+    QStringList m_recentFiles;          //< caminhos recentes, mais recente primeiro
     QList<QPair<QAction *, Icons::Glyph>> m_iconActions;
     QAction *m_runAction = nullptr;
     QAction *m_runToolbarAction = nullptr;

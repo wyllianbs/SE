@@ -293,6 +293,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::createActions()
 {
+    m_recentFiles = QSettings().value(QStringLiteral("files/recent")).toStringList();
+
     auto add = [this](QMenu *menu, const QString &text, const QKeySequence &key, auto slot,
                       std::optional<Icons::Glyph> glyph = std::nullopt) {
         QAction *a = menu->addAction(text);
@@ -318,6 +320,9 @@ void MainWindow::createActions()
         const QStringList paths = QFileDialog::getOpenFileNames(this, tr("Open File"), m_lastDir);
         openFiles(paths);
     }, Icons::Open);
+    m_recentMenu = file->addMenu(tr("Open &Recent"));
+    m_recentMenu->setToolTipsVisible(true);
+    rebuildRecentMenu();
     file->addSeparator();
     QAction *saveA = add(file, tr("&Save"), QKeySequence::Save, [this]() { save(currentEditor()); }, Icons::Save);
     QAction *saveAsA = add(file, tr("Save &As…"), QKeySequence::SaveAs, [this]() { saveAs(currentEditor()); }, Icons::SaveAs);
@@ -1082,6 +1087,50 @@ void MainWindow::openFiles(const QStringList &paths)
         openFile(p);
 }
 
+void MainWindow::addRecentFile(const QString &path)
+{
+    const QString abs = QFileInfo(path).absoluteFilePath();
+    if (abs.isEmpty())
+        return;
+    m_recentFiles.removeAll(abs);
+    m_recentFiles.prepend(abs);
+    const int kMaxRecent = 15;
+    while (m_recentFiles.size() > kMaxRecent)
+        m_recentFiles.removeLast();
+    QSettings().setValue(QStringLiteral("files/recent"), m_recentFiles);
+    rebuildRecentMenu();
+}
+
+void MainWindow::rebuildRecentMenu()
+{
+    if (!m_recentMenu)
+        return;
+    m_recentMenu->clear();
+    if (m_recentFiles.isEmpty()) {
+        QAction *empty = m_recentMenu->addAction(tr("No Recent Files"));
+        empty->setEnabled(false);
+        return;
+    }
+    int n = 1;
+    for (const QString &path : std::as_const(m_recentFiles)) {
+        const QFileInfo info(path);
+        // Atalho de acesso rápido para os 9 primeiros: &1 … &9.
+        const QString label = n <= 9 ? tr("&%1  %2").arg(n).arg(info.fileName()) : info.fileName();
+        QAction *a = m_recentMenu->addAction(label);
+        a->setStatusTip(path);
+        a->setToolTip(path);
+        connect(a, &QAction::triggered, this, [this, path]() { openFile(path); });
+        ++n;
+    }
+    m_recentMenu->addSeparator();
+    QAction *clear = m_recentMenu->addAction(tr("Clear List"));
+    connect(clear, &QAction::triggered, this, [this]() {
+        m_recentFiles.clear();
+        QSettings().remove(QStringLiteral("files/recent"));
+        rebuildRecentMenu();
+    });
+}
+
 void MainWindow::openFile(const QString &path)
 {
     const QString abs = QFileInfo(path).absoluteFilePath();
@@ -1117,6 +1166,8 @@ void MainWindow::openFile(const QString &path)
     }
     editor->setLanguage(languageForPath(abs));
     m_lastDir = QFileInfo(abs).absolutePath();
+    if (QFileInfo::exists(abs))
+        addRecentFile(abs);
     updateStatus();
 }
 
@@ -1154,6 +1205,7 @@ bool MainWindow::saveAs(CodeEditor *editor)
     }
     m_lastDir = QFileInfo(path).absolutePath();
     editor->setLanguage(languageForPath(path));
+    addRecentFile(path);
     m_lsp->documentSaved(editor->doc());
     updateStatus();
     return true;
