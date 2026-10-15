@@ -197,6 +197,7 @@ void LspManager::attach(Document *doc)
     const bool wanted = m_settings.lspEnabled && !doc->filePath().isEmpty() && languages().contains(id)
                         && m_settings.lspConfig(id).enabled;
     Tracked &t = m_docs[doc];
+    LspClient *const before = t.client; // só sinaliza mudança de status se anexar/desanexar
     const QString uri = QUrl::fromLocalFile(doc->filePath()).toString();
     LspClient *client = wanted ? clientFor(id, rootFor(doc->filePath())) : nullptr;
 
@@ -231,7 +232,10 @@ void LspManager::attach(Document *doc)
                                                                 {"version", t.version},
                                                                 {"text", doc->text()->toPlainText()}}}});
     }
-    Q_EMIT statusChanged();
+    // Só quando o anexo mudou: evita reconfigurar todos os editores (e re-rehighlight,
+    // que reentra em attach) a cada alteração do documento — isso recursava e crashava.
+    if (t.client != before)
+        Q_EMIT statusChanged();
 }
 
 void LspManager::detach(Document *doc)
