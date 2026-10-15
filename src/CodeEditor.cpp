@@ -756,14 +756,20 @@ void CodeEditor::updateExtraSelections()
                     }
                 } else { // fechamento → procura a abertura para trás
                     int depth = 1;
-                    for (int i = lt; (i = text.lastIndexOf(QLatin1Char('<'), i - 1)) >= 0; ) {
+                    // Importante: só chamar lastIndexOf com índice >= 0. Com índice
+                    // negativo o Qt procura a partir do FIM da string, o que faria
+                    // o laço reiniciar no fim e nunca terminar.
+                    for (int i = lt; i > 0; ) {
+                        i = text.lastIndexOf(QLatin1Char('<'), i - 1);
+                        if (i < 0)
+                            break;
                         const int j = text.indexOf(QLatin1Char('>'), i);
-                        if (j < 0 || j >= lt)
-                            continue;
-                        const TagInfo t = parseTag(i, j);
-                        if (t.valid && !t.self && same(t.name, cur.name)) {
-                            if (!t.close) { if (--depth == 0) { match = t; break; } }
-                            else ++depth;
+                        if (j >= 0 && j < lt) {
+                            const TagInfo t = parseTag(i, j);
+                            if (t.valid && !t.self && same(t.name, cur.name)) {
+                                if (!t.close) { if (--depth == 0) { match = t; break; } }
+                                else ++depth;
+                            }
                         }
                     }
                 }
