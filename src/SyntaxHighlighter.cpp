@@ -63,13 +63,24 @@ void SyntaxHighlighter::rebuildRules()
                         fmt(m_theme.preprocessor)});
     if (m_language.id == QLatin1String("python"))
         m_rules.append({QRegularExpression(QStringLiteral("^\\s*@[\\w.]+")), fmt(m_theme.preprocessor)});
+    if (m_language.id == QLatin1String("css"))
+        m_rules.append({QRegularExpression(QStringLiteral("@[\\w-]+")), fmt(m_theme.preprocessor)}); // @media, @import…
     if (m_language.id == QLatin1String("bash"))
         m_rules.append({QRegularExpression(QStringLiteral("\\$\\{?[A-Za-z_]\\w*\\}?")),
                         fmt(m_theme.preprocessor)});
     m_rules.append({QRegularExpression(QStringLiteral("\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'")),
                     fmt(m_theme.string)});
-    if (m_language.id == QLatin1String("javascript") || m_language.id == QLatin1String("go"))
+    if (m_language.id == QLatin1String("javascript") || m_language.id == QLatin1String("go")
+        || m_language.id == QLatin1String("typescript"))
         m_rules.append({QRegularExpression(QStringLiteral("`[^`]*`")), fmt(m_theme.string)});
+    if (m_language.id == QLatin1String("markdown")) {
+        // Realce básico de Markdown (sem keywords/strings no sentido usual).
+        m_rules.append({QRegularExpression(QStringLiteral("`[^`]+`")), fmt(m_theme.string)});
+        m_rules.append({QRegularExpression(QStringLiteral("(?:\\*\\*|__)(?=\\S)(.+?)(?:\\*\\*|__)")),
+                        fmt(m_theme.type, true)});
+        m_rules.append({QRegularExpression(QStringLiteral("\\[[^\\]]+\\]\\([^)]+\\)")), fmt(m_theme.function)});
+        m_rules.append({QRegularExpression(QStringLiteral("^#{1,6}\\s.*$")), fmt(m_theme.keyword, true)});
+    }
 
     m_commentFormat = fmt(m_theme.comment, false, true);
     if (!m_language.blockCommentStart.isEmpty())

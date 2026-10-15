@@ -27,9 +27,14 @@ private Q_SLOTS:
         const AppSettings s = AppSettings::defaults();
         for (const Language &lang : Language::all()) {
             const QString tool = s.languageConfig(lang.id).tool;
-            bool expected = !QStandardPaths::findExecutable(tool).isEmpty();
-            for (const QString &r : lang.requires)
-                expected = expected && !QStandardPaths::findExecutable(r).isEmpty();
+            // Linguagens só de realce (HTML, CSS, JSON, Markdown…): sem ferramenta,
+            // sempre disponíveis.
+            bool expected = true;
+            if (!tool.isEmpty()) {
+                expected = !QStandardPaths::findExecutable(tool).isEmpty();
+                for (const QString &r : lang.requires)
+                    expected = expected && !QStandardPaths::findExecutable(r).isEmpty();
+            }
             QCOMPARE(s.languageInstalled(lang.id), expected);
         }
         // Java só conta com o compilador (o JRE sozinho não roda arquivos .java).
@@ -43,7 +48,8 @@ private Q_SLOTS:
         QTest::addColumn<QString>("id");
         const AppSettings s = AppSettings::defaults();
         for (const QString &id : s.installedLanguages())
-            QTest::newRow(qPrintable(id)) << id;
+            if (!Language::byId(id).runCommand.isEmpty()) // só as executáveis rodam um hello-world
+                QTest::newRow(qPrintable(id)) << id;
     }
     void helloWorldRuns()
     {

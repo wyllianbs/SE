@@ -157,6 +157,73 @@ QList<Language> buildLanguages()
         {"integer", "real", "boolean", "char", "string", "writeln", "readln"},
         "//", "{", "}",
         QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} -FE/tmp/slayer_out %f && /tmp/slayer_out/%b")});
+    // HTML e CSS: realce e reconhecimento. A pré-visualização (abrir no
+    // navegador / servidor) é tratada à parte, não por um comando de shell.
+    list.append({QStringLiteral("html"), QStringLiteral("HTML"), {"html", "htm", "xhtml"},
+        {"html", "head", "body", "title", "meta", "link", "style", "script", "div", "span", "p",
+         "a", "img", "ul", "ol", "li", "table", "thead", "tbody", "tr", "td", "th", "form", "input",
+         "button", "label", "select", "option", "textarea", "h1", "h2", "h3", "h4", "h5", "h6",
+         "header", "footer", "nav", "section", "article", "main", "aside", "br", "hr", "strong",
+         "em", "b", "i", "u", "code", "pre", "blockquote", "iframe", "canvas", "svg", "video",
+         "audio", "source", "figure", "figcaption", "small", "abbr", "details", "summary"},
+        {"class", "id", "href", "src", "alt", "type", "name", "value", "rel", "content", "charset",
+         "lang", "style", "width", "height", "placeholder", "action", "method", "target", "disabled",
+         "checked", "selected", "readonly", "required", "for", "colspan", "rowspan", "role", "async",
+         "defer", "download"},
+        QString(), QStringLiteral("<!--"), QStringLiteral("-->")});
+    list.append({QStringLiteral("css"), QStringLiteral("CSS"), {"css"},
+        {"color", "background", "background-color", "background-image", "margin", "margin-top",
+         "margin-right", "margin-bottom", "margin-left", "padding", "padding-top", "padding-right",
+         "padding-bottom", "padding-left", "border", "border-radius", "border-color", "border-width",
+         "border-style", "display", "position", "top", "left", "right", "bottom", "width", "height",
+         "min-width", "max-width", "min-height", "max-height", "font", "font-size", "font-weight",
+         "font-family", "font-style", "line-height", "text-align", "text-decoration",
+         "text-transform", "letter-spacing", "flex", "flex-direction", "flex-wrap", "justify-content",
+         "align-items", "align-content", "gap", "grid", "grid-template-columns", "grid-template-rows",
+         "overflow", "overflow-x", "overflow-y", "z-index", "opacity", "visibility", "transition",
+         "transform", "animation", "cursor", "box-shadow", "box-sizing", "content", "float", "clear",
+         "white-space", "word-wrap", "list-style", "outline", "vertical-align"},
+        {"none", "block", "inline", "inline-block", "absolute", "relative", "fixed", "sticky",
+         "auto", "inherit", "initial", "unset", "hidden", "solid", "dashed", "dotted", "bold",
+         "normal", "italic", "center", "justify", "middle", "pointer", "transparent", "wrap",
+         "nowrap", "column", "row", "uppercase", "lowercase", "capitalize"},
+        QString(), QStringLiteral("/*"), QStringLiteral("*/")});
+    list.append({QStringLiteral("json"), QStringLiteral("JSON"), {"json", "jsonc", "geojson"},
+        {"true", "false", "null"}, {}, QString(), QString(), QString()});
+    list.append({QStringLiteral("xml"), QStringLiteral("XML"),
+        {"xml", "svg", "xsl", "xslt", "xsd", "rss", "atom", "plist", "qrc", "ui", "kml", "gpx"},
+        {}, {}, QString(), QStringLiteral("<!--"), QStringLiteral("-->")});
+    list.append({QStringLiteral("markdown"), QStringLiteral("Markdown"), {"md", "markdown", "mdown", "mkd"},
+        {}, {}, QString(), QString(), QString()});
+    list.append({QStringLiteral("yaml"), QStringLiteral("YAML"), {"yml", "yaml"},
+        {"true", "false", "null", "yes", "no", "on", "off"}, {},
+        QStringLiteral("#"), QString(), QString()});
+    list.append({QStringLiteral("toml"), QStringLiteral("TOML"), {"toml"},
+        {"true", "false"}, {}, QStringLiteral("#"), QString(), QString()});
+    list.append({QStringLiteral("ini"), QStringLiteral("INI"), {"ini", "cfg", "conf", "desktop"},
+        {"true", "false"}, {}, QStringLiteral("#"), QString(), QString()});
+    list.append({QStringLiteral("sql"), QStringLiteral("SQL"), {"sql"},
+        {"SELECT", "FROM", "WHERE", "INSERT", "INTO", "VALUES", "UPDATE", "SET", "DELETE", "CREATE",
+         "TABLE", "DROP", "ALTER", "ADD", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "JOIN", "INNER",
+         "LEFT", "RIGHT", "OUTER", "ON", "GROUP", "BY", "ORDER", "HAVING", "LIMIT", "OFFSET", "AND",
+         "OR", "NOT", "NULL", "AS", "DISTINCT", "UNION", "INDEX", "VIEW", "DATABASE", "IF", "EXISTS",
+         "DEFAULT", "UNIQUE", "CONSTRAINT", "LIKE", "IN", "BETWEEN", "IS", "ASC", "DESC", "BEGIN",
+         "COMMIT", "ROLLBACK", "TRANSACTION"},
+        {"INT", "INTEGER", "VARCHAR", "CHAR", "TEXT", "DATE", "DATETIME", "TIMESTAMP", "BOOLEAN",
+         "BOOL", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC", "REAL", "BLOB", "SERIAL", "BIGINT",
+         "SMALLINT", "COUNT", "SUM", "AVG", "MIN", "MAX"},
+        QStringLiteral("--"), QStringLiteral("/*"), QStringLiteral("*/")});
+    list.append({QStringLiteral("typescript"), QStringLiteral("TypeScript"), {"ts", "tsx", "mts", "cts"},
+        {"abstract", "as", "async", "await", "break", "case", "catch", "class", "const", "continue",
+         "declare", "default", "delete", "do", "else", "enum", "export", "extends", "finally", "for",
+         "from", "function", "get", "if", "implements", "import", "in", "infer", "instanceof",
+         "interface", "keyof", "let", "namespace", "new", "of", "override", "private", "protected",
+         "public", "readonly", "return", "satisfies", "set", "static", "super", "switch", "this",
+         "throw", "try", "type", "typeof", "var", "void", "while", "yield", "true", "false", "null",
+         "undefined"},
+        {"any", "bigint", "boolean", "never", "number", "object", "string", "symbol", "unknown",
+         "void", "Array", "Promise", "Record", "Partial", "Readonly", "Map", "Set", "console"},
+        "//", "/*", "*/"});
 
     struct Extra { const char *id; const char *interactive; const char *file; const char *hello; QStringList requires; };
     const QList<Extra> extras{
@@ -184,6 +251,10 @@ QList<Language> buildLanguages()
         {"fortran", nullptr, "untitled.f90",
          "program hello\n    implicit none\n    print *, \"Hello, World!\"\nend program hello\n", {}},
         {"pascal", nullptr, "untitled.pas", "program Hello;\nbegin\n    writeln('Hello, World!');\nend.\n", {}},
+        {"html", nullptr, "untitled.html",
+         "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Hello</title>\n</head>\n<body>\n    <h1>Hello, World!</h1>\n</body>\n</html>\n", {}},
+        {"css", nullptr, "untitled.css",
+         "body {\n    font-family: sans-serif;\n    margin: 2rem;\n    color: #222;\n}\n", {}},
     };
     for (Language &lang : list) {
         for (const Extra &e : extras) {

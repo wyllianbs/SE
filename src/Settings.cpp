@@ -89,7 +89,9 @@ LanguageConfig AppSettings::defaultLanguageConfig(const QString &id)
         return {QStringLiteral("gfortran"), QStringLiteral("-Wall"), QStringLiteral("f90 f95 f03 f08 f")};
     if (id == QLatin1String("pascal"))
         return {QStringLiteral("fpc"), QStringLiteral("-O2"), QStringLiteral("pas pp")};
-    return {};
+    // Linguagens sem toolchain (html, css, json, xml, markdown…): sem ferramenta,
+    // mas herdam as extensões do registro de linguagens para serem reconhecidas.
+    return {QString(), QString(), Language::byId(id).extensions.join(QLatin1Char(' '))};
 }
 
 AppSettings AppSettings::defaults()
@@ -114,7 +116,9 @@ bool AppSettings::languageInstalled(const QString &id) const
     if (lang.id != id)
         return false;
     const QStringList tool = QProcess::splitCommand(languageConfig(id).tool);
-    if (tool.isEmpty() || !Sandbox::hasExecutable(tool.first()))
+    if (tool.isEmpty())
+        return true; // linguagem só de realce (HTML, CSS, JSON, Markdown…): sempre disponível
+    if (!Sandbox::hasExecutable(tool.first()))
         return false;
     for (const QString &r : lang.requires) {
         if (!Sandbox::hasExecutable(r))
