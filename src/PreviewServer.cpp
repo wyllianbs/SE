@@ -4,10 +4,13 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHostAddress>
+#include <QPointer>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTimer>
 #include <QUrl>
+
+#include <memory>
 
 namespace {
 
@@ -36,17 +39,19 @@ const QByteArray kCoiHeaders =
     "Cross-Origin-Resource-Policy: cross-origin\r\n";
 
 void writeResponse(QTcpSocket *sock, int code, const QByteArray &status, const QByteArray &type,
-                   const QByteArray &body, const QByteArray &extra = {})
+                   const QByteArray &body, const QByteArray &extra = {}, const QByteArray &cacheControl = {})
 {
     QByteArray head = "HTTP/1.1 " + QByteArray::number(code) + ' ' + status + "\r\n";
     head += "Content-Type: " + type + "\r\n";
     head += "Content-Length: " + QByteArray::number(body.size()) + "\r\n";
-    head += "Cache-Control: no-store\r\n";
+    head += "Cache-Control: " + (cacheControl.isEmpty() ? QByteArray("no-store") : cacheControl) + "\r\n";
     head += extra;
     head += "Connection: close\r\n\r\n";
     sock->write(head);
     sock->write(body);
-    sock->flush();
+    // Sem flush() bloqueante: disconnectFromHost() fecha depois que os dados
+    // bufferizados forem enviados pelo laço de eventos (serve arquivos grandes,
+    // ex.: WASM, sem travar a interface).
     sock->disconnectFromHost();
 }
 
@@ -204,7 +209,14 @@ void PreviewServer::serve(QTcpSocket *sock, const QByteArray &request)
     const QByteArray type = contentType(abs);
     if (m_mode != Never && type.startsWith("text/html"))
         body = injectReload(body);
-    writeResponse(sock, 200, "OK", type, body, m_coi ? kCoiHeaders : QByteArray());
+    // Fontes (html/css/js/json/xml/texto) ficam sempre frescas para o live-reload;
+    // binários pesados (wasm, .data, octet-stream, imagens, fontes) podem ser
+    // cacheados por pouco tempo, para não rebaixar cada recarga a um novo
+    // download de vários MB (ex.: runtimes WASM).
+    const bool source = type.startsWith("text/") || type.startsWith("application/javascript")
+                        || type.startsWith("application/json") || type.startsWith("application/xml");
+    const QByteArray cache = source ? QByteArray() : QByteArrayLiteral("max-age=30");
+    writeResponse(sock, 200, "OK", type, body, m_coi ? kCoiHeaders : QByteArray(), cache);
 }
 
 static QByteArray withContentLength(const QByteArray &headers, int len)
@@ -232,28 +244,70 @@ static QByteArray withContentLength(const QByteArray &headers, int len)
 }
 
 // Encaminha a requisição ao backend (ex.: php -S) e injeta o live-reload nas
-// respostas HTML. Síncrono: o backend é local e responde em milissegundos.
+// respostas HTML. Totalmente assíncrono: nenhuma espera bloqueante no laço de
+// eventos, para que a interface não trave enquanto o backend responde.
 void PreviewServer::proxyTo(QTcpSocket *client, const QByteArray &request)
 {
-    QTcpSocket back;
-    back.connectToHost(m_backendHost, m_backendPort);
-    if (!back.waitForConnected(2000)) {
-        writeResponse(client, 502, "Bad Gateway", "text/plain", "Preview backend not reachable\n");
-        return;
-    }
-    // Força "Connection: close" para saber quando a resposta termina.
-    QByteArray req = request;
-    const int he = req.indexOf("\r\n\r\n");
-    if (he >= 0)
-        req.insert(he, "\r\nConnection: close");
-    else
-        req += "\r\nConnection: close\r\n\r\n";
-    back.write(req);
-    back.waitForBytesWritten(2000);
-    QByteArray resp;
-    while (back.state() == QAbstractSocket::ConnectedState && back.waitForReadyRead(5000))
-        resp += back.readAll();
-    resp += back.readAll();
+    QPointer<QTcpSocket> clientPtr(client);
+    auto *back = new QTcpSocket(this);
+    auto *timer = new QTimer(this);
+    timer->setSingleShot(true);
+    auto resp = std::make_shared<QByteArray>();
+    auto finished = std::make_shared<bool>(false);
+
+    auto cleanup = [back, timer, finished]() {
+        if (*finished)
+            return;
+        *finished = true;
+        back->disconnect();
+        timer->stop();
+        timer->deleteLater();
+        back->deleteLater();
+    };
+
+    connect(timer, &QTimer::timeout, this, [this, clientPtr, resp, cleanup]() {
+        if (clientPtr) {
+            if (resp->isEmpty())
+                writeResponse(clientPtr, 504, "Gateway Timeout", "text/plain", "Preview backend timed out\n");
+            else
+                clientPtr->disconnectFromHost();
+        }
+        cleanup();
+    });
+    connect(back, &QTcpSocket::connected, this, [back, request]() {
+        // Força "Connection: close" para saber quando a resposta termina.
+        QByteArray req = request;
+        const int he = req.indexOf("\r\n\r\n");
+        if (he >= 0)
+            req.insert(he, "\r\nConnection: close");
+        else
+            req += "\r\nConnection: close\r\n\r\n";
+        back->write(req);
+    });
+    connect(back, &QTcpSocket::readyRead, this, [back, resp, timer]() {
+        *resp += back->readAll();
+        timer->start(15000); // enquanto chegam dados, adia o timeout
+    });
+    connect(back, &QTcpSocket::disconnected, this, [this, clientPtr, resp, cleanup]() {
+        if (clientPtr)
+            finishProxyResponse(clientPtr, *resp);
+        cleanup();
+    });
+    connect(back, &QTcpSocket::errorOccurred, this,
+            [this, clientPtr, resp, cleanup](QAbstractSocket::SocketError e) {
+        if (e == QAbstractSocket::RemoteHostClosedError)
+            return; // fim normal da resposta: tratado em disconnected
+        if (resp->isEmpty() && clientPtr)
+            writeResponse(clientPtr, 502, "Bad Gateway", "text/plain", "Preview backend not reachable\n");
+        cleanup();
+    });
+
+    timer->start(15000);
+    back->connectToHost(m_backendHost, m_backendPort);
+}
+
+void PreviewServer::finishProxyResponse(QTcpSocket *client, const QByteArray &resp)
+{
     if (resp.isEmpty()) {
         writeResponse(client, 502, "Bad Gateway", "text/plain", "Empty response from backend\n");
         return;
@@ -261,7 +315,6 @@ void PreviewServer::proxyTo(QTcpSocket *client, const QByteArray &request)
     const int rhe = resp.indexOf("\r\n\r\n");
     if (rhe < 0) {
         client->write(resp);
-        client->flush();
         client->disconnectFromHost();
         return;
     }
@@ -294,7 +347,6 @@ void PreviewServer::proxyTo(QTcpSocket *client, const QByteArray &request)
         headers = filtered + "\r\n" + kCoiHeaders.chopped(2);
     }
     client->write(headers + "\r\n\r\n" + body);
-    client->flush();
     client->disconnectFromHost();
 }
 

@@ -72,6 +72,7 @@ private:
     void onNewConnection();
     void serve(QTcpSocket *sock, const QByteArray &request);
     void proxyTo(QTcpSocket *client, const QByteArray &request);
+    void finishProxyResponse(QTcpSocket *client, const QByteArray &resp);
     QByteArray injectReload(const QByteArray &html) const;
 
     QTcpServer *m_server = nullptr;
