@@ -36,6 +36,14 @@ public:
     QString host() const { return m_host; }
     quint16 port() const { return m_port; }
 
+    /**
+     * Modo proxy: em vez de servir arquivos, encaminha as requisições para um
+     * servidor backend (ex.: "php -S") e injeta o live-reload nas respostas
+     * HTML. Assim o render em tempo real funciona com qualquer servidor.
+     * Porta 0 desliga o proxy (volta a servir arquivos).
+     */
+    void setBackend(const QString &host, quint16 port);
+
     /** Modo de recarga e intervalo (ms) usado no modo Interval. */
     void setReload(ReloadMode mode, int intervalMs);
     /** Marca que o conteúdo mudou (modo OnChange): recarrega na próxima sondagem. */
@@ -55,7 +63,8 @@ public:
 
 private:
     void onNewConnection();
-    void serve(QTcpSocket *sock, const QByteArray &requestLine);
+    void serve(QTcpSocket *sock, const QByteArray &request);
+    void proxyTo(QTcpSocket *client, const QByteArray &request);
     QByteArray injectReload(const QByteArray &html) const;
 
     QTcpServer *m_server = nullptr;
@@ -68,4 +77,6 @@ private:
     QTimer *m_intervalTimer = nullptr;
     QHash<QTcpSocket *, QByteArray> m_buffers;
     ContentProvider m_provider;
+    QString m_backendHost;
+    quint16 m_backendPort = 0; //< 0 = servir arquivos; >0 = proxy
 };

@@ -106,6 +106,12 @@ void PreviewServer::setReload(ReloadMode mode, int intervalMs)
     }
 }
 
+void PreviewServer::setBackend(const QString &host, quint16 port)
+{
+    m_backendHost = host.isEmpty() ? QStringLiteral("127.0.0.1") : host;
+    m_backendPort = port;
+}
+
 void PreviewServer::triggerReload()
 {
     ++m_token; // a próxima sondagem dos clientes vê a mudança e recarrega
@@ -130,11 +136,11 @@ void PreviewServer::onNewConnection()
         connect(sock, &QTcpSocket::readyRead, this, [this, sock]() {
             QByteArray &buf = m_buffers[sock];
             buf += sock->readAll();
-            const int end = buf.indexOf("\r\n");
-            if (end < 0 && buf.size() < 8192)
-                return; // ainda não chegou a linha de requisição
-            const QByteArray requestLine = buf.left(qMax(0, end));
-            serve(sock, requestLine);
+            if (buf.indexOf("\r\n\r\n") < 0 && buf.size() < 65536)
+                return; // aguarda o fim dos cabeçalhos
+            const QByteArray request = buf;
+            disconnect(sock, &QTcpSocket::readyRead, this, nullptr); // processa uma vez
+            serve(sock, request);
         });
         connect(sock, &QTcpSocket::disconnected, this, [this, sock]() {
             m_buffers.remove(sock);
@@ -143,8 +149,10 @@ void PreviewServer::onNewConnection()
     }
 }
 
-void PreviewServer::serve(QTcpSocket *sock, const QByteArray &requestLine)
+void PreviewServer::serve(QTcpSocket *sock, const QByteArray &request)
 {
+    const int eol = request.indexOf("\r\n");
+    const QByteArray requestLine = request.left(eol < 0 ? request.size() : eol);
     const QList<QByteArray> parts = requestLine.split(' ');
     if (parts.size() < 2 || parts.at(0) != "GET") {
         writeResponse(sock, 405, "Method Not Allowed", "text/plain", "Only GET\n");
@@ -158,6 +166,11 @@ void PreviewServer::serve(QTcpSocket *sock, const QByteArray &requestLine)
 
     if (path == QLatin1String("/__slayer_live__")) {
         writeResponse(sock, 200, "OK", "text/plain", QByteArray::number(m_token));
+        return;
+    }
+
+    if (m_backendPort != 0) { // modo proxy: encaminha ao servidor externo
+        proxyTo(sock, request);
         return;
     }
 
@@ -183,6 +196,78 @@ void PreviewServer::serve(QTcpSocket *sock, const QByteArray &requestLine)
     if (m_mode != Never && type.startsWith("text/html"))
         body = injectReload(body);
     writeResponse(sock, 200, "OK", type, body);
+}
+
+static QByteArray withContentLength(const QByteArray &headers, int len)
+{
+    QByteArray out;
+    bool set = false;
+    for (const QByteArray &raw : headers.split('\n')) {
+        QByteArray l = raw;
+        if (l.endsWith('\r'))
+            l.chop(1);
+        if (l.isEmpty())
+            continue;
+        if (l.toLower().startsWith("content-length:")) {
+            out += "Content-Length: " + QByteArray::number(len) + "\r\n";
+            set = true;
+        } else {
+            out += l + "\r\n";
+        }
+    }
+    if (!set)
+        out += "Content-Length: " + QByteArray::number(len) + "\r\n";
+    if (out.endsWith("\r\n"))
+        out.chop(2);
+    return out;
+}
+
+// Encaminha a requisição ao backend (ex.: php -S) e injeta o live-reload nas
+// respostas HTML. Síncrono: o backend é local e responde em milissegundos.
+void PreviewServer::proxyTo(QTcpSocket *client, const QByteArray &request)
+{
+    QTcpSocket back;
+    back.connectToHost(m_backendHost, m_backendPort);
+    if (!back.waitForConnected(2000)) {
+        writeResponse(client, 502, "Bad Gateway", "text/plain", "Preview backend not reachable\n");
+        return;
+    }
+    // Força "Connection: close" para saber quando a resposta termina.
+    QByteArray req = request;
+    const int he = req.indexOf("\r\n\r\n");
+    if (he >= 0)
+        req.insert(he, "\r\nConnection: close");
+    else
+        req += "\r\nConnection: close\r\n\r\n";
+    back.write(req);
+    back.waitForBytesWritten(2000);
+    QByteArray resp;
+    while (back.state() == QAbstractSocket::ConnectedState && back.waitForReadyRead(5000))
+        resp += back.readAll();
+    resp += back.readAll();
+    if (resp.isEmpty()) {
+        writeResponse(client, 502, "Bad Gateway", "text/plain", "Empty response from backend\n");
+        return;
+    }
+    const int rhe = resp.indexOf("\r\n\r\n");
+    if (rhe < 0) {
+        client->write(resp);
+        client->flush();
+        client->disconnectFromHost();
+        return;
+    }
+    QByteArray headers = resp.left(rhe);
+    QByteArray body = resp.mid(rhe + 4);
+    const QByteArray lower = headers.toLower();
+    const bool isHtml = lower.contains("content-type: text/html");
+    const bool chunked = lower.contains("transfer-encoding: chunked");
+    if (m_mode != Never && isHtml && !chunked) {
+        body = injectReload(body);
+        headers = withContentLength(headers, body.size());
+    }
+    client->write(headers + "\r\n\r\n" + body);
+    client->flush();
+    client->disconnectFromHost();
 }
 
 QByteArray PreviewServer::injectReload(const QByteArray &html) const

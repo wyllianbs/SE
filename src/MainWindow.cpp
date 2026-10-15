@@ -27,6 +27,8 @@
 #include <QKeyEvent>
 #include <QMimeData>
 #include <QRegularExpression>
+#include <QTcpServer>
+#include <QHostAddress>
 #include <QUrl>
 #include <QGuiApplication>
 #include <QComboBox>
@@ -1786,16 +1788,36 @@ void MainWindow::previewCurrent(CodeEditor *editor)
         const PreviewServer::ReloadMode mode = m_settings.previewReload == 0 ? PreviewServer::Never
                                              : m_settings.previewReload == 2 ? PreviewServer::Interval
                                                                              : PreviewServer::OnChange;
+        m_preview->setBackend(QString(), 0); // modo: servir arquivos
         m_preview->setReload(mode, m_settings.previewReloadInterval * 1000);
         url = m_preview->urlForFile(info.absoluteFilePath());
     } else {
-        // Servidor externo (ex.: "php -S {host}:{port}"); sem live-reload injetado.
+        // Servidor externo (ex.: "php -S {host}:{port}") como BACKEND: o Slayer
+        // faz proxy na porta configurada e injeta o live-reload nas respostas.
+        QString backendHost = QStringLiteral("127.0.0.1");
+        quint16 backendPort = 0;
         QString cmd = m_settings.previewCommand;
-        cmd.replace(QStringLiteral("{host}"), host);
-        cmd.replace(QStringLiteral("{port}"), QString::number(port));
+        if (cmd.contains(QLatin1String("{port}"))) {
+            QTcpServer probe; // porta livre para o backend (diferente do proxy)
+            probe.listen(QHostAddress::LocalHost, 0);
+            backendPort = probe.serverPort();
+            probe.close();
+            cmd.replace(QStringLiteral("{host}"), backendHost);
+            cmd.replace(QStringLiteral("{port}"), QString::number(backendPort));
+        } else {
+            static const QRegularExpression addr(QStringLiteral("(\\[[^\\]]+\\]|[A-Za-z0-9_.-]+)?:(\\d{2,5})(?!\\d)"));
+            const auto mm = addr.match(cmd);
+            if (mm.hasMatch()) {
+                if (!mm.captured(1).isEmpty() && mm.captured(1) != QLatin1String("0.0.0.0"))
+                    backendHost = mm.captured(1);
+                backendPort = quint16(mm.captured(2).toInt());
+            }
+        }
         const QStringList parts = QProcess::splitCommand(cmd);
-        if (parts.isEmpty())
+        if (parts.isEmpty() || backendPort == 0) {
+            statusBar()->showMessage(tr("Could not determine the preview server address."), 5000);
             return;
+        }
         if (!Sandbox::hasExecutable(parts.first())) {
             statusBar()->showMessage(tr("“%1” is not installed — set the preview tool in Settings.").arg(parts.first()), 6000);
             return;
@@ -1810,24 +1832,24 @@ void MainWindow::previewCurrent(CodeEditor *editor)
             m_previewProcess->setWorkingDirectory(root);
             const auto [program, args] = Sandbox::command(parts.first(), parts.mid(1));
             m_previewProcess->start(program, args);
-            delay = true; // dá um tempo para o servidor subir antes de abrir o navegador
+            delay = true; // o backend precisa de um instante para subir
         }
-        // Se o comando traz o próprio endereço (sem {host}/{port}), usa-o na URL.
-        QString urlHost = host;
-        int urlPort = port;
-        if (!m_settings.previewCommand.contains(QLatin1String("{host}"))
-            && !m_settings.previewCommand.contains(QLatin1String("{port}"))) {
-            static const QRegularExpression addr(QStringLiteral("(\\[[^\\]]+\\]|[A-Za-z0-9_.-]+)?:(\\d{2,5})(?!\\d)"));
-            const auto mm = addr.match(m_settings.previewCommand);
-            if (mm.hasMatch()) {
-                if (!mm.captured(1).isEmpty())
-                    urlHost = mm.captured(1);
-                urlPort = mm.captured(2).toInt();
+        if (!m_preview)
+            m_preview = new PreviewServer(this);
+        if (!m_preview->isRunning() || m_preview->host() != host || m_preview->port() != port) {
+            if (!m_preview->start(root, host, port) && !m_preview->start(root, host, 0)) {
+                statusBar()->showMessage(tr("Could not start the preview proxy."), 5000);
+                return;
             }
         }
-        if (urlHost.isEmpty() || urlHost == QLatin1String("0.0.0.0") || urlHost == QLatin1String("[::]"))
-            urlHost = QStringLiteral("127.0.0.1");
-        url = QUrl(QStringLiteral("http://%1:%2/%3").arg(urlHost).arg(urlPort).arg(relPath));
+        m_preview->setContentProvider({}); // no proxy o conteúdo vem do backend
+        m_preview->setBackend(backendHost, backendPort);
+        const PreviewServer::ReloadMode mode = m_settings.previewReload == 0 ? PreviewServer::Never
+                                             : m_settings.previewReload == 2 ? PreviewServer::Interval
+                                                                             : PreviewServer::OnChange;
+        m_preview->setReload(mode, m_settings.previewReloadInterval * 1000);
+        const QString urlHost = (host == QLatin1String("0.0.0.0")) ? QStringLiteral("127.0.0.1") : host;
+        url = QUrl(QStringLiteral("http://%1:%2/%3").arg(urlHost).arg(m_preview->port()).arg(relPath));
     }
 
     if (url.isEmpty()) {
@@ -1878,10 +1900,17 @@ void MainWindow::autoSavePending()
     const QSet<CodeEditor *> pending = m_autoSavePending;
     m_autoSavePending.clear();
     const QList<CodeEditor *> alive = allEditors();
+    bool saved = false;
     for (CodeEditor *e : pending) {
-        if (alive.contains(e) && !e->filePath().isEmpty() && e->doc()->isModified())
+        if (alive.contains(e) && !e->filePath().isEmpty() && e->doc()->isModified()) {
             save(e);
+            saved = true;
+        }
     }
+    // Com o preview por proxy (servidor externo), o conteúdo vem do disco: ao
+    // salvar, recarrega para o navegador mostrar a alteração.
+    if (saved && m_preview && m_preview->isRunning())
+        m_preview->triggerReload();
 }
 
 QHash<QString, QList<int>> MainWindow::collectBreakpoints() const

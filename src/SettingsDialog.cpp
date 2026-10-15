@@ -581,16 +581,12 @@ QWidget *SettingsDialog::buildPreviewPage()
     // comando já traz o próprio endereço (sem {host}/{port}).
     auto updateHint = [this]() {
         const QString cmd = m_previewCommand->text().trimmed();
-        const bool placeholders = cmd.contains(QLatin1String("{host}")) || cmd.contains(QLatin1String("{port}"));
-        const bool ownAddress = !cmd.isEmpty() && !placeholders;
-        m_previewHost->setEnabled(!ownAddress);
-        m_previewPort->setEnabled(!ownAddress);
         if (cmd.isEmpty())
-            m_previewHint->setText(tr("Default: built-in live-preview server (with live reload)."));
-        else if (ownAddress)
-            m_previewHint->setText(tr("Using: %1 — host and port come from the command.").arg(cmd));
+            m_previewHint->setText(tr("Default: built-in live-preview server. The browser opens at the "
+                                      "host and port above, with live reload."));
         else
-            m_previewHint->setText(tr("Using: %1").arg(cmd));
+            m_previewHint->setText(tr("Backend: %1. Slayer serves at the host and port above and forwards "
+                                      "to it, adding live reload.").arg(cmd));
     };
     connect(m_previewCommand, &QLineEdit::textChanged, this, [updateHint]() { updateHint(); });
     updateHint();
