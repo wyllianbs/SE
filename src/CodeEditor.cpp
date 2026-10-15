@@ -5,6 +5,8 @@
 #include <QCompleter>
 #include <QFile>
 #include <QMimeData>
+#include <QRegularExpression>
+#include <QSet>
 #include <QUrl>
 #include <QScrollBar>
 #include <QStringListModel>
@@ -660,6 +662,36 @@ bool CodeEditor::handleAutoPair(QKeyEvent *event)
     const QString line = c.block().text();
     const int col = c.positionInBlock();
     const QChar next = col < line.length() ? line.at(col) : QChar();
+
+    // Auto-fechar tags em HTML/XML: ao digitar ">" fechando <tag …>, insere </tag>.
+    const QString langId = language().id;
+    if (ch == QLatin1Char('>') && !c.hasSelection()
+        && (langId == QLatin1String("html") || langId == QLatin1String("xml"))) {
+        const QString before = line.left(col);
+        const int lt = before.lastIndexOf(QLatin1Char('<'));
+        if (lt >= 0) {
+            const QString inside = before.mid(lt + 1);
+            static const QRegularExpression nameRe(QStringLiteral("^([A-Za-z][\\w:-]*)"));
+            const QRegularExpressionMatch m = nameRe.match(inside);
+            const bool opening = m.hasMatch() && !inside.contains(QLatin1Char('>'))
+                                 && !inside.endsWith(QLatin1Char('/'));
+            if (opening) {
+                const QString name = m.captured(1);
+                static const QSet<QString> voids{QStringLiteral("area"), QStringLiteral("base"),
+                    QStringLiteral("br"), QStringLiteral("col"), QStringLiteral("embed"),
+                    QStringLiteral("hr"), QStringLiteral("img"), QStringLiteral("input"),
+                    QStringLiteral("link"), QStringLiteral("meta"), QStringLiteral("param"),
+                    QStringLiteral("source"), QStringLiteral("track"), QStringLiteral("wbr")};
+                const bool isVoid = langId == QLatin1String("html") && voids.contains(name.toLower());
+                if (!isVoid) {
+                    c.insertText(QStringLiteral(">") + QStringLiteral("</") + name + QStringLiteral(">"));
+                    c.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, name.length() + 3);
+                    setTextCursor(c);
+                    return true;
+                }
+            }
+        }
+    }
 
     // Digitar o fechamento que já está à direita só avança o cursor.
     if ((ch == QLatin1Char(')') || ch == QLatin1Char(']') || ch == QLatin1Char('}')
