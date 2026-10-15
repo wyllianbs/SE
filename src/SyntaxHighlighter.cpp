@@ -48,15 +48,24 @@ void SyntaxHighlighter::rebuildRules()
     }
 
     // A ordem importa: regras posteriores sobrescrevem as anteriores.
-    m_rules.append({QRegularExpression(QStringLiteral("\\b[A-Za-z_]\\w*(?=\\s*\\()")),
-                    fmt(m_theme.function)});
+    // Chamadas de função: palavra seguida de "(". Não se aplica a markup/prosa
+    // (HTML/XML/Markdown), onde "palavra (" é só texto. UseUnicodeProperties faz
+    // \w/\b reconhecerem letras acentuadas (ex.: "Parâmetros" é uma palavra só).
+    if (m_language.id != QLatin1String("html") && m_language.id != QLatin1String("xml")
+        && m_language.id != QLatin1String("markdown")) {
+        QRegularExpression fnRe(QStringLiteral("\\b[^\\W\\d]\\w*(?=\\s*\\()"),
+                                QRegularExpression::UseUnicodePropertiesOption);
+        m_rules.append({fnRe, fmt(m_theme.function)});
+    }
     m_rules.append({QRegularExpression(
                         QStringLiteral("\\b(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|\\d[\\d_]*(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)[uUlLfF]*\\b")),
                     fmt(m_theme.number)});
+    // \b com UseUnicodeProperties: palavras acentuadas não casam parcialmente.
+    const auto uni = QRegularExpression::UseUnicodePropertiesOption;
     if (!m_language.types.isEmpty())
-        m_rules.append({QRegularExpression(wordAlternation(m_language.types)), fmt(m_theme.type)});
+        m_rules.append({QRegularExpression(wordAlternation(m_language.types), uni), fmt(m_theme.type)});
     if (!m_language.keywords.isEmpty())
-        m_rules.append({QRegularExpression(wordAlternation(m_language.keywords)),
+        m_rules.append({QRegularExpression(wordAlternation(m_language.keywords), uni),
                         fmt(m_theme.keyword, true)});
     if (m_language.id == QLatin1String("c") || m_language.id == QLatin1String("cpp"))
         m_rules.append({QRegularExpression(QStringLiteral("^\\s*#\\s*\\w+.*$")),
