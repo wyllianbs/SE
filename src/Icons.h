@@ -54,6 +54,7 @@ enum Glyph : char32_t {
     SplitStacked = 0xEB57,
     CloseAll = 0xEAC1,
     EyeClosed = 0xEAE7,
+    LivePreview = 0xEA70, //< olho (codicon): pré-visualização no navegador
     LangC = 0xE61E,
     LangCpp = 0xE61D,
     LangPython = 0xE606,

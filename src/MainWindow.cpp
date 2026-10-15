@@ -18,10 +18,15 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QCloseEvent>
+#include "PreviewServer.h"
+#include "Sandbox.h"
+
+#include <QDesktopServices>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QKeyEvent>
 #include <QMimeData>
+#include <QRegularExpression>
 #include <QUrl>
 #include <QGuiApplication>
 #include <QComboBox>
@@ -242,6 +247,10 @@ MainWindow::MainWindow(QWidget *parent)
                 c.setPosition(qEnvironmentVariableIntValue("SLAYER_DEBUG_CURSOR"));
                 currentEditor()->setTextCursor(c);
             }
+            // SLAYER_DEBUG_PREVIEW: liga o Live Preview (via o botão).
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_PREVIEW") && m_livePreviewAction
+                && m_livePreviewAction->isEnabled())
+                m_livePreviewAction->trigger();
             // SLAYER_DEBUG_TYPE: "digita" o texto no editor (dispara a completion).
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_TYPE") && currentEditor()) {
                 currentEditor()->setFocus();
@@ -469,6 +478,12 @@ void MainWindow::createActions()
                                  [this]() { runCurrent(true); }, Icons::RunInteractive);
     m_runInteractiveAction->setToolTip(tr("Run and stay in the interpreter — Python, JavaScript, Shell (Alt+F5); "
                                           "compiled languages run as usual"));
+    m_livePreviewAction = add(run, tr("&Live Preview in Browser"), QKeySequence(Qt::SHIFT | Qt::Key_F5),
+                              [this](bool on) { setLivePreview(on); }, Icons::LivePreview);
+    m_livePreviewAction->setCheckable(true);
+    m_livePreviewAction->setEnabled(false);
+    m_livePreviewAction->setToolTip(tr("Preview HTML in the browser with live reload (Shift+F5)"));
+    connect(m_livePreviewAction, &QAction::toggled, this, [this]() { refreshIcons(); });
     run->addSeparator();
     // Atalho para a chave geral de Settings → Editor → Features.
     m_lspAction = run->addAction(tr("Language Servers (&LSP)"));
@@ -549,7 +564,7 @@ void MainWindow::createActions()
     const QList<QPair<QString, QAction *>> main{
         {"new", newA}, {"open", openA}, {"save", saveA}, {"saveAs", saveAsA}, {"saveAll", saveAllA},
         {"undo", undoA}, {"redo", redoA}, {"find", findA}, {"terminal", termA}, {"run", m_runToolbarAction},
-        {"runInteractive", m_runInteractiveAction}, {"debug", m_debugAction}, {"stepOver", m_stepActions[0]},
+        {"runInteractive", m_runInteractiveAction}, {"livePreview", m_livePreviewAction}, {"debug", m_debugAction}, {"stepOver", m_stepActions[0]},
         {"stepInto", m_stepActions[1]}, {"stepOut", m_stepActions[2]}, {"continue", m_stepActions[3]},
         {"stopDebug", m_stopDebugAction}};
     m_toolbarRegistry = main + m_toolbarRegistry;
@@ -564,7 +579,7 @@ void MainWindow::createActions()
 QStringList MainWindow::defaultToolbarActions()
 {
     return {"new", "open", "save", "saveAs", "saveAll", "separator", "undo", "redo", "find", "separator",
-            "terminal", "run", "runInteractive", "separator", "debug", "stepOver", "stepInto", "stepOut",
+            "terminal", "run", "runInteractive", "livePreview", "separator", "debug", "stepOver", "stepInto", "stepOut",
             "continue", "stopDebug"};
 }
 
@@ -982,6 +997,34 @@ CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
     connect(editor, &CodeEditor::filesDropped, this, [this, space](const QStringList &paths) {
         setActiveSpace(space);
         openFiles(paths);
+    });
+    // Auto-save: salva o arquivo editado automaticamente (debounce), se ligado.
+    connect(editor, &QPlainTextEdit::textChanged, this, [this, editor]() {
+        if (!m_settings.autoSave || editor->filePath().isEmpty())
+            return;
+        m_autoSavePending.insert(editor);
+        if (!m_autoSaveTimer) {
+            m_autoSaveTimer = new QTimer(this);
+            m_autoSaveTimer->setSingleShot(true);
+            m_autoSaveTimer->setInterval(1500);
+            connect(m_autoSaveTimer, &QTimer::timeout, this, &MainWindow::autoSavePending);
+        }
+        m_autoSaveTimer->start();
+    });
+    // Live-reload do preview ao editar (modo "a cada mudança"), com antirrebote.
+    connect(editor, &QPlainTextEdit::textChanged, this, [this]() {
+        if (!m_preview || !m_preview->isRunning() || m_settings.previewReload != 1)
+            return;
+        if (!m_previewReloadTimer) {
+            m_previewReloadTimer = new QTimer(this);
+            m_previewReloadTimer->setSingleShot(true);
+            m_previewReloadTimer->setInterval(250);
+            connect(m_previewReloadTimer, &QTimer::timeout, this, [this]() {
+                if (m_preview)
+                    m_preview->triggerReload();
+            });
+        }
+        m_previewReloadTimer->start();
     });
     updateDocumentTitles(doc);
     updateEmptyState();
@@ -1636,6 +1679,8 @@ void MainWindow::updateStatus()
         idx = m_languageCombo->count() - 1;
     }
     m_languageCombo->setCurrentIndex(idx);
+    if (m_livePreviewAction)
+        m_livePreviewAction->setEnabled(editor->language().id == QLatin1String("html"));
     const QString title = editor->displayName() + (editor->doc()->isModified() ? QStringLiteral(" ●") : QString());
     setWindowTitle(title + QStringLiteral(" — Slayer Editor"));
 }
@@ -1650,6 +1695,11 @@ void MainWindow::runCurrent(bool interactive)
     // Sem título: salvar primeiro define o nome e, com ele, a linguagem.
     if (!save(editor))
         return;
+    // HTML não "roda": a pré-visualização é pelo botão Live Preview.
+    if (editor->language().id == QLatin1String("html")) {
+        statusBar()->showMessage(tr("Use the Live Preview button to open HTML in the browser."), 4000);
+        return;
+    }
     if (editor->language().runCommand.isEmpty()) {
         statusBar()->showMessage(tr("No run command for %1 files — set one in Settings → Languages.")
                                      .arg(editor->language().displayName), 5000);
@@ -1671,6 +1721,167 @@ void MainWindow::runCurrent(bool interactive)
         flags = cfg.flags;
     }
     m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags, interactive), info.absolutePath());
+}
+
+void MainWindow::previewCurrent(CodeEditor *editor)
+{
+    const QFileInfo info(editor->filePath());
+    QString root = QDir(info.absolutePath()).absolutePath();
+    // Detecta a raiz do site: se o HTML usa caminhos absolutos ("/dist/…"), sobe
+    // até o ancestral que mais contém esses caminhos de topo, para que CSS/JS
+    // absolutos resolvam.
+    {
+        static const QRegularExpression re(QStringLiteral("(?:href|src)\\s*=\\s*[\"']/([^/\"'?#]+)"));
+        QSet<QString> tops;
+        auto it = re.globalMatch(editor->toPlainText());
+        while (it.hasNext())
+            tops.insert(it.next().captured(1));
+        if (!tops.isEmpty()) {
+            QDir d(root);
+            QString best = root;
+            int bestCount = 0;
+            for (int up = 0; up <= 8; ++up) {
+                int count = 0;
+                for (const QString &seg : std::as_const(tops))
+                    if (d.exists(seg))
+                        ++count;
+                if (count > bestCount) {
+                    bestCount = count;
+                    best = d.absolutePath();
+                }
+                if (!d.cdUp())
+                    break;
+            }
+            if (bestCount > 0)
+                root = best;
+        }
+    }
+    const QString relPath = QString::fromUtf8(QUrl::toPercentEncoding(QDir(root).relativeFilePath(info.absoluteFilePath()), "/"));
+    const QString host = m_settings.previewHost.isEmpty() ? QStringLiteral("127.0.0.1") : m_settings.previewHost;
+    const int port = m_settings.previewPort;
+    QUrl url;
+    bool delay = false;
+
+    if (m_settings.previewCommand.trimmed().isEmpty()) {
+        // Servidor embutido (com live-reload).
+        if (!m_preview)
+            m_preview = new PreviewServer(this);
+        if (!m_preview->isRunning() || m_preview->rootDir() != root || m_preview->host() != host
+            || m_preview->port() != port) {
+            if (!m_preview->start(root, host, port) && !m_preview->start(root, host, 0)) {
+                statusBar()->showMessage(tr("Could not start the preview server."), 5000);
+                return;
+            }
+        }
+        m_preview->setContentProvider([this](const QString &abs, QByteArray &out) -> bool {
+            for (CodeEditor *e : allEditors()) {
+                if (!e->filePath().isEmpty() && e->doc()->isModified()
+                    && QFileInfo(e->filePath()).absoluteFilePath() == abs) {
+                    out = e->toPlainText().toUtf8();
+                    return true;
+                }
+            }
+            return false;
+        });
+        const PreviewServer::ReloadMode mode = m_settings.previewReload == 0 ? PreviewServer::Never
+                                             : m_settings.previewReload == 2 ? PreviewServer::Interval
+                                                                             : PreviewServer::OnChange;
+        m_preview->setReload(mode, m_settings.previewReloadInterval * 1000);
+        url = m_preview->urlForFile(info.absoluteFilePath());
+    } else {
+        // Servidor externo (ex.: "php -S {host}:{port}"); sem live-reload injetado.
+        QString cmd = m_settings.previewCommand;
+        cmd.replace(QStringLiteral("{host}"), host);
+        cmd.replace(QStringLiteral("{port}"), QString::number(port));
+        const QStringList parts = QProcess::splitCommand(cmd);
+        if (parts.isEmpty())
+            return;
+        if (!Sandbox::hasExecutable(parts.first())) {
+            statusBar()->showMessage(tr("“%1” is not installed — set the preview tool in Settings.").arg(parts.first()), 6000);
+            return;
+        }
+        if (!m_previewProcess) {
+            m_previewProcess = new QProcess(this);
+            m_previewProcess->setProcessChannelMode(QProcess::ForwardedChannels);
+        }
+        if (m_previewProcess->state() == QProcess::NotRunning || m_previewProcess->workingDirectory() != root) {
+            m_previewProcess->kill();
+            m_previewProcess->waitForFinished(500);
+            m_previewProcess->setWorkingDirectory(root);
+            const auto [program, args] = Sandbox::command(parts.first(), parts.mid(1));
+            m_previewProcess->start(program, args);
+            delay = true; // dá um tempo para o servidor subir antes de abrir o navegador
+        }
+        // Se o comando traz o próprio endereço (sem {host}/{port}), usa-o na URL.
+        QString urlHost = host;
+        int urlPort = port;
+        if (!m_settings.previewCommand.contains(QLatin1String("{host}"))
+            && !m_settings.previewCommand.contains(QLatin1String("{port}"))) {
+            static const QRegularExpression addr(QStringLiteral("(\\[[^\\]]+\\]|[A-Za-z0-9_.-]+)?:(\\d{2,5})(?!\\d)"));
+            const auto mm = addr.match(m_settings.previewCommand);
+            if (mm.hasMatch()) {
+                if (!mm.captured(1).isEmpty())
+                    urlHost = mm.captured(1);
+                urlPort = mm.captured(2).toInt();
+            }
+        }
+        if (urlHost.isEmpty() || urlHost == QLatin1String("0.0.0.0") || urlHost == QLatin1String("[::]"))
+            urlHost = QStringLiteral("127.0.0.1");
+        url = QUrl(QStringLiteral("http://%1:%2/%3").arg(urlHost).arg(urlPort).arg(relPath));
+    }
+
+    if (url.isEmpty()) {
+        statusBar()->showMessage(tr("Could not build the preview URL."), 5000);
+        return;
+    }
+    auto openInBrowser = [this, url]() {
+        if (m_settings.previewBrowser.trimmed().isEmpty()) {
+            QDesktopServices::openUrl(url);
+        } else {
+            const QStringList b = QProcess::splitCommand(m_settings.previewBrowser);
+            QStringList args = b.mid(1);
+            args << url.toString();
+            const auto [program, a] = Sandbox::command(b.first(), args);
+            QProcess::startDetached(program, a);
+        }
+    };
+    if (delay)
+        QTimer::singleShot(500, this, openInBrowser);
+    else
+        openInBrowser();
+    statusBar()->showMessage(tr("Previewing %1 at %2").arg(info.fileName(), url.toString()), 4000);
+}
+
+void MainWindow::setLivePreview(bool on)
+{
+    if (on) {
+        CodeEditor *editor = currentEditor();
+        if (!editor || editor->language().id != QLatin1String("html") || !save(editor)) {
+            if (m_livePreviewAction)
+                m_livePreviewAction->setChecked(false);
+            return;
+        }
+        previewCurrent(editor);
+    } else {
+        if (m_preview)
+            m_preview->stop();
+        if (m_previewProcess && m_previewProcess->state() != QProcess::NotRunning) {
+            m_previewProcess->kill();
+            m_previewProcess->waitForFinished(500);
+        }
+        statusBar()->showMessage(tr("Live preview stopped."), 3000);
+    }
+}
+
+void MainWindow::autoSavePending()
+{
+    const QSet<CodeEditor *> pending = m_autoSavePending;
+    m_autoSavePending.clear();
+    const QList<CodeEditor *> alive = allEditors();
+    for (CodeEditor *e : pending) {
+        if (alive.contains(e) && !e->filePath().isEmpty() && e->doc()->isModified())
+            save(e);
+    }
 }
 
 QHash<QString, QList<int>> MainWindow::collectBreakpoints() const
@@ -2009,8 +2220,12 @@ void MainWindow::refreshIcons()
     for (const auto &[button, glyph] : std::as_const(m_emptyButtons))
         button->setIcon(Icons::icon(glyph, m_theme.primary, 18));
     const int size = m_toolbar->iconSize().width();
-    for (const auto &[action, glyph] : std::as_const(m_iconActions))
-        action->setIcon(Icons::icon(glyph, m_theme.textSecondary, size));
+    for (const auto &[action, glyph] : std::as_const(m_iconActions)) {
+        // Live Preview ligado: ícone na cor de destaque (indica ativo).
+        const QColor color = (action == m_livePreviewAction && action->isChecked()) ? m_theme.primary
+                                                                                     : m_theme.textSecondary;
+        action->setIcon(Icons::icon(glyph, color, size));
+    }
     m_runToolbarAction->setIcon(Icons::icon(Icons::Run, m_theme.window, size));
     for (ViewSpace *s : viewSpaces()) {
         for (int i = 0; i < s->count(); ++i) {
@@ -2276,6 +2491,13 @@ void MainWindow::closeEvent(QCloseEvent *event)
             event->ignore();
             return;
         }
+    }
+    // Encerra o preview (servidor embutido e servidor externo).
+    if (m_preview)
+        m_preview->stop();
+    if (m_previewProcess && m_previewProcess->state() != QProcess::NotRunning) {
+        m_previewProcess->kill();
+        m_previewProcess->waitForFinished(500);
     }
     saveSession();
     event->accept();

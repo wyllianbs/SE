@@ -22,6 +22,9 @@ class QToolBar;
 class QToolButton;
 class TerminalDock;
 class LspManager;
+class PreviewServer;
+class QProcess;
+class QTimer;
 class DebugSession;
 class DebugPanel;
 struct DebugFrame;
@@ -78,6 +81,7 @@ private:
     bool closeTab(ViewSpace *space, int index);
     bool maybeSave(CodeEditor *editor);
     void runCurrent(bool interactive = false);
+    void previewCurrent(CodeEditor *editor); //< HTML: abre no navegador (servidor de preview)
     void startDebugging();
     void showExecutionPoint(const DebugFrame &frame);
     void clearExecutionPoint();
@@ -128,6 +132,12 @@ private:
     QToolButton *m_lspLabel = nullptr;
     QLabel *m_diagLabel = nullptr;
     LspManager *m_lsp = nullptr;
+    PreviewServer *m_preview = nullptr;
+    QProcess *m_previewProcess = nullptr; //< servidor externo (ex.: php -S)
+    QTimer *m_previewReloadTimer = nullptr;
+    QTimer *m_autoSaveTimer = nullptr;
+    QSet<CodeEditor *> m_autoSavePending;
+    void autoSavePending();
     void changeEncoding(const QString &encoding, bool bom);
     void buildStatusBar();
     QString gitBranchFor(const QString &filePath) const;
@@ -138,6 +148,8 @@ private:
     QAction *m_runAction = nullptr;
     QAction *m_runToolbarAction = nullptr;
     QAction *m_runInteractiveAction = nullptr;
+    QAction *m_livePreviewAction = nullptr;
+    void setLivePreview(bool on);
     DebugSession *m_debug = nullptr;
     DebugPanel *m_debugPanel = nullptr;
     QList<QAction *> m_stepActions; //< ativas só com o programa pausado

@@ -18,7 +18,7 @@ Package: slayer-editor
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, fonts-hack
 Recommends: build-essential, gdb, python3, python3-debugpy, qt6-translations-l10n, fonts-jetbrains-mono
-Suggests: rustc, golang-go, nodejs, default-jdk
+Suggests: rustc, golang-go, nodejs, default-jdk, php-cli
 Description: lightweight code editor with an embedded terminal
  Slayer Editor is a Qt 6 code editor with tabs, syntax highlighting,
  auto-indentation, auto-closing pairs, find/replace and several color themes.

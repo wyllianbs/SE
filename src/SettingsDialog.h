@@ -38,6 +38,7 @@ private:
     QWidget *buildEditorPage();
     QWidget *buildAppearancePage();
     QWidget *buildTerminalPage();
+    QWidget *buildPreviewPage();
     QWidget *buildLanguagesPage();
     QWidget *buildSymbolsPage();
     void addSymbolRow(const SymbolRule &rule);
@@ -104,6 +105,14 @@ private:
     QFontComboBox *m_terminalFont = nullptr;
     QSpinBox *m_terminalFontSize = nullptr;
     QComboBox *m_shell = nullptr;
+    QCheckBox *m_autoSave = nullptr;
+    QLineEdit *m_previewCommand = nullptr;
+    QLabel *m_previewHint = nullptr;
+    QLineEdit *m_previewHost = nullptr;
+    QSpinBox *m_previewPort = nullptr;
+    QComboBox *m_previewBrowser = nullptr;
+    QComboBox *m_previewReload = nullptr;
+    QSpinBox *m_previewInterval = nullptr;
     QCheckBox *m_terminalBlink = nullptr;
     QSlider *m_terminalTransparency = nullptr;
     QLabel *m_terminalTransparencyLabel = nullptr;

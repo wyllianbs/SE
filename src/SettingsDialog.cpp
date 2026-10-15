@@ -1,5 +1,6 @@
 #include "SettingsDialog.h"
 #include "Icons.h"
+#include "Sandbox.h"
 #include "Language.h"
 #include "LspManager.h"
 #include "ThemeEditor.h"
@@ -23,6 +24,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSlider>
+#include <QSet>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QStandardPaths>
@@ -123,6 +125,7 @@ SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, 
     addPage(tr("Editor"), Icons::Code, buildEditorPage());
     addPage(tr("Appearance"), Icons::Palette, buildAppearancePage());
     addPage(tr("Terminal"), Icons::Terminal, buildTerminalPage());
+    addPage(tr("Preview"), Icons::Server, buildPreviewPage());
     addPage(tr("Languages"), Icons::Languages, buildLanguagesPage());
     addPage(tr("Symbols"), Icons::Symbols, buildSymbolsPage());
     connect(m_nav, &QListWidget::currentRowChanged, m_pages, &QStackedWidget::setCurrentIndex);
@@ -286,11 +289,13 @@ QWidget *SettingsDialog::buildEditorPage()
     m_completion = new QCheckBox(tr("Code completion (words in the file + language keywords, Ctrl+Space)"));
     m_folding = new QCheckBox(tr("Code folding (arrows next to the line numbers, Ctrl+Shift+[ / ])"));
     m_lspEnabled = new QCheckBox(tr("Language servers (LSP): diagnostics and smarter completion"));
+    m_autoSave = new QCheckBox(tr("Auto-save edited files"));
     auto *typing = new QVBoxLayout;
     typing->addWidget(m_autoPairs);
     typing->addWidget(m_completion);
     typing->addWidget(m_folding);
     typing->addWidget(m_lspEnabled);
+    typing->addWidget(m_autoSave);
 
     auto *layout = new QVBoxLayout;
     layout->setSpacing(14);
@@ -527,6 +532,94 @@ QWidget *SettingsDialog::buildTerminalPage()
     layout->addWidget(card(QString(), form));
     layout->addWidget(card(tr("Tip"), tips));
     return makePage(tr("Terminal"), QString(), layout);
+}
+
+QWidget *SettingsDialog::buildPreviewPage()
+{
+    m_previewCommand = new QLineEdit;
+    m_previewCommand->setPlaceholderText(tr("Built-in server (leave empty), or e.g.  php -S {host}:{port}"));
+    m_previewHost = new QLineEdit;
+    m_previewPort = new QSpinBox;
+    m_previewPort->setRange(1, 65535);
+    m_previewBrowser = new QComboBox;
+    m_previewBrowser->addItem(tr("System default"), QString());
+    static const QList<QPair<QString, QString>> known{
+        {QStringLiteral("firefox"), QStringLiteral("Firefox")},
+        {QStringLiteral("chromium"), QStringLiteral("Chromium")},
+        {QStringLiteral("chromium-browser"), QStringLiteral("Chromium")},
+        {QStringLiteral("google-chrome"), QStringLiteral("Google Chrome")},
+        {QStringLiteral("google-chrome-stable"), QStringLiteral("Google Chrome")},
+        {QStringLiteral("brave-browser"), QStringLiteral("Brave")},
+        {QStringLiteral("microsoft-edge"), QStringLiteral("Microsoft Edge")},
+        {QStringLiteral("opera"), QStringLiteral("Opera")},
+        {QStringLiteral("vivaldi"), QStringLiteral("Vivaldi")},
+        {QStringLiteral("epiphany"), QStringLiteral("GNOME Web")},
+        {QStringLiteral("falkon"), QStringLiteral("Falkon")},
+        {QStringLiteral("konqueror"), QStringLiteral("Konqueror")},
+    };
+    QSet<QString> seen;
+    for (const auto &b : known) {
+        if (seen.contains(b.second) || !Sandbox::hasExecutable(b.first))
+            continue;
+        seen.insert(b.second);
+        m_previewBrowser->addItem(b.second, b.first);
+    }
+    m_previewReload = new QComboBox;
+    m_previewReload->addItem(tr("On all changes in the editor"), 1);
+    m_previewReload->addItem(tr("Never"), 0);
+    m_previewReload->addItem(tr("Every N seconds"), 2);
+    m_previewInterval = new QSpinBox;
+    m_previewInterval->setRange(1, 3600);
+    m_previewInterval->setSuffix(tr(" s"));
+    connect(m_previewReload, qOverload<int>(&QComboBox::currentIndexChanged), this,
+            [this]() { m_previewInterval->setEnabled(m_previewReload->currentData().toInt() == 2); });
+
+    m_previewHint = new QLabel;
+    m_previewHint->setWordWrap(true);
+    m_previewHint->setObjectName(QStringLiteral("EmptyHint"));
+    // Aviso dinâmico de qual servidor está em uso + desabilita host/port quando o
+    // comando já traz o próprio endereço (sem {host}/{port}).
+    auto updateHint = [this]() {
+        const QString cmd = m_previewCommand->text().trimmed();
+        const bool placeholders = cmd.contains(QLatin1String("{host}")) || cmd.contains(QLatin1String("{port}"));
+        const bool ownAddress = !cmd.isEmpty() && !placeholders;
+        m_previewHost->setEnabled(!ownAddress);
+        m_previewPort->setEnabled(!ownAddress);
+        if (cmd.isEmpty())
+            m_previewHint->setText(tr("Default: built-in live-preview server (with live reload)."));
+        else if (ownAddress)
+            m_previewHint->setText(tr("Using: %1 — host and port come from the command.").arg(cmd));
+        else
+            m_previewHint->setText(tr("Using: %1").arg(cmd));
+    };
+    connect(m_previewCommand, &QLineEdit::textChanged, this, [updateHint]() { updateHint(); });
+    updateHint();
+
+    auto *server = new QFormLayout;
+    server->setHorizontalSpacing(24);
+    server->addRow(tr("Server command"), m_previewCommand);
+    server->addRow(QString(), m_previewHint);
+    auto *hp = new QHBoxLayout;
+    hp->addWidget(m_previewHost, 1);
+    hp->addWidget(new QLabel(QStringLiteral(":")));
+    hp->addWidget(m_previewPort);
+    server->addRow(tr("Host / port"), hp);
+    server->addRow(tr("Browser"), m_previewBrowser);
+
+    auto *reload = new QFormLayout;
+    reload->setHorizontalSpacing(24);
+    reload->addRow(tr("Live reload"), m_previewReload);
+    reload->addRow(tr("Interval"), m_previewInterval);
+
+    auto *layout = new QVBoxLayout;
+    layout->setSpacing(14);
+    layout->addWidget(card(tr("Server"), server));
+    layout->addWidget(card(tr("Live reload"), reload));
+    return makePage(tr("Preview"),
+                    tr("Run opens HTML in the browser. Leave the server command empty to use the "
+                       "built-in live-preview server (best for static HTML/CSS/JS); set a command "
+                       "like “php -S {host}:{port}” for a backend."),
+                    layout);
 }
 
 /**
@@ -916,6 +1009,15 @@ void SettingsDialog::setForm(const AppSettings &s)
         m_shell->setEditText(s.shell);
     m_terminalBlink->setChecked(s.terminalCursorBlink);
     m_terminalTransparency->setValue(s.terminalTransparency);
+
+    m_autoSave->setChecked(s.autoSave);
+    m_previewCommand->setText(s.previewCommand);
+    m_previewHost->setText(s.previewHost);
+    m_previewPort->setValue(s.previewPort);
+    m_previewBrowser->setCurrentIndex(qMax(0, m_previewBrowser->findData(s.previewBrowser)));
+    m_previewReload->setCurrentIndex(qMax(0, m_previewReload->findData(s.previewReload)));
+    m_previewInterval->setValue(s.previewReloadInterval);
+    m_previewInterval->setEnabled(s.previewReload == 2);
     m_terminalTransparencyLabel->setText(s.terminalTransparency == 0 ? tr("Off")
                                                                       : QStringLiteral("%1%").arg(s.terminalTransparency));
 
@@ -995,6 +1097,17 @@ AppSettings SettingsDialog::settings() const
                   : m_shell->currentText().trimmed();
     s.terminalCursorBlink = m_terminalBlink->isChecked();
     s.terminalTransparency = m_terminalTransparency->value();
+
+    s.autoSave = m_autoSave->isChecked();
+    s.previewCommand = m_previewCommand->text().trimmed();
+    s.previewHost = m_previewHost->text().trimmed().isEmpty() ? QStringLiteral("127.0.0.1")
+                                                              : m_previewHost->text().trimmed();
+    s.previewPort = m_previewPort->value();
+    s.previewBrowser = m_previewBrowser->currentData().toString();
+    s.previewReload = m_previewReload->currentData().toInt();
+    s.previewReloadInterval = m_previewInterval->value();
+    // Preserva opções fora deste formulário.
+    s.autoReload = m_detect.autoReload;
 
     const_cast<SettingsDialog *>(this)->storeLanguageForm();
     s.languages = m_hiddenLanguages;

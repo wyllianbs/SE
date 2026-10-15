@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 
 include(GNUInstallDirs)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets LinguistTools)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Network LinguistTools)
 find_package(qtermwidget6 REQUIRED)
 
 add_executable(slayer-editor
@@ -37,6 +37,7 @@ add_executable(slayer-editor
     src/ViewSpace.cpp src/ViewSpace.h
     src/Settings.cpp src/Settings.h
     src/SettingsDialog.cpp src/SettingsDialog.h
+    src/PreviewServer.cpp src/PreviewServer.h
     resources/resources.qrc
 )
 
@@ -44,7 +45,7 @@ target_compile_definitions(slayer-editor PRIVATE
     SLAYER_VERSION="${PROJECT_VERSION}"
 )
 
-target_link_libraries(slayer-editor PRIVATE Qt6::Widgets qtermwidget6)
+target_link_libraries(slayer-editor PRIVATE Qt6::Widgets Qt6::Network qtermwidget6)
 
 # Traduções: os .qm vão embutidos no binário, em :/i18n.
 qt_add_translations(slayer-editor

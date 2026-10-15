@@ -161,6 +161,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("codeCompletion")] = codeCompletion;
     o[QStringLiteral("codeFolding")] = codeFolding;
     o[QStringLiteral("autoReload")] = autoReload;
+    o[QStringLiteral("autoSave")] = autoSave;
     o[QStringLiteral("lspEnabled")] = lspEnabled;
     QJsonObject lspObj;
     for (auto it = lsp.cbegin(); it != lsp.cend(); ++it)
@@ -188,6 +189,13 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("shell")] = shell;
     o[QStringLiteral("terminalCursorBlink")] = terminalCursorBlink;
     o[QStringLiteral("terminalTransparency")] = terminalTransparency;
+
+    o[QStringLiteral("previewCommand")] = previewCommand;
+    o[QStringLiteral("previewHost")] = previewHost;
+    o[QStringLiteral("previewPort")] = previewPort;
+    o[QStringLiteral("previewBrowser")] = previewBrowser;
+    o[QStringLiteral("previewReload")] = previewReload;
+    o[QStringLiteral("previewReloadInterval")] = previewReloadInterval;
 
     QJsonObject langs;
     for (auto it = languages.cbegin(); it != languages.cend(); ++it) {
@@ -221,6 +229,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.codeCompletion = flag("codeCompletion", s.codeCompletion);
     s.codeFolding = flag("codeFolding", s.codeFolding);
     s.autoReload = flag("autoReload", s.autoReload);
+    s.autoSave = flag("autoSave", s.autoSave);
     s.lspEnabled = flag("lspEnabled", s.lspEnabled);
     s.userThemes = o.value(QStringLiteral("userThemes")).toArray();
     const QJsonObject lspObj = o.value(QStringLiteral("lsp")).toObject();
@@ -258,6 +267,13 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.shell = str("shell", s.shell);
     s.terminalCursorBlink = flag("terminalCursorBlink", s.terminalCursorBlink);
     s.terminalTransparency = qBound(0, num("terminalTransparency", s.terminalTransparency), 90);
+
+    s.previewCommand = str("previewCommand", s.previewCommand);
+    s.previewHost = str("previewHost", s.previewHost);
+    s.previewPort = qBound(1, num("previewPort", s.previewPort), 65535);
+    s.previewBrowser = str("previewBrowser", s.previewBrowser);
+    s.previewReload = qBound(0, num("previewReload", s.previewReload), 2);
+    s.previewReloadInterval = qBound(1, num("previewReloadInterval", s.previewReloadInterval), 3600);
 
     const QJsonObject langs = o.value(QStringLiteral("languages")).toObject();
     for (auto it = langs.begin(); it != langs.end(); ++it) {

@@ -60,6 +60,7 @@ struct AppSettings
     bool codeCompletion = true;
     bool codeFolding = true;
     bool autoReload = false;     //< relê sozinho arquivos alterados por outros programas
+    bool autoSave = true;        //< salva automaticamente os arquivos editados (com nome)
     bool lspEnabled = true;      //< chave geral dos servidores de linguagem
     bool insertSpaces = true;    //< Tab insere espaços (tabulações emuladas)
     bool editorCursorBlink = true;
@@ -84,6 +85,14 @@ struct AppSettings
     QString shell;               //< vazio = $SHELL
     bool terminalCursorBlink = true;
     int terminalTransparency = 0; //< % (0 = opaco, máx. 90)
+
+    // Pré-visualização de HTML/CSS/JS (Run abre no navegador)
+    QString previewCommand;      //< servidor externo, ex. "php -S {host}:{port}"; vazio = servidor embutido
+    QString previewHost = QStringLiteral("127.0.0.1");
+    int previewPort = 8080;
+    QString previewBrowser;      //< comando do navegador; vazio = padrão do sistema
+    int previewReload = 1;       //< 0 = nunca, 1 = a cada mudança, 2 = por intervalo
+    int previewReloadInterval = 2; //< segundos (modo intervalo)
 
     // Linguagens
     QMap<QString, LanguageConfig> languages; //< id da linguagem embutida → config
