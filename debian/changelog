@@ -1,18 +1,12 @@
-slayer-editor (0.4.2-2) unstable; urgency=medium
-
-  * Recommend gdb and python3-debugpy, used by the Debug Adapter Protocol
-    debugger for C/C++ and Python respectively.
-
- -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Tue, 13 Oct 2026 10:00:00 -0300
-
-slayer-editor (0.4.2-1) unstable; urgency=medium
+slayer-editor (0.4.3-1) unstable; urgency=medium
 
   * Initial release. (Closes: #1150574)
     Qt 6 code editor with a tabbed interface, an embedded QTermWidget
     terminal dockable on any edge, F5 to compile and run (C, C++, Python,
     Rust, Go, JavaScript, Java and shell), Language Server Protocol
-    diagnostics and completion, Debug Adapter Protocol debugging, a
-    Kate-style split view and status bar, several color themes, an optional
+    diagnostics and inline (ghost-text) completion, Debug Adapter Protocol
+    debugging, a Kate-style split view, status bar and auto-reload,
+    matching block-delimiter highlighting, several color themes, an optional
     symbol display, and drag-and-drop of files to open them in new tabs.
 
- -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Mon, 12 Oct 2026 10:00:00 -0300
+ -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Wed, 14 Oct 2026 10:00:00 -0300

@@ -42,6 +42,14 @@
   </screenshots>
   <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
   <releases>
+    <release version="0.4.3" date="2026-10-14">
+      <description>
+        <p>Fixes a crash when opening an empty file. Code completion now appears
+        inline as ghost text (accepted with Tab) instead of a popup, matching
+        block delimiters are highlighted, the disk-change bar can enable
+        auto-reload, and files can be dropped onto the welcome screen.</p>
+      </description>
+    </release>
     <release version="0.4.2" date="2026-10-12">
       <description>
         <p>Dragging a file onto the editor now opens it in a new tab instead of
