@@ -20,6 +20,7 @@
 #include <QCloseEvent>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QKeyEvent>
 #include <QMimeData>
 #include <QUrl>
 #include <QGuiApplication>
@@ -240,6 +241,19 @@ MainWindow::MainWindow(QWidget *parent)
                 QTextCursor c = currentEditor()->textCursor();
                 c.setPosition(qEnvironmentVariableIntValue("SLAYER_DEBUG_CURSOR"));
                 currentEditor()->setTextCursor(c);
+            }
+            // SLAYER_DEBUG_TYPE: "digita" o texto no editor (dispara a completion).
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_TYPE") && currentEditor()) {
+                currentEditor()->setFocus();
+                for (const QChar &ch : qEnvironmentVariable("SLAYER_DEBUG_TYPE")) {
+                    int key = 0;
+                    QString text(ch);
+                    if (ch == QLatin1Char('\t')) { key = Qt::Key_Tab; }
+                    else if (ch.isLetter()) key = Qt::Key_A + (ch.toUpper().unicode() - 'A');
+                    else if (ch.isDigit()) key = Qt::Key_0 + (ch.unicode() - '0');
+                    QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier, text);
+                    QApplication::sendEvent(currentEditor(), &press);
+                }
             }
             // SLAYER_DEBUG_SPLIT: sequência de divisões, "h" lado a lado e "v" empilhado.
             for (QChar c : qEnvironmentVariable("SLAYER_DEBUG_SPLIT"))

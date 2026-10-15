@@ -108,6 +108,15 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
         if (!textCursor().block().isVisible())
             m_doc->revealLine(textCursor().blockNumber());
     });
+    // Mover o cursor (ou editar) invalida a sugestão inline; quem digita a recria.
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
+        if (m_ghostPos != textCursor().position())
+            clearGhost();
+    });
+    connect(this, &QPlainTextEdit::selectionChanged, this, [this]() {
+        if (textCursor().hasSelection())
+            clearGhost();
+    });
 
     updateLineNumberAreaWidth();
     highlightCurrentLine();
@@ -688,26 +697,19 @@ bool CodeEditor::handleAutoPair(QKeyEvent *event)
 
 void CodeEditor::keyPressEvent(QKeyEvent *event)
 {
-    // Com o popup aberto, Enter/Tab aceitam e Esc fecha (o QCompleter trata).
-    if (m_completer->popup()->isVisible()) {
-        switch (event->key()) {
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
-        case Qt::Key_Tab:
-            if (m_completer->popup()->currentIndex().isValid()) {
-                insertCompletion(m_completer->popup()->currentIndex().data().toString());
-                m_completer->popup()->hide();
-                return;
-            }
-            m_completer->popup()->hide();
-            break;
-        case Qt::Key_Escape:
-        case Qt::Key_Backtab:
-            event->ignore();
-            m_completer->popup()->hide();
+    // Sugestão inline (ghost text): Tab aceita, Esc dispensa.
+    if (!m_ghostText.isEmpty() && m_ghostPos == textCursor().position() && !textCursor().hasSelection()) {
+        if (event->key() == Qt::Key_Tab && event->modifiers() == Qt::NoModifier) {
+            const QString g = m_ghostText;
+            QTextCursor c = textCursor();
+            c.insertText(g);
+            setTextCursor(c);
+            clearGhost();
             return;
-        default:
-            break;
+        }
+        if (event->key() == Qt::Key_Escape) {
+            clearGhost();
+            return;
         }
     }
 
@@ -805,10 +807,10 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
     if (manual || (m_completionEnabled && !typed.isEmpty()
                    && (typed.at(0).isLetterOrNumber() || typed.at(0) == QLatin1Char('_')))) {
         updateCompletion();
-    } else if (m_completer->popup()->isVisible() && event->key() == Qt::Key_Backspace) {
+    } else if (event->key() == Qt::Key_Backspace && m_completionEnabled) {
         updateCompletion();
     } else if (!typed.isEmpty()) {
-        m_completer->popup()->hide();
+        clearGhost();
     }
 }
 
@@ -836,7 +838,7 @@ void CodeEditor::updateCompletion(bool fromTrigger)
 {
     const QString prefix = wordUnderCursor();
     if (!fromTrigger && (prefix.length() < 2 || prefix.at(0).isDigit())) {
-        m_completer->popup()->hide();
+        clearGhost();
         return;
     }
 
@@ -910,20 +912,55 @@ void CodeEditor::showCompletions(const QString &prefix, QStringList words, const
         }
     }
     if (labels.isEmpty()) {
-        m_completer->popup()->hide();
+        clearGhost();
         return;
     }
-    if (labels.size() > 60)
-        labels = labels.mid(0, 60);
-    m_completionModel->setStringList(labels);
-    m_completer->setCompletionPrefix(QString());
-    m_completer->popup()->setCurrentIndex(m_completionModel->index(0));
+    // Sugere só no fim da palavra (não no meio dela).
+    const QChar next = document()->characterAt(textCursor().position());
+    if (next.isLetterOrNumber() || next == QLatin1Char('_')) {
+        clearGhost();
+        return;
+    }
+    // Melhor sugestão que começa pelo prefixo (mesma caixa): mostra o restante
+    // após o que já foi digitado como ghost text (aceita com Tab).
+    for (const QString &label : std::as_const(labels)) {
+        const QString word = m_insertFor.value(label, label);
+        if (word.size() > prefix.size() && word.startsWith(prefix)) {
+            setGhost(word.mid(prefix.size()));
+            return;
+        }
+    }
+    clearGhost();
+}
 
-    QRect rect = cursorRect();
-    rect.translate(viewportMargins().left(), 0);
-    rect.setWidth(qMin(520, m_completer->popup()->sizeHintForColumn(0)
-                                + m_completer->popup()->verticalScrollBar()->sizeHint().width() + 24));
-    m_completer->complete(rect);
+void CodeEditor::setGhost(const QString &text)
+{
+    m_ghostText = text;
+    m_ghostPos = textCursor().position();
+    viewport()->update();
+}
+
+void CodeEditor::clearGhost()
+{
+    if (m_ghostText.isEmpty() && m_ghostPos < 0)
+        return;
+    m_ghostText.clear();
+    m_ghostPos = -1;
+    viewport()->update();
+}
+
+void CodeEditor::paintGhostText(QPainter &p)
+{
+    if (m_ghostText.isEmpty() || m_ghostPos != textCursor().position() || textCursor().hasSelection())
+        return;
+    const QRect r = cursorRect();
+    QColor c = m_theme.textSecondary;
+    c.setAlpha(150);
+    p.setPen(c);
+    p.setFont(font());
+    // Alinha pela linha de base do texto da linha atual.
+    const QFontMetrics fm(font());
+    p.drawText(r.left(), r.top() + fm.ascent(), m_ghostText);
 }
 
 void CodeEditor::insertCompletion(const QString &label)
@@ -1009,6 +1046,7 @@ void CodeEditor::paintEvent(QPaintEvent *event)
     p.setRenderHint(QPainter::Antialiasing);
     if (m_prettySymbols && !m_symbols.isEmpty())
         paintPrettySymbols(p);
+    paintGhostText(p);
     if (!m_doc->foldingEnabled())
         return;
     const QFontMetrics fm(font());

@@ -116,4 +116,9 @@ private:
     QStringList m_triggers;
     QHash<QString, QString> m_insertFor; //< rótulo → texto a inserir
     int m_completionRequest = 0;
+    QString m_ghostText;   //< sugestão inline (ghost text), aceita com Tab
+    int m_ghostPos = -1;   //< posição do cursor onde o ghost é válido
+    void setGhost(const QString &text);
+    void clearGhost();
+    void paintGhostText(class QPainter &p);
 };
