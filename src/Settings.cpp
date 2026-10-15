@@ -198,6 +198,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("previewBrowser")] = previewBrowser;
     o[QStringLiteral("previewReload")] = previewReload;
     o[QStringLiteral("previewReloadInterval")] = previewReloadInterval;
+    o[QStringLiteral("previewCrossOriginIsolation")] = previewCrossOriginIsolation;
 
     QJsonObject langs;
     for (auto it = languages.cbegin(); it != languages.cend(); ++it) {
@@ -278,6 +279,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.previewBrowser = str("previewBrowser", s.previewBrowser);
     s.previewReload = qBound(0, num("previewReload", s.previewReload), 2);
     s.previewReloadInterval = qBound(1, num("previewReloadInterval", s.previewReloadInterval), 3600);
+    s.previewCrossOriginIsolation = flag("previewCrossOriginIsolation", s.previewCrossOriginIsolation);
 
     const QJsonObject langs = o.value(QStringLiteral("languages")).toObject();
     for (auto it = langs.begin(); it != langs.end(); ++it) {

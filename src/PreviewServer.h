@@ -44,6 +44,13 @@ public:
      */
     void setBackend(const QString &host, quint16 port);
 
+    /**
+     * Isolamento de origem cruzada: envia os cabeçalhos COOP/COEP/CORP, que
+     * habilitam SharedArrayBuffer/Atomics (apps WASM com threads, como
+     * compiladores C/Python no navegador). Vale para arquivos e para o proxy.
+     */
+    void setCrossOriginIsolation(bool on) { m_coi = on; }
+
     /** Modo de recarga e intervalo (ms) usado no modo Interval. */
     void setReload(ReloadMode mode, int intervalMs);
     /** Marca que o conteúdo mudou (modo OnChange): recarrega na próxima sondagem. */
@@ -79,4 +86,5 @@ private:
     ContentProvider m_provider;
     QString m_backendHost;
     quint16 m_backendPort = 0; //< 0 = servir arquivos; >0 = proxy
+    bool m_coi = false;        //< envia COOP/COEP/CORP (isolamento de origem cruzada)
 };

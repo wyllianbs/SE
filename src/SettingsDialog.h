@@ -115,6 +115,7 @@ private:
     QComboBox *m_previewBrowser = nullptr;
     QComboBox *m_previewReload = nullptr;
     QSpinBox *m_previewInterval = nullptr;
+    QCheckBox *m_previewCoi = nullptr;
     QCheckBox *m_terminalBlink = nullptr;
     QSlider *m_terminalTransparency = nullptr;
     QLabel *m_terminalTransparencyLabel = nullptr;

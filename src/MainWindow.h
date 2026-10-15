@@ -138,6 +138,7 @@ private:
     LspManager *m_lsp = nullptr;
     PreviewServer *m_preview = nullptr;
     QProcess *m_previewProcess = nullptr; //< servidor externo (ex.: php -S)
+    quint16 m_previewBackendPort = 0;     //< porta interna em que o servidor externo roda
     QTimer *m_previewReloadTimer = nullptr;
     QTimer *m_autoSaveTimer = nullptr;
     QSet<CodeEditor *> m_autoSavePending;

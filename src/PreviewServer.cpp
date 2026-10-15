@@ -27,13 +27,22 @@ QByteArray contentType(const QString &path)
     return types.value(ext, QByteArrayLiteral("application/octet-stream"));
 }
 
+// Cabeçalhos que ativam o isolamento de origem cruzada (habilita
+// SharedArrayBuffer/Atomics — necessário para apps WASM com threads, como
+// compiladores C/Python no navegador).
+const QByteArray kCoiHeaders =
+    "Cross-Origin-Opener-Policy: same-origin\r\n"
+    "Cross-Origin-Embedder-Policy: require-corp\r\n"
+    "Cross-Origin-Resource-Policy: cross-origin\r\n";
+
 void writeResponse(QTcpSocket *sock, int code, const QByteArray &status, const QByteArray &type,
-                   const QByteArray &body)
+                   const QByteArray &body, const QByteArray &extra = {})
 {
     QByteArray head = "HTTP/1.1 " + QByteArray::number(code) + ' ' + status + "\r\n";
     head += "Content-Type: " + type + "\r\n";
     head += "Content-Length: " + QByteArray::number(body.size()) + "\r\n";
     head += "Cache-Control: no-store\r\n";
+    head += extra;
     head += "Connection: close\r\n\r\n";
     sock->write(head);
     sock->write(body);
@@ -195,7 +204,7 @@ void PreviewServer::serve(QTcpSocket *sock, const QByteArray &request)
     const QByteArray type = contentType(abs);
     if (m_mode != Never && type.startsWith("text/html"))
         body = injectReload(body);
-    writeResponse(sock, 200, "OK", type, body);
+    writeResponse(sock, 200, "OK", type, body, m_coi ? kCoiHeaders : QByteArray());
 }
 
 static QByteArray withContentLength(const QByteArray &headers, int len)
@@ -264,6 +273,25 @@ void PreviewServer::proxyTo(QTcpSocket *client, const QByteArray &request)
     if (m_mode != Never && isHtml && !chunked) {
         body = injectReload(body);
         headers = withContentLength(headers, body.size());
+    }
+    if (m_coi) {
+        // Substitui quaisquer cabeçalhos de isolamento do backend pelos nossos.
+        QByteArray filtered;
+        for (const QByteArray &raw : headers.split('\n')) {
+            QByteArray l = raw;
+            if (l.endsWith('\r'))
+                l.chop(1);
+            const QByteArray low = l.toLower();
+            if (low.startsWith("cross-origin-opener-policy:")
+                || low.startsWith("cross-origin-embedder-policy:")
+                || low.startsWith("cross-origin-resource-policy:"))
+                continue;
+            if (!l.isEmpty())
+                filtered += l + "\r\n";
+        }
+        if (filtered.endsWith("\r\n"))
+            filtered.chop(2);
+        headers = filtered + "\r\n" + kCoiHeaders.chopped(2);
     }
     client->write(headers + "\r\n\r\n" + body);
     client->flush();

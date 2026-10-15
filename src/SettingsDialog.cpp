@@ -25,6 +25,7 @@
 #include <QScrollArea>
 #include <QSlider>
 #include <QSet>
+#include <QRegularExpression>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QStandardPaths>
@@ -585,14 +586,28 @@ QWidget *SettingsDialog::buildPreviewPage()
     m_previewHint->setObjectName(QStringLiteral("EmptyHint"));
     // Aviso dinâmico de qual servidor está em uso + desabilita host/port quando o
     // comando já traz o próprio endereço (sem {host}/{port}).
+    static const QRegularExpression cmdAddr(QStringLiteral("(\\[[^\\]]+\\]|[A-Za-z0-9_.-]+)?:(\\d{2,5})(?!\\d)"));
     auto updateHint = [this]() {
         const QString cmd = m_previewCommand->text().trimmed();
-        if (cmd.isEmpty())
+        if (cmd.isEmpty()) {
             m_previewHint->setText(tr("Default: built-in live-preview server. The browser opens at the "
                                       "host and port above, with live reload."));
-        else
+            return;
+        }
+        // Se o comando traz host:porta, é esse o endereço aberto (o backend roda
+        // numa porta interna); senão, abre no Host/porta acima.
+        const auto m = cmdAddr.match(cmd);
+        if (m.hasMatch() && !cmd.contains(QLatin1String("{port}"))) {
+            QString h = m.captured(1);
+            if (h.isEmpty() || h == QLatin1String("0.0.0.0"))
+                h = QStringLiteral("127.0.0.1");
+            m_previewHint->setText(tr("Backend: %1. The preview opens at %2:%3 (from the command) with live "
+                                      "reload; the Host/port above is used only when the command has no port.")
+                                       .arg(cmd, h, m.captured(2)));
+        } else {
             m_previewHint->setText(tr("Backend: %1. Slayer serves at the host and port above and forwards "
                                       "to it, adding live reload.").arg(cmd));
+        }
     };
     connect(m_previewCommand, &QLineEdit::textChanged, this, [updateHint]() { updateHint(); });
     updateHint();
@@ -607,6 +622,11 @@ QWidget *SettingsDialog::buildPreviewPage()
     hp->addWidget(m_previewPort);
     server->addRow(tr("Host / port"), hp);
     server->addRow(tr("Browser"), m_previewBrowser);
+    m_previewCoi = new QCheckBox(tr("Cross-origin isolation (COOP/COEP)"));
+    m_previewCoi->setToolTip(tr("Send the headers that enable SharedArrayBuffer — needed by in-browser "
+                                "WASM apps that use threads (C/Python compilers, some games). May block "
+                                "cross-origin resources that lack CORP/CORS."));
+    server->addRow(QString(), m_previewCoi);
 
     auto *reload = new QFormLayout;
     reload->setHorizontalSpacing(24);
@@ -1021,6 +1041,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_previewBrowser->setCurrentIndex(qMax(0, m_previewBrowser->findData(s.previewBrowser)));
     m_previewReload->setCurrentIndex(qMax(0, m_previewReload->findData(s.previewReload)));
     m_previewInterval->setValue(s.previewReloadInterval);
+    m_previewCoi->setChecked(s.previewCrossOriginIsolation);
     m_previewInterval->setEnabled(s.previewReload == 2);
     m_terminalTransparencyLabel->setText(s.terminalTransparency == 0 ? tr("Off")
                                                                       : QStringLiteral("%1%").arg(s.terminalTransparency));
@@ -1112,6 +1133,7 @@ AppSettings SettingsDialog::settings() const
     s.previewBrowser = m_previewBrowser->currentData().toString();
     s.previewReload = m_previewReload->currentData().toInt();
     s.previewReloadInterval = m_previewInterval->value();
+    s.previewCrossOriginIsolation = m_previewCoi->isChecked();
     // Preserva opções fora deste formulário.
     s.autoReload = m_detect.autoReload;
 

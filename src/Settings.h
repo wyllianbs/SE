@@ -95,6 +95,7 @@ struct AppSettings
     QString previewBrowser;      //< comando do navegador; vazio = padrão do sistema
     int previewReload = 1;       //< 0 = nunca, 1 = a cada mudança, 2 = por intervalo
     int previewReloadInterval = 2; //< segundos (modo intervalo)
+    bool previewCrossOriginIsolation = false; //< COOP/COEP (SharedArrayBuffer p/ WASM com threads)
 
     // Linguagens
     QMap<QString, LanguageConfig> languages; //< id da linguagem embutida → config
