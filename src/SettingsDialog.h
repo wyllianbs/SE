@@ -79,6 +79,7 @@ private:
     QCheckBox *m_lineNumbers = nullptr;
     QCheckBox *m_wordWrap = nullptr;
     QCheckBox *m_highlightLine = nullptr;
+    QCheckBox *m_minimap = nullptr;
     QCheckBox *m_autoPairs = nullptr;
     QCheckBox *m_completion = nullptr;
     QCheckBox *m_folding = nullptr;

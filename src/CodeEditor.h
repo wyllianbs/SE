@@ -61,6 +61,14 @@ public:
     void lineNumberAreaClicked(const QPoint &pos);
     void lineNumberAreaHovered(const QPoint &pos);
 
+    void setMinimapVisible(bool visible);
+    int minimapWidth() const;
+    void minimapPaintEvent(QPaintEvent *event);
+    void minimapMousePressEvent(QMouseEvent *event);
+    void minimapMouseMoveEvent(QMouseEvent *event);
+    void minimapMouseReleaseEvent(QMouseEvent *event);
+    void minimapWheelEvent(QWheelEvent *event);
+
 
 Q_SIGNALS:
     void overwriteModeToggled(bool overwrite);
@@ -79,7 +87,10 @@ protected:
 
 private:
     void updateLineNumberAreaWidth();
+    void updateViewportMargins();
     void updateLineNumberArea(const QRect &rect, int dy);
+    int minimapFirstLine() const;
+    void minimapScrollTo(int widgetY);
     void highlightCurrentLine() { updateExtraSelections(); }
     bool handleAutoPair(QKeyEvent *event);
     void insertNewlineWithIndent();
@@ -95,6 +106,13 @@ private:
     void insertCompletion(const QString &word);
 
     QWidget *m_lineNumberArea;
+    QWidget *m_minimap = nullptr;
+    bool m_minimapVisible = true;
+    bool m_minimapDragging = false;
+    QPixmap m_minimapCache;          //< fatia renderizada das linhas (sem o indicador)
+    int m_mmCacheFirstLine = -1;     //< chave do cache: primeira linha desenhada
+    int m_mmCacheRevision = -1;      //< …revisão do documento
+    QString m_mmCacheThemeId;        //< …tema
     Document *m_doc;
     Theme m_theme;
     bool m_autoClosePairs = true;

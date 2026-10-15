@@ -280,9 +280,10 @@ QWidget *SettingsDialog::buildEditorPage()
     m_lineNumbers = new QCheckBox(tr("Show line numbers"));
     m_wordWrap = new QCheckBox(tr("Wrap long lines"));
     m_highlightLine = new QCheckBox(tr("Highlight the current line"));
+    m_minimap = new QCheckBox(tr("Show the code minimap (overview on the right)"));
     m_editorBlink = new QCheckBox(tr("Blinking cursor"));
     auto *display = new QVBoxLayout;
-    for (QCheckBox *c : {m_lineNumbers, m_wordWrap, m_highlightLine, m_editorBlink})
+    for (QCheckBox *c : {m_lineNumbers, m_wordWrap, m_highlightLine, m_minimap, m_editorBlink})
         display->addWidget(c);
 
     m_autoPairs = new QCheckBox(tr("Auto-close brackets and quotes  ( )  [ ]  { }  \" \"  ' '"));
@@ -973,6 +974,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_lineNumbers->setChecked(s.lineNumbers);
     m_wordWrap->setChecked(s.wordWrap);
     m_highlightLine->setChecked(s.highlightCurrentLine);
+    m_minimap->setChecked(s.minimap);
     m_autoPairs->setChecked(s.autoClosePairs);
     m_completion->setChecked(s.codeCompletion);
     m_folding->setChecked(s.codeFolding);
@@ -1053,6 +1055,7 @@ AppSettings SettingsDialog::settings() const
     s.lineNumbers = m_lineNumbers->isChecked();
     s.wordWrap = m_wordWrap->isChecked();
     s.highlightCurrentLine = m_highlightLine->isChecked();
+    s.minimap = m_minimap->isChecked();
     s.autoClosePairs = m_autoPairs->isChecked();
     s.codeCompletion = m_completion->isChecked();
     s.codeFolding = m_folding->isChecked();

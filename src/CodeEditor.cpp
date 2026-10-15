@@ -13,6 +13,7 @@
 #include <QFileInfo>
 #include <QHelpEvent>
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include <QPointer>
 #include <QToolTip>
 #include <QPainter>
@@ -39,6 +40,30 @@ private:
     CodeEditor *m_editor;
 };
 
+/** Minimap: visão reduzida do documento à direita (como no Kate/VS Code). */
+class MinimapArea : public QWidget
+{
+public:
+    explicit MinimapArea(CodeEditor *editor)
+        : QWidget(editor), m_editor(editor) { setCursor(Qt::PointingHandCursor); }
+    QSize sizeHint() const override { return {m_editor->minimapWidth(), 0}; }
+
+protected:
+    void paintEvent(QPaintEvent *event) override { m_editor->minimapPaintEvent(event); }
+    void mousePressEvent(QMouseEvent *event) override { m_editor->minimapMousePressEvent(event); }
+    void mouseMoveEvent(QMouseEvent *event) override { m_editor->minimapMouseMoveEvent(event); }
+    void mouseReleaseEvent(QMouseEvent *event) override { m_editor->minimapMouseReleaseEvent(event); }
+    void wheelEvent(QWheelEvent *event) override { m_editor->minimapWheelEvent(event); }
+
+private:
+    CodeEditor *m_editor;
+};
+
+// Geometria do minimap.
+constexpr int kMinimapWidth = 110;   //< largura em px
+constexpr int kMinimapLineH = 2;     //< altura de cada linha do documento no minimap
+constexpr double kMinimapCharW = 1.0; //< largura de cada caractere no minimap
+
 const QHash<QChar, QChar> &pairs()
 {
     static const QHash<QChar, QChar> map{
@@ -51,6 +76,7 @@ const QHash<QChar, QChar> &pairs()
 CodeEditor::CodeEditor(Document *document, QWidget *parent)
     : QPlainTextEdit(parent)
     , m_lineNumberArea(new LineNumberArea(this))
+    , m_minimap(new MinimapArea(this))
     , m_doc(document)
     , m_theme(Theme::all().first())
     , m_completer(new QCompleter(this))
@@ -100,6 +126,10 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
 
     connect(this, &QPlainTextEdit::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
     connect(this, &QPlainTextEdit::updateRequest, this, &CodeEditor::updateLineNumberArea);
+    // O minimap acompanha rolagem e edições do documento.
+    connect(verticalScrollBar(), &QScrollBar::valueChanged, m_minimap, qOverload<>(&QWidget::update));
+    connect(this, &QPlainTextEdit::textChanged, m_minimap, qOverload<>(&QWidget::update));
+    connect(this, &QPlainTextEdit::blockCountChanged, m_minimap, qOverload<>(&QWidget::update));
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, &CodeEditor::highlightCurrentLine);
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
         if (m_prettySymbols)
@@ -127,6 +157,10 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
 void CodeEditor::setLanguage(const Language &language)
 {
     m_doc->setLanguage(language);
+    // As cores mudam sem alterar o texto: força reconstruir o cache do minimap.
+    m_mmCacheRevision = -1;
+    if (m_minimap)
+        m_minimap->update();
 }
 
 void CodeEditor::setTheme(const Theme &theme)
@@ -141,6 +175,8 @@ void CodeEditor::setTheme(const Theme &theme)
     m_doc->setTheme(theme);
     highlightCurrentLine();
     m_lineNumberArea->update();
+    if (m_minimap)
+        m_minimap->update();
 }
 
 void CodeEditor::setEditorFont(const QFont &font)
@@ -300,7 +336,12 @@ void CodeEditor::lineNumberAreaClicked(const QPoint &pos)
 
 void CodeEditor::updateLineNumberAreaWidth()
 {
-    setViewportMargins(lineNumberAreaWidth(), 0, 0, 0);
+    updateViewportMargins();
+}
+
+void CodeEditor::updateViewportMargins()
+{
+    setViewportMargins(lineNumberAreaWidth(), 0, minimapWidth(), 0);
 }
 
 void CodeEditor::updateLineNumberArea(const QRect &rect, int dy)
@@ -319,6 +360,8 @@ void CodeEditor::resizeEvent(QResizeEvent *event)
         QPlainTextEdit::resizeEvent(event);
     const QRect cr = contentsRect();
     m_lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
+    if (m_minimapVisible)
+        m_minimap->setGeometry(QRect(cr.right() - minimapWidth() + 1, cr.top(), minimapWidth(), cr.height()));
 }
 
 void CodeEditor::setLineNumbersVisible(bool visible)
@@ -332,6 +375,146 @@ void CodeEditor::setLineNumbersVisible(bool visible)
 void CodeEditor::setWordWrap(bool wrap)
 {
     setLineWrapMode(wrap ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
+}
+
+int CodeEditor::minimapWidth() const
+{
+    return m_minimapVisible ? kMinimapWidth : 0;
+}
+
+void CodeEditor::setMinimapVisible(bool visible)
+{
+    if (m_minimapVisible == visible)
+        return;
+    m_minimapVisible = visible;
+    m_minimap->setVisible(visible);
+    updateViewportMargins();
+    resizeEvent(nullptr);
+    m_minimap->update();
+}
+
+/** Primeira linha do documento mostrada no topo do minimap. */
+int CodeEditor::minimapFirstLine() const
+{
+    const int visLines = qMax(1, m_minimap->height() / kMinimapLineH);
+    const int n = blockCount();
+    if (n <= visLines)
+        return 0;
+    const QScrollBar *bar = verticalScrollBar();
+    const double frac = bar->maximum() > 0 ? double(bar->value()) / bar->maximum() : 0.0;
+    return qBound(0, int(qRound(frac * (n - visLines))), n - visLines);
+}
+
+void CodeEditor::minimapPaintEvent(QPaintEvent *)
+{
+    const QSize sz = m_minimap->size();
+    const int w = sz.width();
+    const int h = sz.height();
+    const int first = minimapFirstLine();
+
+    // Reconstrói a fatia renderizada só quando algo que a afeta muda.
+    if (m_minimapCache.size() != sz || m_mmCacheFirstLine != first
+        || m_mmCacheRevision != document()->revision() || m_mmCacheThemeId != m_theme.id) {
+        m_minimapCache = QPixmap(sz);
+        m_minimapCache.fill(m_theme.surface);
+        QPainter cp(&m_minimapCache);
+        const int rows = h / kMinimapLineH + 1;
+        for (int row = 0; row < rows; ++row) {
+            const QTextBlock block = document()->findBlockByNumber(first + row);
+            if (!block.isValid())
+                break;
+            if (!block.isVisible())
+                continue;
+            const int y = row * kMinimapLineH;
+            const QString text = block.text();
+            const QList<QTextLayout::FormatRange> fmts =
+                block.layout() ? block.layout()->formats() : QList<QTextLayout::FormatRange>();
+            const int n = text.size();
+            int i = 0;
+            while (i < n) {
+                if (text.at(i).isSpace()) { ++i; continue; }
+                const int start = i;
+                while (i < n && !text.at(i).isSpace())
+                    ++i;
+                QColor col = m_theme.text;
+                for (const QTextLayout::FormatRange &fr : fmts)
+                    if (start >= fr.start && start < fr.start + fr.length
+                        && fr.format.foreground().style() != Qt::NoBrush) {
+                        col = fr.format.foreground().color();
+                        break;
+                    }
+                col.setAlpha(205);
+                const int x = int(start * kMinimapCharW);
+                if (x >= w)
+                    break;
+                cp.fillRect(x, y, qMin(int((i - start) * kMinimapCharW), w - x), kMinimapLineH, col);
+            }
+        }
+        m_mmCacheFirstLine = first;
+        m_mmCacheRevision = document()->revision();
+        m_mmCacheThemeId = m_theme.id;
+    }
+
+    QPainter p(m_minimap);
+    p.drawPixmap(0, 0, m_minimapCache);
+    // Divisória à esquerda.
+    p.setPen(m_theme.divider);
+    p.drawLine(0, 0, 0, h);
+
+    // Indicador da área visível (clicável/arrastável).
+    const QTextBlock fvb = firstVisibleBlock();
+    const double blockH = blockBoundingRect(fvb).height();
+    const int lineSpacing = blockH > 0 ? int(blockH) : qMax(1, fontMetrics().lineSpacing());
+    const int visibleLines = qMax(1, viewport()->height() / lineSpacing + 1);
+    const int indY = (fvb.blockNumber() - first) * kMinimapLineH;
+    const int indH = qMax(kMinimapLineH, visibleLines * kMinimapLineH);
+    QColor fill = m_theme.primary;
+    fill.setAlpha(40);
+    p.fillRect(QRect(0, indY, w, indH), fill);
+    QColor edge = m_theme.primary;
+    edge.setAlpha(130);
+    p.setPen(edge);
+    p.drawRect(QRect(0, indY, w - 1, indH - 1));
+}
+
+/** Rola o editor para centralizar a linha apontada no minimap. */
+void CodeEditor::minimapScrollTo(int widgetY)
+{
+    const int first = minimapFirstLine();
+    const int targetLine = first + widgetY / kMinimapLineH;
+    const double blockH = blockBoundingRect(firstVisibleBlock()).height();
+    const int lineSpacing = blockH > 0 ? int(blockH) : qMax(1, fontMetrics().lineSpacing());
+    const int pageLines = qMax(1, viewport()->height() / lineSpacing);
+    QScrollBar *bar = verticalScrollBar();
+    bar->setValue(qBound(bar->minimum(), targetLine - pageLines / 2, bar->maximum()));
+}
+
+void CodeEditor::minimapMousePressEvent(QMouseEvent *event)
+{
+    if (event->button() != Qt::LeftButton)
+        return;
+    m_minimapDragging = true;
+    minimapScrollTo(event->position().toPoint().y());
+}
+
+void CodeEditor::minimapMouseMoveEvent(QMouseEvent *event)
+{
+    if (m_minimapDragging)
+        minimapScrollTo(event->position().toPoint().y());
+}
+
+void CodeEditor::minimapMouseReleaseEvent(QMouseEvent *)
+{
+    m_minimapDragging = false;
+}
+
+void CodeEditor::minimapWheelEvent(QWheelEvent *event)
+{
+    // Rola o editor (3 linhas por entalhe), como se a roda fosse sobre ele.
+    QScrollBar *bar = verticalScrollBar();
+    const int steps = event->angleDelta().y() / 120;
+    bar->setValue(bar->value() - steps * 3 * qMax(1, bar->singleStep()));
+    event->accept();
 }
 
 void CodeEditor::setHighlightCurrentLine(bool enabled)
