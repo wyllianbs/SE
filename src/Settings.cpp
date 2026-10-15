@@ -158,6 +158,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("wordWrap")] = wordWrap;
     o[QStringLiteral("highlightCurrentLine")] = highlightCurrentLine;
     o[QStringLiteral("minimap")] = minimap;
+    o[QStringLiteral("minimapWidth")] = minimapWidth;
     o[QStringLiteral("autoClosePairs")] = autoClosePairs;
     o[QStringLiteral("codeCompletion")] = codeCompletion;
     o[QStringLiteral("codeFolding")] = codeFolding;
@@ -227,6 +228,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.wordWrap = flag("wordWrap", s.wordWrap);
     s.highlightCurrentLine = flag("highlightCurrentLine", s.highlightCurrentLine);
     s.minimap = flag("minimap", s.minimap);
+    s.minimapWidth = qBound(20, num("minimapWidth", s.minimapWidth), 400);
     s.autoClosePairs = flag("autoClosePairs", s.autoClosePairs);
     s.codeCompletion = flag("codeCompletion", s.codeCompletion);
     s.codeFolding = flag("codeFolding", s.codeFolding);

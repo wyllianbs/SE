@@ -60,7 +60,6 @@ private:
 };
 
 // Geometria do minimap.
-constexpr int kMinimapWidth = 110;   //< largura em px
 constexpr int kMinimapLineH = 2;     //< altura de cada linha do documento no minimap
 constexpr double kMinimapCharW = 1.0; //< largura de cada caractere no minimap
 
@@ -210,8 +209,54 @@ bool CodeEditor::saveFile(const QString &path, QString *error)
 void CodeEditor::toggleComment()
 {
     const QString marker = language().lineComment;
-    if (marker.isEmpty())
+    if (marker.isEmpty()) {
+        // Sem comentário de linha (HTML, CSS, XML…): usa o de bloco <!-- --> / /* */.
+        const QString bs = language().blockCommentStart;
+        const QString be = language().blockCommentEnd;
+        if (bs.isEmpty() || be.isEmpty())
+            return;
+
+        QTextCursor c = textCursor();
+        int start, end;
+        if (c.hasSelection()) {
+            start = c.selectionStart();
+            end = c.selectionEnd();
+        } else {
+            const QTextBlock b = c.block();
+            const QString text = b.text();
+            if (text.trimmed().isEmpty())
+                return;
+            const int indent = text.length() - QString(text).remove(QRegularExpression("^\\s+")).length();
+            start = b.position() + indent;
+            end = b.position() + text.length();
+        }
+        c.beginEditBlock();
+        c.setPosition(start);
+        c.setPosition(end, QTextCursor::KeepAnchor);
+        const QString sel = c.selectedText();
+        // Separa espaços externos do miolo (inclui quebras de linha como espaço).
+        int l = 0;
+        while (l < sel.size() && sel.at(l).isSpace())
+            ++l;
+        int r = sel.size();
+        while (r > l && sel.at(r - 1).isSpace())
+            --r;
+        const QString leading = sel.left(l);
+        const QString trailing = sel.mid(r);
+        QString core = sel.mid(l, r - l);
+        if (core.startsWith(bs) && core.endsWith(be) && core.size() >= bs.size() + be.size()) {
+            QString inner = core.mid(bs.size(), core.size() - bs.size() - be.size());
+            if (inner.startsWith(QLatin1Char(' ')))
+                inner.remove(0, 1);
+            if (inner.endsWith(QLatin1Char(' ')))
+                inner.chop(1);
+            c.insertText(leading + inner + trailing);
+        } else {
+            c.insertText(leading + bs + QLatin1Char(' ') + core + QLatin1Char(' ') + be + trailing);
+        }
+        c.endEditBlock();
         return;
+    }
 
     QTextCursor cursor = textCursor();
     QTextBlock first = document()->findBlock(cursor.selectionStart());
@@ -379,7 +424,18 @@ void CodeEditor::setWordWrap(bool wrap)
 
 int CodeEditor::minimapWidth() const
 {
-    return m_minimapVisible ? kMinimapWidth : 0;
+    return m_minimapVisible ? m_minimapWidth : 0;
+}
+
+void CodeEditor::setMinimapWidth(int width)
+{
+    width = qBound(20, width, 400);
+    if (m_minimapWidth == width)
+        return;
+    m_minimapWidth = width;
+    updateViewportMargins();
+    resizeEvent(nullptr);
+    m_minimap->update();
 }
 
 void CodeEditor::setMinimapVisible(bool visible)
@@ -634,6 +690,95 @@ void CodeEditor::updateExtraSelections()
                     sel.format.setForeground(m_theme.text);
                     sel.format.setFontWeight(QFont::Bold);
                     extra.append(sel);
+                }
+            }
+        }
+    }
+
+    // Realce do par de tags em HTML/XML: com o cursor dentro de <div …> (ou de
+    // </div>), destaca o nome desta tag e o da tag correspondente (aninhamento).
+    if (language().id == QLatin1String("html") || language().id == QLatin1String("xml")) {
+        struct TagInfo { bool valid = false; bool close = false; bool self = false;
+                         QString name; int nameStart = 0; int nameLen = 0; };
+        const QString text = toPlainText();
+        const int len = text.size();
+        auto parseTag = [&](int i, int j) -> TagInfo {
+            TagInfo t;
+            if (i < 0 || j <= i)
+                return t;
+            const QString in = text.mid(i + 1, j - i - 1);
+            if (in.isEmpty() || in.startsWith(QLatin1Char('!')) || in.startsWith(QLatin1Char('?')))
+                return t;
+            int p = 0;
+            t.close = in.startsWith(QLatin1Char('/'));
+            if (t.close)
+                p = 1;
+            while (p < in.size() && in.at(p).isSpace())
+                ++p;
+            const int ns = p;
+            if (ns >= in.size() || !in.at(ns).isLetter())
+                return t;
+            while (p < in.size() && (in.at(p).isLetterOrNumber() || in.at(p) == QLatin1Char('_')
+                                     || in.at(p) == QLatin1Char(':') || in.at(p) == QLatin1Char('-')))
+                ++p;
+            t.name = in.mid(ns, p - ns);
+            t.self = in.endsWith(QLatin1Char('/'));
+            t.nameStart = i + 1 + ns;
+            t.nameLen = p - ns;
+            t.valid = true;
+            return t;
+        };
+        const int pos = qBound(0, textCursor().position(), len);
+        const int lt = text.lastIndexOf(QLatin1Char('<'), qMin(pos, len - 1));
+        const int gt = lt >= 0 ? text.indexOf(QLatin1Char('>'), lt) : -1;
+        if (lt >= 0 && gt >= 0 && pos >= lt && pos <= gt + 1) {
+            const TagInfo cur = parseTag(lt, gt);
+            if (cur.valid && !cur.self) {
+                const Qt::CaseSensitivity cs = language().id == QLatin1String("html")
+                                                   ? Qt::CaseInsensitive : Qt::CaseSensitive;
+                auto same = [&](const QString &a, const QString &b) { return a.compare(b, cs) == 0; };
+                TagInfo match;
+                if (!cur.close) { // abertura → procura o fechamento adiante
+                    int depth = 1;
+                    for (int i = gt + 1; (i = text.indexOf(QLatin1Char('<'), i)) >= 0; ) {
+                        const int j = text.indexOf(QLatin1Char('>'), i);
+                        if (j < 0)
+                            break;
+                        const TagInfo t = parseTag(i, j);
+                        if (t.valid && !t.self && same(t.name, cur.name)) {
+                            if (t.close) { if (--depth == 0) { match = t; break; } }
+                            else ++depth;
+                        }
+                        i = j + 1;
+                    }
+                } else { // fechamento → procura a abertura para trás
+                    int depth = 1;
+                    for (int i = lt; (i = text.lastIndexOf(QLatin1Char('<'), i - 1)) >= 0; ) {
+                        const int j = text.indexOf(QLatin1Char('>'), i);
+                        if (j < 0 || j >= lt)
+                            continue;
+                        const TagInfo t = parseTag(i, j);
+                        if (t.valid && !t.self && same(t.name, cur.name)) {
+                            if (!t.close) { if (--depth == 0) { match = t; break; } }
+                            else ++depth;
+                        }
+                    }
+                }
+                if (match.valid) {
+                    QColor bg = m_theme.primary;
+                    bg.setAlpha(90);
+                    const TagInfo &matchRef = match;
+                    for (const TagInfo *t : {&cur, &matchRef}) {
+                        QTextEdit::ExtraSelection sel;
+                        QTextCursor c(document());
+                        c.setPosition(t->nameStart);
+                        c.setPosition(t->nameStart + t->nameLen, QTextCursor::KeepAnchor);
+                        sel.cursor = c;
+                        sel.format.setBackground(bg);
+                        sel.format.setForeground(m_theme.text);
+                        sel.format.setFontWeight(QFont::Bold);
+                        extra.append(sel);
+                    }
                 }
             }
         }
@@ -1254,11 +1399,40 @@ void CodeEditor::paintPrettySymbols(QPainter &p)
     }
 }
 
+/** Marca discreta (→) no lugar de cada tabulação, como no Kate. */
+void CodeEditor::paintTabMarkers(QPainter &p)
+{
+    QColor c = m_theme.textSecondary;
+    c.setAlpha(95);
+    p.setPen(c);
+    p.setFont(font());
+    for (QTextBlock b = firstVisibleBlock(); b.isValid(); b = b.next()) {
+        const QRectF geo = blockBoundingGeometry(b).translated(contentOffset());
+        if (geo.top() > viewport()->height())
+            break;
+        if (!b.isVisible())
+            continue;
+        const QString text = b.text();
+        const QTextLayout *layout = b.layout();
+        for (int idx = text.indexOf(QLatin1Char('\t')); idx >= 0;
+             idx = text.indexOf(QLatin1Char('\t'), idx + 1)) {
+            const QTextLine line = layout->lineForTextPosition(idx);
+            if (!line.isValid())
+                continue;
+            const qreal x0 = geo.left() + line.cursorToX(idx);
+            const qreal x1 = geo.left() + line.cursorToX(idx + 1);
+            const QRectF rect(x0, geo.top() + line.y(), x1 - x0, line.height());
+            p.drawText(rect, Qt::AlignVCenter | Qt::AlignLeft, QStringLiteral("→"));
+        }
+    }
+}
+
 void CodeEditor::paintEvent(QPaintEvent *event)
 {
     QPlainTextEdit::paintEvent(event);
     QPainter p(viewport());
     p.setRenderHint(QPainter::Antialiasing);
+    paintTabMarkers(p);
     if (m_prettySymbols && !m_symbols.isEmpty())
         paintPrettySymbols(p);
     paintGhostText(p);

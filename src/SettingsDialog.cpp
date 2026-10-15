@@ -422,6 +422,11 @@ QWidget *SettingsDialog::buildAppearancePage()
     m_toolbarIconSize->setToolTip(tr("More options: right-click the toolbar"));
     scale->addRow(tr("Toolbar icons"), m_toolbarIconSize);
     scale->addRow(tr("Interface"), makeSlider(m_uiScale, m_uiScaleLabel, 80, 200));
+    m_minimapWidth = new QSpinBox;
+    m_minimapWidth->setRange(20, 400);
+    m_minimapWidth->setSuffix(tr(" px"));
+    m_minimapWidth->setToolTip(tr("Width of the code minimap (View ▸ Show Minimap)"));
+    scale->addRow(tr("Minimap width"), m_minimapWidth);
 
     m_uiLanguage = new QComboBox;
     m_uiLanguage->addItem(tr("Automatic (system language)"), QStringLiteral("auto"));
@@ -994,6 +999,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     rebuildThemeList(s.theme);
     m_followSystem->setChecked(s.themeFollowSystem);
     m_toolbarIconSize->setCurrentIndex(qMax(0, m_toolbarIconSize->findData(s.toolbarIconSize)));
+    m_minimapWidth->setValue(s.minimapWidth);
     m_uiScale->setValue(s.uiScale / 10);
     m_uiScaleLabel->setText(QStringLiteral("%1%").arg(m_uiScale->value() * 10));
     m_uiLanguage->setCurrentIndex(qMax(0, m_uiLanguage->findData(s.uiLanguage)));
@@ -1080,6 +1086,7 @@ AppSettings SettingsDialog::settings() const
         s.userThemes.append(t.toJson());
     s.themeFollowSystem = m_followSystem->isChecked();
     s.toolbarIconSize = m_toolbarIconSize->currentData().toInt();
+    s.minimapWidth = m_minimapWidth->value();
     // Opções da barra que não estão neste formulário (botão direito nela).
     s.toolbarStyle = m_detect.toolbarStyle;
     s.toolbarLocked = m_detect.toolbarLocked;

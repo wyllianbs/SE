@@ -62,6 +62,7 @@ public:
     void lineNumberAreaHovered(const QPoint &pos);
 
     void setMinimapVisible(bool visible);
+    void setMinimapWidth(int width);
     int minimapWidth() const;
     void minimapPaintEvent(QPaintEvent *event);
     void minimapMousePressEvent(QMouseEvent *event);
@@ -95,6 +96,7 @@ private:
     bool handleAutoPair(QKeyEvent *event);
     void insertNewlineWithIndent();
     void paintPrettySymbols(class QPainter &p);
+    void paintTabMarkers(class QPainter &p);
     QString wordUnderCursor() const;
     int foldMarkerWidth() const;
     int breakpointWidth() const;
@@ -108,6 +110,7 @@ private:
     QWidget *m_lineNumberArea;
     QWidget *m_minimap = nullptr;
     bool m_minimapVisible = true;
+    int m_minimapWidth = 55;         //< largura do minimap em px
     bool m_minimapDragging = false;
     QPixmap m_minimapCache;          //< fatia renderizada das linhas (sem o indicador)
     int m_mmCacheFirstLine = -1;     //< chave do cache: primeira linha desenhada

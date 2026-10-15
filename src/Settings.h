@@ -57,6 +57,7 @@ struct AppSettings
     bool wordWrap = false;
     bool highlightCurrentLine = true;
     bool minimap = true;         //< mostra o minimap do código à direita (como no Kate)
+    int minimapWidth = 55;       //< largura do minimap em px
     bool autoClosePairs = true;
     bool codeCompletion = true;
     bool codeFolding = true;

@@ -450,6 +450,8 @@ void MainWindow::createActions()
         add(folding, tr("&Unfold Toplevel Nodes"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_BracketRight), [this]() {
             if (auto *e = currentEditor()) e->doc()->setToplevelFolded(false);
         }));
+    toggle(view, tr("&Wrap Long Lines"), &AppSettings::wordWrap, tr("Line wrapping enabled"),
+           tr("Line wrapping disabled"));
     toggle(view, tr("Show &Minimap"), &AppSettings::minimap, tr("Minimap enabled"),
            tr("Minimap disabled"));
     toggle(view, tr("Code Com&pletion"), &AppSettings::codeCompletion, tr("Code completion enabled"),
@@ -2140,6 +2142,7 @@ void MainWindow::configureEditor(CodeEditor *editor) const
     editor->setLineNumbersVisible(m_settings.lineNumbers);
     editor->setWordWrap(m_settings.wordWrap);
     editor->setHighlightCurrentLine(m_settings.highlightCurrentLine);
+    editor->setMinimapWidth(m_settings.minimapWidth);
     editor->setMinimapVisible(m_settings.minimap);
     editor->setAutoClosePairs(m_settings.autoClosePairs);
     editor->setCodeCompletion(m_settings.codeCompletion);
