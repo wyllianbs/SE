@@ -96,7 +96,7 @@ private:
     bool handleAutoPair(QKeyEvent *event);
     void insertNewlineWithIndent();
     void paintPrettySymbols(class QPainter &p);
-    void paintTabMarkers(class QPainter &p);
+    void paintIndentGuides(class QPainter &p);
     QString wordUnderCursor() const;
     int foldMarkerWidth() const;
     int breakpointWidth() const;

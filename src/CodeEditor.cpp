@@ -533,16 +533,19 @@ void CodeEditor::minimapPaintEvent(QPaintEvent *)
     p.drawRect(QRect(0, indY, w - 1, indH - 1));
 }
 
-/** Rola o editor para centralizar a linha apontada no minimap. */
+/**
+ * Rola o editor conforme a posição vertical no minimap. Mapeamento linear
+ * direto (topo do minimap = topo do documento, base = base): sem laço de
+ * realimentação com a rolagem atual, o arraste fica fluido, sem trancos.
+ */
 void CodeEditor::minimapScrollTo(int widgetY)
 {
-    const int first = minimapFirstLine();
-    const int targetLine = first + widgetY / kMinimapLineH;
-    const double blockH = blockBoundingRect(firstVisibleBlock()).height();
-    const int lineSpacing = blockH > 0 ? int(blockH) : qMax(1, fontMetrics().lineSpacing());
-    const int pageLines = qMax(1, viewport()->height() / lineSpacing);
+    const int h = m_minimap->height();
+    if (h <= 0)
+        return;
     QScrollBar *bar = verticalScrollBar();
-    bar->setValue(qBound(bar->minimum(), targetLine - pageLines / 2, bar->maximum()));
+    const double frac = qBound(0.0, double(widgetY) / h, 1.0);
+    bar->setValue(qRound(bar->minimum() + frac * (bar->maximum() - bar->minimum())));
 }
 
 void CodeEditor::minimapMousePressEvent(QMouseEvent *event)
@@ -1399,13 +1402,16 @@ void CodeEditor::paintPrettySymbols(QPainter &p)
     }
 }
 
-/** Marca discreta (→) no lugar de cada tabulação, como no Kate. */
-void CodeEditor::paintTabMarkers(QPainter &p)
+/** Linhas verticais sutis de indentação, como no VSCode. */
+void CodeEditor::paintIndentGuides(QPainter &p)
 {
+    const int tabW = qMax(1, m_indentSpaces);
+    const qreal stepPx = tabW * fontMetrics().horizontalAdvance(QLatin1Char(' '));
+    if (stepPx <= 0)
+        return;
     QColor c = m_theme.textSecondary;
-    c.setAlpha(95);
-    p.setPen(c);
-    p.setFont(font());
+    c.setAlpha(55);
+    p.setPen(QPen(c, 1));
     for (QTextBlock b = firstVisibleBlock(); b.isValid(); b = b.next()) {
         const QRectF geo = blockBoundingGeometry(b).translated(contentOffset());
         if (geo.top() > viewport()->height())
@@ -1413,16 +1419,23 @@ void CodeEditor::paintTabMarkers(QPainter &p)
         if (!b.isVisible())
             continue;
         const QString text = b.text();
-        const QTextLayout *layout = b.layout();
-        for (int idx = text.indexOf(QLatin1Char('\t')); idx >= 0;
-             idx = text.indexOf(QLatin1Char('\t'), idx + 1)) {
-            const QTextLine line = layout->lineForTextPosition(idx);
-            if (!line.isValid())
-                continue;
-            const qreal x0 = geo.left() + line.cursorToX(idx);
-            const qreal x1 = geo.left() + line.cursorToX(idx + 1);
-            const QRectF rect(x0, geo.top() + line.y(), x1 - x0, line.height());
-            p.drawText(rect, Qt::AlignVCenter | Qt::AlignLeft, QStringLiteral("→"));
+        // Colunas de indentação (tabs expandidos até a próxima parada).
+        int cols = 0, i = 0;
+        for (; i < text.size(); ++i) {
+            const QChar ch = text.at(i);
+            if (ch == QLatin1Char('\t'))
+                cols += tabW - (cols % tabW);
+            else if (ch == QLatin1Char(' '))
+                ++cols;
+            else
+                break;
+        }
+        if (i >= text.size()) // linha vazia / só espaços: sem guias
+            continue;
+        const int levels = cols / tabW;
+        for (int k = 0; k < levels; ++k) {
+            const qreal x = geo.left() + k * stepPx + 0.5;
+            p.drawLine(QPointF(x, geo.top()), QPointF(x, geo.bottom()));
         }
     }
 }
@@ -1432,7 +1445,7 @@ void CodeEditor::paintEvent(QPaintEvent *event)
     QPlainTextEdit::paintEvent(event);
     QPainter p(viewport());
     p.setRenderHint(QPainter::Antialiasing);
-    paintTabMarkers(p);
+    paintIndentGuides(p);
     if (m_prettySymbols && !m_symbols.isEmpty())
         paintPrettySymbols(p);
     paintGhostText(p);
