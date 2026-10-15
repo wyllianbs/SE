@@ -389,6 +389,62 @@ void CodeEditor::updateExtraSelections()
         sel.format.setUnderlineColor(severityColor(d.severity));
         extra.append(sel);
     }
+
+    // Realce dos delimitadores de bloco: com o cursor encostado em ( [ { ou
+    // ) ] }, destaca ele e o par correspondente (respeitando aninhamento).
+    {
+        auto kind = [](QChar c) -> int { // +1 abre, -1 fecha, 0 nenhum
+            if (c == QLatin1Char('(') || c == QLatin1Char('[') || c == QLatin1Char('{')) return 1;
+            if (c == QLatin1Char(')') || c == QLatin1Char(']') || c == QLatin1Char('}')) return -1;
+            return 0;
+        };
+        auto partner = [](QChar c) -> QChar {
+            switch (c.unicode()) {
+            case '(': return QLatin1Char(')'); case ')': return QLatin1Char('(');
+            case '[': return QLatin1Char(']'); case ']': return QLatin1Char('[');
+            case '{': return QLatin1Char('}'); case '}': return QLatin1Char('{');
+            }
+            return QChar();
+        };
+        QTextDocument *d = document();
+        const int cur = textCursor().position();
+        int bpos = -1;
+        QChar bch;
+        for (int cand : {cur, cur - 1}) { // caractere à direita do cursor, senão à esquerda
+            if (cand < 0)
+                continue;
+            const QChar c = d->characterAt(cand);
+            if (kind(c) != 0) { bpos = cand; bch = c; break; }
+        }
+        if (bpos >= 0) {
+            const int dir = kind(bch);
+            const QChar want = partner(bch);
+            const int count = d->characterCount();
+            int depth = 0, mpos = -1;
+            for (int p = bpos; p >= 0 && p < count; p += dir) {
+                const QChar c = d->characterAt(p);
+                if (c == bch)
+                    ++depth;
+                else if (c == want && --depth == 0) { mpos = p; break; }
+            }
+            if (mpos >= 0) {
+                QColor bg = m_theme.primary;
+                bg.setAlpha(90);
+                for (int p : {bpos, mpos}) {
+                    QTextEdit::ExtraSelection sel;
+                    QTextCursor c(d);
+                    c.setPosition(p);
+                    c.setPosition(p + 1, QTextCursor::KeepAnchor);
+                    sel.cursor = c;
+                    sel.format.setBackground(bg);
+                    sel.format.setForeground(m_theme.text);
+                    sel.format.setFontWeight(QFont::Bold);
+                    extra.append(sel);
+                }
+            }
+        }
+    }
+
     setExtraSelections(extra);
 }
 

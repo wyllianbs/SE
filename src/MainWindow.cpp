@@ -230,6 +230,12 @@ MainWindow::MainWindow(QWidget *parent)
             // SLAYER_DEBUG_FOLD: dobra o bloco que começa na linha dada (base 1).
             if (qEnvironmentVariableIsSet("SLAYER_DEBUG_FOLD") && currentEditor())
                 currentEditor()->doc()->setFolded(qEnvironmentVariableIntValue("SLAYER_DEBUG_FOLD") - 1, true);
+            // SLAYER_DEBUG_CURSOR: posiciona o cursor na posição absoluta dada.
+            if (qEnvironmentVariableIsSet("SLAYER_DEBUG_CURSOR") && currentEditor()) {
+                QTextCursor c = currentEditor()->textCursor();
+                c.setPosition(qEnvironmentVariableIntValue("SLAYER_DEBUG_CURSOR"));
+                currentEditor()->setTextCursor(c);
+            }
             // SLAYER_DEBUG_SPLIT: sequência de divisões, "h" lado a lado e "v" empilhado.
             for (QChar c : qEnvironmentVariable("SLAYER_DEBUG_SPLIT"))
                 splitSpace(m_activeSpace, c == QLatin1Char('h') ? Qt::Horizontal : Qt::Vertical, false);
