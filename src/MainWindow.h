@@ -37,6 +37,11 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    // Arrastar arquivos para áreas não cobertas pelos editores (tela de abertura,
+    // barras) os abre em novas abas.
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void createActions();
@@ -145,6 +150,7 @@ private:
     QWidget *m_diskBar = nullptr;
     QLabel *m_diskIcon = nullptr;
     QLabel *m_diskLabel = nullptr;
+    QPushButton *m_diskAutoReload = nullptr;
     QPushButton *m_diskReload = nullptr;
     QPushButton *m_diskDiff = nullptr;
     QPushButton *m_diskOverwrite = nullptr;

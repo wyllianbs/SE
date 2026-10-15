@@ -18,6 +18,10 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QCloseEvent>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QUrl>
 #include <QGuiApplication>
 #include <QComboBox>
 #include <QContextMenuEvent>
@@ -63,6 +67,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_lastDir(QDir::homePath())
     , m_lsp(new LspManager(this))
 {
+    setAcceptDrops(true); // arquivos soltos fora dos editores (tela de abertura) abrem em abas
     connect(m_lsp, &LspManager::statusChanged, this, [this]() {
         // Gatilhos de completion chegam com o "initialize" do servidor.
         for (CodeEditor *e : allEditors())
@@ -639,6 +644,8 @@ QWidget *MainWindow::buildEmptyState()
     auto *page = new QWidget;
     page->setObjectName(QStringLiteral("EmptyState"));
     page->setAttribute(Qt::WA_StyledBackground);
+    page->setAcceptDrops(true); // arrastar arquivos para a tela de abertura os abre
+    page->installEventFilter(this);
     auto *v = new QVBoxLayout(page);
     v->addStretch(1);
 
@@ -1393,16 +1400,33 @@ QWidget *MainWindow::buildDiskBar()
         row->addWidget(b);
         return b;
     };
+    m_diskAutoReload = makeButton(tr("Enable Auto Reload"));
     m_diskReload = makeButton(tr("Reload"));
     m_diskDiff = makeButton(tr("View Difference"));
     m_diskOverwrite = makeButton(tr("Overwrite"));
     m_diskIgnore = makeButton(tr("Ignore"));
     m_diskOverwrite->setToolTip(tr("Keep your version and save it over the file on disk"));
+    m_diskAutoReload->setToolTip(tr("From now on, reload files changed by other programs automatically "
+                                    "(unless they have unsaved changes)"));
 
     auto current = [this]() -> Document * {
         CodeEditor *e = currentEditor();
         return e && m_diskChanged.contains(e->doc()) ? e->doc() : nullptr;
     };
+    connect(m_diskAutoReload, &QPushButton::clicked, this, [this, current]() {
+        Document *doc = current();
+        AppSettings s = m_settings;
+        s.autoReload = true;
+        applySettings(s); // salva e aplica setAutoReload a todos os documentos
+        // Aplica agora ao arquivo atual, como o recarregamento automático faria.
+        if (doc && !doc->isModified()) {
+            QString error;
+            if (!doc->reload(&error) && !error.isEmpty())
+                QMessageBox::warning(this, tr("Reload Document"), error);
+            m_diskChanged.remove(doc);
+        }
+        updateDiskBar();
+    });
     connect(m_diskReload, &QPushButton::clicked, this, [this, current]() {
         if (Document *doc = current()) {
             QString error;
@@ -1453,6 +1477,7 @@ void MainWindow::updateDiskBar()
                                   "Reload it (losing your changes) or overwrite the file with your version?")
                                    .arg(doc->displayName())
                              : tr("“%1” was modified by another program. Show the new version?").arg(doc->displayName()));
+    m_diskAutoReload->setVisible(!deleted && !m_settings.autoReload);
     m_diskReload->setVisible(!deleted);
     m_diskDiff->setVisible(!deleted);
     m_diskOverwrite->setVisible(deleted || doc->isModified());
@@ -2169,6 +2194,61 @@ void MainWindow::saveSession()
     }
     s.setValue(QStringLiteral("session/files"), files);
     s.setValue(QStringLiteral("session/current"), m_activeSpace ? m_activeSpace->currentIndex() : 0);
+}
+
+static QStringList droppedLocalFiles(const QMimeData *mime)
+{
+    QStringList files;
+    if (mime && mime->hasUrls()) {
+        for (const QUrl &url : mime->urls()) {
+            if (url.isLocalFile())
+                files << url.toLocalFile();
+        }
+    }
+    return files;
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (!droppedLocalFiles(event->mimeData()).isEmpty())
+        event->acceptProposedAction();
+    else
+        QMainWindow::dragEnterEvent(event);
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    const QStringList files = droppedLocalFiles(event->mimeData());
+    if (!files.isEmpty()) {
+        event->acceptProposedAction();
+        openFiles(files);
+        return;
+    }
+    QMainWindow::dropEvent(event);
+}
+
+// A tela de abertura (buildEmptyState) instala este filtro para também abrir
+// arquivos soltos sobre ela.
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove:
+    case QEvent::Drop: {
+        auto *de = static_cast<QDropEvent *>(event);
+        const QStringList files = droppedLocalFiles(de->mimeData());
+        if (!files.isEmpty()) {
+            de->acceptProposedAction();
+            if (event->type() == QEvent::Drop)
+                openFiles(files);
+            return true;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+    return QMainWindow::eventFilter(watched, event);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
