@@ -13,6 +13,7 @@ class FindBar;
 class QAction;
 class QComboBox;
 class QLabel;
+class QSpinBox;
 class QMenu;
 class QPushButton;
 class QStackedWidget;
@@ -91,7 +92,8 @@ private:
     void clearExecutionPoint();
     void updateDebugActions();
     QHash<QString, QList<int>> collectBreakpoints() const;
-    void goToLine();
+    void goToLine();            //< ativa a barra inline "ir para linha" (Ctrl+G)
+    QWidget *buildGoToBar();
     void showAbout();
     void showHelp();
     void saveAll();
@@ -125,6 +127,9 @@ private:
     QStackedWidget *m_stack = nullptr;
     QList<QPair<QPushButton *, Icons::Glyph>> m_emptyButtons;
     FindBar *m_findBar;
+    QWidget *m_gotoBar = nullptr;       //< barra inline "ir para linha" (Kate-style)
+    QSpinBox *m_gotoSpin = nullptr;
+    int m_gotoOriginalPos = 0;          //< posição do cursor ao abrir (para Esc cancelar)
     TerminalDock *m_terminal;
     QToolBar *m_toolbar = nullptr;
     QComboBox *m_languageCombo;

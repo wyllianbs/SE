@@ -56,7 +56,10 @@
 #include <QTextBlock>
 #include <QTimer>
 #include <QProcess>
+#include <QHBoxLayout>
 #include <QPushButton>
+#include <QSignalBlocker>
+#include <QSpinBox>
 #include <QSet>
 #include <QStringConverter>
 #include <QTextDocument>
@@ -103,6 +106,7 @@ MainWindow::MainWindow(QWidget *parent)
     layout->addWidget(buildDiskBar());
     layout->addWidget(m_stack, 1);
     layout->addWidget(m_findBar);
+    layout->addWidget(buildGoToBar());
     setCentralWidget(central);
     setActiveSpace(createViewSpace());
     m_rootSplitter->addWidget(m_activeSpace);
@@ -1176,6 +1180,9 @@ void MainWindow::openFile(const QString &path)
             QMessageBox::warning(this, tr("Open File"), tr("Could not open %1:\n%2").arg(abs, error));
             return;
         }
+        // Abre no início (QTextEdit::setPlainText deixa o cursor no fim); a
+        // sessão, se houver, repõe a posição depois disso.
+        editor->goToLine(1);
     } else {
         editor->setFilePath(abs);
     }
@@ -2072,17 +2079,82 @@ void MainWindow::updateDebugActions()
         clearExecutionPoint();
 }
 
+/** Barra inline "ir para linha" (como no Kate), em vez de um popup. */
+QWidget *MainWindow::buildGoToBar()
+{
+    m_gotoBar = new QWidget(this);
+    m_gotoBar->setObjectName(QStringLiteral("FindBar")); // reaproveita o estilo da barra
+    m_gotoBar->setAttribute(Qt::WA_StyledBackground);
+    m_gotoSpin = new QSpinBox(m_gotoBar);
+    m_gotoSpin->setMinimum(1);
+    m_gotoSpin->setAccelerated(true);
+    auto *go = new QPushButton(Icons::icon(Icons::Run, m_theme.text, 14), tr("Go to"), m_gotoBar);
+    go->setAutoDefault(false);
+    auto *up = new QToolButton(m_gotoBar);
+    up->setText(QStringLiteral("↑"));
+    up->setAutoRaise(true);
+    auto *down = new QToolButton(m_gotoBar);
+    down->setText(QStringLiteral("↓"));
+    down->setAutoRaise(true);
+    auto *close = new QToolButton(m_gotoBar);
+    close->setText(QStringLiteral("✕"));
+    close->setAutoRaise(true);
+
+    auto *row = new QHBoxLayout(m_gotoBar);
+    row->setContentsMargins(10, 6, 10, 6);
+    row->setSpacing(6);
+    row->addWidget(new QLabel(tr("Line:"), m_gotoBar));
+    row->addWidget(m_gotoSpin);
+    row->addWidget(go);
+    row->addWidget(up);
+    row->addWidget(down);
+    row->addStretch(1); // mantém a barra encostada à esquerda
+    row->addWidget(close);
+
+    // Vai para a linha ao vivo, conforme o valor muda (como no Kate).
+    connect(m_gotoSpin, qOverload<int>(&QSpinBox::valueChanged), this, [this](int line) {
+        if (CodeEditor *e = currentEditor())
+            e->goToLine(line);
+    });
+    auto confirm = [this]() {
+        m_gotoBar->hide();
+        if (CodeEditor *e = currentEditor())
+            e->setFocus();
+    };
+    connect(go, &QPushButton::clicked, this, confirm);
+    connect(up, &QToolButton::clicked, this, [this]() { m_gotoSpin->stepBy(-1); });
+    connect(down, &QToolButton::clicked, this, [this]() { m_gotoSpin->stepBy(1); });
+    connect(close, &QToolButton::clicked, this, [this]() {
+        // Esc/✕: cancela e volta o cursor para onde estava.
+        if (CodeEditor *e = currentEditor()) {
+            QTextCursor c = e->textCursor();
+            c.setPosition(qBound(0, m_gotoOriginalPos, e->document()->characterCount() - 1));
+            e->setTextCursor(c);
+            e->centerCursor();
+            e->setFocus();
+        }
+        m_gotoBar->hide();
+    });
+    // Enter confirma; Esc cancela (via o botão fechar).
+    m_gotoSpin->installEventFilter(this);
+    m_gotoBar->hide();
+    return m_gotoBar;
+}
+
 void MainWindow::goToLine()
 {
     CodeEditor *editor = currentEditor();
-    if (!editor)
+    if (!editor || !m_gotoBar)
         return;
-    bool ok = false;
-    const int line = QInputDialog::getInt(this, tr("Go to Line"), tr("Line:"),
-                                          editor->textCursor().blockNumber() + 1, 1,
-                                          editor->document()->blockCount(), 1, &ok);
-    if (ok)
-        editor->goToLine(line);
+    m_gotoOriginalPos = editor->textCursor().position();
+    m_gotoSpin->setMaximum(qMax(1, editor->document()->blockCount()));
+    {
+        QSignalBlocker block(m_gotoSpin); // não navega ao só abrir
+        m_gotoSpin->setValue(editor->textCursor().blockNumber() + 1);
+    }
+    m_gotoBar->show();
+    m_gotoSpin->setFocus();
+    m_gotoSpin->selectAll();
 }
 
 /**
@@ -2520,9 +2592,22 @@ void MainWindow::restoreSession()
     }
 
     const QStringList files = s.value(QStringLiteral("session/files")).toStringList();
-    for (const QString &f : files) {
-        if (QFileInfo::exists(f))
-            openFile(f);
+    const QStringList cursors = s.value(QStringLiteral("session/cursors")).toStringList();
+    for (int i = 0; i < files.size(); ++i) {
+        const QString &f = files.at(i);
+        if (!QFileInfo::exists(f))
+            continue;
+        openFile(f);
+        // Restaura a posição do cursor onde o arquivo estava quando fechou.
+        if (CodeEditor *e = currentEditor()) {
+            const int pos = cursors.value(i).toInt();
+            if (pos > 0) {
+                QTextCursor c = e->textCursor();
+                c.setPosition(qBound(0, pos, e->document()->characterCount() - 1));
+                e->setTextCursor(c);
+                e->centerCursor();
+            }
+        }
     }
     const int current = s.value(QStringLiteral("session/current"), 0).toInt();
     if (current >= 0 && current < m_activeSpace->count())
@@ -2536,12 +2621,15 @@ void MainWindow::saveSession()
     s.setValue(QStringLiteral("ui/lastDir"), m_lastDir);
     s.setValue(QStringLiteral("ui/geometry"), saveGeometry());
     s.setValue(QStringLiteral("ui/state"), saveState());
-    QStringList files;
+    QStringList files, cursors;
     for (CodeEditor *e : allEditors()) {
-        if (!e->filePath().isEmpty() && !files.contains(e->filePath()))
+        if (!e->filePath().isEmpty() && !files.contains(e->filePath())) {
             files << e->filePath();
+            cursors << QString::number(e->textCursor().position());
+        }
     }
     s.setValue(QStringLiteral("session/files"), files);
+    s.setValue(QStringLiteral("session/cursors"), cursors);
     s.setValue(QStringLiteral("session/current"), m_activeSpace ? m_activeSpace->currentIndex() : 0);
 }
 
@@ -2580,6 +2668,27 @@ void MainWindow::dropEvent(QDropEvent *event)
 // arquivos soltos sobre ela.
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
+    // Barra "ir para linha": Enter confirma, Esc cancela (volta o cursor).
+    if (watched == m_gotoSpin && event->type() == QEvent::KeyPress) {
+        const int key = static_cast<QKeyEvent *>(event)->key();
+        if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+            m_gotoBar->hide();
+            if (CodeEditor *e = currentEditor())
+                e->setFocus();
+            return true;
+        }
+        if (key == Qt::Key_Escape) {
+            if (CodeEditor *e = currentEditor()) {
+                QTextCursor c = e->textCursor();
+                c.setPosition(qBound(0, m_gotoOriginalPos, e->document()->characterCount() - 1));
+                e->setTextCursor(c);
+                e->centerCursor();
+                e->setFocus();
+            }
+            m_gotoBar->hide();
+            return true;
+        }
+    }
     switch (event->type()) {
     case QEvent::DragEnter:
     case QEvent::DragMove:
