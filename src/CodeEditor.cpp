@@ -455,6 +455,14 @@ void CodeEditor::applyWrapIndent()
     if (document()->revision() == m_wrapIndentRevision)
         return; // nada mudou desde a última aplicação (ex.: só rolagem)
 
+    // DESATIVADO: o recuo suspenso das linhas quebradas (margem esquerda +
+    // textIndent negativo no formato do bloco) provoca um segfault dentro do
+    // QTextDocumentLayout::draw do QTextEdit ao desenhar seleções sobre esses
+    // blocos — reproduzível ao BUSCAR num documento com wrap (confirmado por
+    // core dump: QTextLine::textStart dentro de QTextDocumentLayout::draw). Até
+    // haver uma forma segura de recuar as continuações, mantemos indentPx = 0
+    // (wrap padrão, estável). Com o flag em true o comportamento antigo volta.
+    static const bool kHangingIndent = false;
     const qreal spaceW = fontMetrics().horizontalAdvance(QLatin1Char(' '));
     const int tabW = qMax(1, m_indentSpaces);
 
@@ -466,7 +474,7 @@ void CodeEditor::applyWrapIndent()
     cur.joinPreviousEditBlock();
     for (QTextBlock b = document()->firstBlock(); b.isValid(); b = b.next()) {
         qreal indentPx = 0;
-        if (m_wordWrap) {
+        if (kHangingIndent && m_wordWrap) {
             const QString t = b.text();
             int cols = 0, i = 0;
             for (; i < t.size(); ++i) {
