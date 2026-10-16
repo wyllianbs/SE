@@ -37,6 +37,7 @@
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QPlainTextEdit>
+#include <QTextEdit>
 #include <QTemporaryFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -1009,7 +1010,7 @@ CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
             [this, space, editor]() { closeTab(space, space->indexOf(editor)); });
     space->tabBar()->setTabButton(index, QTabBar::RightSide, closeButton);
     space->setCurrentIndex(index);
-    connect(editor, &QPlainTextEdit::cursorPositionChanged, this, [this, editor]() {
+    connect(editor, &QTextEdit::cursorPositionChanged, this, [this, editor]() {
         if (editor == currentEditor())
             updateStatus();
     });
@@ -1020,7 +1021,7 @@ CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
         openFiles(paths);
     });
     // Auto-save: salva o arquivo editado automaticamente (debounce), se ligado.
-    connect(editor, &QPlainTextEdit::textChanged, this, [this, editor]() {
+    connect(editor, &QTextEdit::textChanged, this, [this, editor]() {
         if (!m_settings.autoSave || editor->filePath().isEmpty())
             return;
         m_autoSavePending.insert(editor);
@@ -1033,7 +1034,7 @@ CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
         m_autoSaveTimer->start();
     });
     // Live-reload do preview ao editar (modo "a cada mudança"), com antirrebote.
-    connect(editor, &QPlainTextEdit::textChanged, this, [this]() {
+    connect(editor, &QTextEdit::textChanged, this, [this]() {
         if (!m_preview || !m_preview->isRunning() || m_settings.previewReload != 1)
             return;
         if (!m_previewReloadTimer) {
@@ -2079,7 +2080,7 @@ void MainWindow::goToLine()
     bool ok = false;
     const int line = QInputDialog::getInt(this, tr("Go to Line"), tr("Line:"),
                                           editor->textCursor().blockNumber() + 1, 1,
-                                          editor->blockCount(), 1, &ok);
+                                          editor->document()->blockCount(), 1, &ok);
     if (ok)
         editor->goToLine(line);
 }
@@ -2403,7 +2404,7 @@ QTabWidget#TerminalTabs QTabBar::tab { padding: 6px 12px; margin: 4px 1px 0 1px;
 QTabWidget#TerminalTabs QTabBar::tab:selected { background: %12; color: %3; font-weight: 600;
     border: 1px solid %4; border-bottom: none; }
 QTabWidget#TerminalTabs QTabBar::tab:hover:!selected { background: %4; color: %3; }
-QPlainTextEdit { background: %2; color: %3; border: none; selection-background-color: %8; }
+QTextEdit { background: %2; color: %3; border: none; selection-background-color: %8; }
 QStatusBar { background: %1; color: %7; border-top: 1px solid %4; }
 QStatusBar QLabel { color: %7; padding: 0 8px; }
 QStatusBar QLabel#BranchLabel { color: %3; padding-left: 10px; }

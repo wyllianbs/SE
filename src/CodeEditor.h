@@ -5,7 +5,7 @@
 #include "Theme.h"
 
 #include <QHash>
-#include <QPlainTextEdit>
+#include <QTextEdit>
 
 #include <functional>
 
@@ -13,8 +13,12 @@ class QCompleter;
 class QStringListModel;
 class QMimeData;
 
-/** Editor de código: numeração de linhas, realce, indentação e pares automáticos. */
-class CodeEditor : public QPlainTextEdit
+/**
+ * Editor de código: numeração de linhas, realce, indentação e pares automáticos.
+ * Baseado em QTextEdit (layout rico) para suportar indentação das linhas
+ * quebradas (wrap) — o QPlainTextEdit não a permite.
+ */
+class CodeEditor : public QTextEdit
 {
     Q_OBJECT
 public:
@@ -52,6 +56,8 @@ public:
 
     void toggleComment();
     void goToLine(int line);
+    /** Centraliza o cursor na vista (substitui QPlainTextEdit::centerCursor). */
+    void centerCursor() { centerCursorCompat(); }
 
     /** Enter após esta linha (já sem espaços à direita) abre um novo nível de bloco? */
     static bool opensBlock(const QString &languageId, const QString &lineBeforeCursor);
@@ -87,6 +93,22 @@ protected:
     void insertFromMimeData(const QMimeData *source) override;
 
 private:
+    // Compatibilidade com a API de blocos do QPlainTextEdit (ausente no
+    // QTextEdit): calculadas a partir do layout do documento e da rolagem.
+    QTextBlock firstVisibleBlock() const;
+    QRectF blockBoundingGeometry(const QTextBlock &block) const;
+    QRectF blockBoundingRect(const QTextBlock &block) const;
+    QPointF contentOffset() const;
+    void centerCursorCompat();
+    void onEditorViewportChanged(); //< substitui o sinal updateRequest
+    // Indentação das linhas quebradas (wrap), como no VSCode: aplica um recuo
+    // suspenso em cada bloco conforme a indentação da própria linha.
+    void applyWrapIndent();
+    bool m_wordWrap = false;
+    bool m_applyingWrapIndent = false;
+    bool m_wrapIndentsApplied = false; //< há recuos de wrap aplicados aos blocos?
+    int m_wrapIndentRevision = -1;
+
     void updateLineNumberAreaWidth();
     void updateViewportMargins();
     void updateLineNumberArea(const QRect &rect, int dy);

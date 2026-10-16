@@ -2,6 +2,7 @@
 #include "Icons.h"
 
 #include <QAbstractItemView>
+#include <QAbstractTextDocumentLayout>
 #include <QCompleter>
 #include <QFile>
 #include <QMimeData>
@@ -73,7 +74,7 @@ const QHash<QChar, QChar> &pairs()
 } // namespace
 
 CodeEditor::CodeEditor(Document *document, QWidget *parent)
-    : QPlainTextEdit(parent)
+    : QTextEdit(parent)
     , m_lineNumberArea(new LineNumberArea(this))
     , m_minimap(new MinimapArea(this))
     , m_doc(document)
@@ -106,14 +107,15 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
             m_doc->revealLine(line);
             QTextCursor c(this->document()->findBlockByNumber(line));
             setTextCursor(c);
-            centerCursor();
+            centerCursorCompat();
         }
     });
     connect(document, &Document::diagnosticsChanged, this, [this]() {
         updateExtraSelections();
         m_lineNumberArea->update();
     });
-    setLineWrapMode(QPlainTextEdit::NoWrap);
+    setLineWrapMode(QTextEdit::NoWrap);
+    setAcceptRichText(false); // colar insere texto puro, não HTML
     m_completer->setModel(m_completionModel);
     m_completer->setWidget(this);
     m_completer->setCompletionMode(QCompleter::PopupCompletion);
@@ -123,28 +125,30 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
     connect(m_completer, qOverload<const QString &>(&QCompleter::activated), this, &CodeEditor::insertCompletion);
     setFrameShape(QFrame::NoFrame);
 
-    connect(this, &QPlainTextEdit::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
-    connect(this, &QPlainTextEdit::updateRequest, this, &CodeEditor::updateLineNumberArea);
-    // O minimap acompanha rolagem e edições do documento.
+    // Sem o sinal updateRequest/blockCountChanged do QPlainTextEdit: a área de
+    // numeração e o minimap acompanham rolagem (ambas as barras) e edições.
+    connect(this->document(), &QTextDocument::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
+    connect(verticalScrollBar(), &QScrollBar::valueChanged, this, &CodeEditor::onEditorViewportChanged);
+    connect(horizontalScrollBar(), &QScrollBar::valueChanged, this, &CodeEditor::onEditorViewportChanged);
+    connect(this, &QTextEdit::textChanged, this, &CodeEditor::onEditorViewportChanged);
     connect(verticalScrollBar(), &QScrollBar::valueChanged, m_minimap, qOverload<>(&QWidget::update));
-    connect(this, &QPlainTextEdit::textChanged, m_minimap, qOverload<>(&QWidget::update));
-    connect(this, &QPlainTextEdit::blockCountChanged, m_minimap, qOverload<>(&QWidget::update));
-    connect(this, &QPlainTextEdit::cursorPositionChanged, this, &CodeEditor::highlightCurrentLine);
-    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
+    connect(this, &QTextEdit::textChanged, m_minimap, qOverload<>(&QWidget::update));
+    connect(this, &QTextEdit::cursorPositionChanged, this, &CodeEditor::highlightCurrentLine);
+    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() {
         if (m_prettySymbols)
             viewport()->update();
     });
     // O cursor nunca fica numa linha escondida: desdobra o bloco.
-    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
+    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() {
         if (!textCursor().block().isVisible())
             m_doc->revealLine(textCursor().blockNumber());
     });
     // Mover o cursor (ou editar) invalida a sugestão inline; quem digita a recria.
-    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
+    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() {
         if (m_ghostPos != textCursor().position())
             clearGhost();
     });
-    connect(this, &QPlainTextEdit::selectionChanged, this, [this]() {
+    connect(this, &QTextEdit::selectionChanged, this, [this]() {
         if (textCursor().hasSelection())
             clearGhost();
     });
@@ -194,6 +198,9 @@ void CodeEditor::setTabWidthSpaces(int spaces)
 {
     m_indentSpaces = spaces;
     setTabStopDistance(fontMetrics().horizontalAdvance(QLatin1Char(' ')) * spaces);
+    // A indentação do wrap depende da largura do espaço/tab: reaplica.
+    m_wrapIndentRevision = -1;
+    applyWrapIndent();
 }
 
 bool CodeEditor::loadFile(const QString &path, QString *error)
@@ -305,7 +312,7 @@ void CodeEditor::goToLine(int line)
         return;
     QTextCursor c(block);
     setTextCursor(c);
-    centerCursor();
+    centerCursorCompat();
     setFocus();
 }
 
@@ -317,7 +324,7 @@ int CodeEditor::foldMarkerWidth() const
 int CodeEditor::lineNumberAreaWidth() const
 {
     const int numbers = m_lineNumbers
-        ? 12 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(3, int(QString::number(qMax(1, blockCount())).length()))
+        ? 12 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(3, int(QString::number(qMax(1, document()->blockCount())).length()))
         : 0;
     const int fold = foldMarkerWidth();
     return breakpointWidth() + numbers + fold + 4;
@@ -389,20 +396,111 @@ void CodeEditor::updateViewportMargins()
     setViewportMargins(lineNumberAreaWidth(), 0, minimapWidth(), 0);
 }
 
-void CodeEditor::updateLineNumberArea(const QRect &rect, int dy)
+void CodeEditor::updateLineNumberArea(const QRect &, int)
 {
-    if (dy)
-        m_lineNumberArea->scroll(0, dy);
-    else
-        m_lineNumberArea->update(0, rect.y(), m_lineNumberArea->width(), rect.height());
-    if (rect.contains(viewport()->rect()))
-        updateLineNumberAreaWidth();
+    m_lineNumberArea->update();
+}
+
+// --- Compatibilidade com a API de blocos do QPlainTextEdit (via layout) ---
+
+QPointF CodeEditor::contentOffset() const
+{
+    return QPointF(-horizontalScrollBar()->value(), -verticalScrollBar()->value());
+}
+
+QRectF CodeEditor::blockBoundingGeometry(const QTextBlock &block) const
+{
+    return document()->documentLayout()->blockBoundingRect(block);
+}
+
+QRectF CodeEditor::blockBoundingRect(const QTextBlock &block) const
+{
+    return document()->documentLayout()->blockBoundingRect(block);
+}
+
+QTextBlock CodeEditor::firstVisibleBlock() const
+{
+    // Bloco no topo da área visível (pula blocos dobrados/invisíveis).
+    return cursorForPosition(QPoint(0, 0)).block();
+}
+
+void CodeEditor::centerCursorCompat()
+{
+    ensureCursorVisible();
+    const QRectF r = cursorRect();
+    const int delta = int(r.center().y() - viewport()->height() / 2.0);
+    QScrollBar *bar = verticalScrollBar();
+    bar->setValue(bar->value() + delta);
+}
+
+void CodeEditor::onEditorViewportChanged()
+{
+    m_lineNumberArea->update();
+    applyWrapIndent();
+}
+
+/**
+ * Indentação das linhas quebradas (wrap), como no VSCode: cada bloco recebe uma
+ * margem esquerda igual à sua indentação, e um recuo de primeira linha negativo
+ * que a cancela — assim a 1ª linha começa na margem e as continuações alinham
+ * sob o início do conteúdo. (O QPlainTextEdit ignorava isso; o QTextEdit honra.)
+ */
+void CodeEditor::applyWrapIndent()
+{
+    if (m_applyingWrapIndent)
+        return;
+    // Wrap desligado e nada aplicado: nada a fazer (caso comum, custo zero).
+    if (!m_wordWrap && !m_wrapIndentsApplied)
+        return;
+    if (document()->revision() == m_wrapIndentRevision)
+        return; // nada mudou desde a última aplicação (ex.: só rolagem)
+
+    const qreal spaceW = fontMetrics().horizontalAdvance(QLatin1Char(' '));
+    const int tabW = qMax(1, m_indentSpaces);
+
+    m_applyingWrapIndent = true;
+    const bool wasModified = document()->isModified();
+    QTextCursor cur(document());
+    // joinPreviousEditBlock: funde o recuo na mesma ação de desfazer da edição
+    // do usuário (um só Ctrl+Z), em vez de criar um passo separado.
+    cur.joinPreviousEditBlock();
+    for (QTextBlock b = document()->firstBlock(); b.isValid(); b = b.next()) {
+        qreal indentPx = 0;
+        if (m_wordWrap) {
+            const QString t = b.text();
+            int cols = 0, i = 0;
+            for (; i < t.size(); ++i) {
+                const QChar ch = t.at(i);
+                if (ch == QLatin1Char('\t'))
+                    cols += tabW - (cols % tabW);
+                else if (ch == QLatin1Char(' '))
+                    ++cols;
+                else
+                    break;
+            }
+            // Indenta só linhas com conteúdo; soma um nível para destacar a dobra.
+            if (i < t.size())
+                indentPx = (cols + tabW) * spaceW;
+        }
+        QTextBlockFormat fmt = b.blockFormat();
+        if (!qFuzzyCompare(fmt.leftMargin(), indentPx) || !qFuzzyCompare(fmt.textIndent(), -indentPx)) {
+            fmt.setLeftMargin(indentPx);
+            fmt.setTextIndent(-indentPx);
+            cur.setPosition(b.position());
+            cur.setBlockFormat(fmt);
+        }
+    }
+    cur.endEditBlock();
+    document()->setModified(wasModified);
+    m_wrapIndentsApplied = m_wordWrap;
+    m_wrapIndentRevision = document()->revision();
+    m_applyingWrapIndent = false;
 }
 
 void CodeEditor::resizeEvent(QResizeEvent *event)
 {
     if (event)
-        QPlainTextEdit::resizeEvent(event);
+        QTextEdit::resizeEvent(event);
     const QRect cr = contentsRect();
     m_lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
     if (m_minimapVisible)
@@ -419,7 +517,10 @@ void CodeEditor::setLineNumbersVisible(bool visible)
 
 void CodeEditor::setWordWrap(bool wrap)
 {
-    setLineWrapMode(wrap ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
+    m_wordWrap = wrap;
+    setLineWrapMode(wrap ? QTextEdit::WidgetWidth : QTextEdit::NoWrap);
+    m_wrapIndentRevision = -1; // força reaplicar o recuo suspenso
+    applyWrapIndent();
 }
 
 int CodeEditor::minimapWidth() const
@@ -453,7 +554,7 @@ void CodeEditor::setMinimapVisible(bool visible)
 int CodeEditor::minimapFirstLine() const
 {
     const int visLines = qMax(1, m_minimap->height() / kMinimapLineH);
-    const int n = blockCount();
+    const int n = document()->blockCount();
     if (n <= visLines)
         return 0;
     const QScrollBar *bar = verticalScrollBar();
@@ -821,7 +922,7 @@ bool CodeEditor::viewportEvent(QEvent *event)
             QToolTip::showText(help->globalPos(), text, viewport());
         return true;
     }
-    return QPlainTextEdit::viewportEvent(event);
+    return QTextEdit::viewportEvent(event);
 }
 
 void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
@@ -1158,7 +1259,7 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
 
     const bool manual = (event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Space;
     if (!manual)
-        QPlainTextEdit::keyPressEvent(event);
+        QTextEdit::keyPressEvent(event);
 
     const QString typed = event->text();
     if (m_completionEnabled && m_provider && !typed.isEmpty() && !manual) {
@@ -1448,7 +1549,7 @@ void CodeEditor::paintIndentGuides(QPainter &p)
 
 void CodeEditor::paintEvent(QPaintEvent *event)
 {
-    QPlainTextEdit::paintEvent(event);
+    QTextEdit::paintEvent(event);
     QPainter p(viewport());
     p.setRenderHint(QPainter::Antialiasing);
     paintIndentGuides(p);
@@ -1488,7 +1589,7 @@ void CodeEditor::wheelEvent(QWheelEvent *event)
         updateLineNumberAreaWidth();
         return;
     }
-    QPlainTextEdit::wheelEvent(event);
+    QTextEdit::wheelEvent(event);
 }
 
 // Arquivos locais arrastados de fora (gerenciador de arquivos, outra aba) devem
@@ -1513,7 +1614,7 @@ bool CodeEditor::canInsertFromMimeData(const QMimeData *source) const
 {
     if (!localFilesFromMime(source).isEmpty())
         return true;
-    return QPlainTextEdit::canInsertFromMimeData(source);
+    return QTextEdit::canInsertFromMimeData(source);
 }
 
 void CodeEditor::insertFromMimeData(const QMimeData *source)
@@ -1523,5 +1624,5 @@ void CodeEditor::insertFromMimeData(const QMimeData *source)
         Q_EMIT filesDropped(files);
         return;
     }
-    QPlainTextEdit::insertFromMimeData(source);
+    QTextEdit::insertFromMimeData(source);
 }
