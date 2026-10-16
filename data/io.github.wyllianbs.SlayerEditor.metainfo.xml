@@ -42,6 +42,16 @@
   </screenshots>
   <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
   <releases>
+    <release version="0.4.4" date="2026-10-15">
+      <description>
+        <p>Adds syntax highlighting for HTML, CSS, JSON, XML, Markdown and more,
+        and a live HTML preview with automatic reload (built-in server or an
+        external one such as PHP). New editor features: a code minimap, VS
+        Code-style indentation guides, indentation of wrapped lines, auto-close
+        of HTML/XML tags, an Open Recent menu and optional auto-save. Also fixes
+        an editor freeze while editing HTML.</p>
+      </description>
+    </release>
     <release version="0.4.3" date="2026-10-14">
       <description>
         <p>Fixes a crash when opening an empty file. Code completion now appears
