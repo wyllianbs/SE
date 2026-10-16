@@ -5,7 +5,7 @@
 class QLineEdit;
 class QCheckBox;
 class QLabel;
-class QPlainTextEdit;
+class QTextEdit;
 
 /** Barra de busca e substituição, exibida sob as abas. */
 class FindBar : public QWidget
@@ -14,7 +14,7 @@ class FindBar : public QWidget
 public:
     explicit FindBar(QWidget *parent = nullptr);
 
-    void setEditor(QPlainTextEdit *editor) { m_editor = editor; }
+    void setEditor(QTextEdit *editor) { m_editor = editor; }
     void activate(bool replace);
 
     void findNext();
@@ -28,7 +28,7 @@ private:
     void replaceOne();
     void replaceAll();
 
-    QPlainTextEdit *m_editor = nullptr;
+    QTextEdit *m_editor = nullptr;
     QLineEdit *m_find;
     QLineEdit *m_replace;
     QWidget *m_replaceRow;

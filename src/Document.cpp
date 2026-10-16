@@ -4,7 +4,6 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
-#include <QPlainTextDocumentLayout>
 #include <QSaveFile>
 #include <QStringConverter>
 #include <QTextDocument>
@@ -54,8 +53,9 @@ Document::Document(QObject *parent)
         m_lastBlockCount = m_text->blockCount();
         m_foldTimer->start();
     });
-    // Necessário para o documento ser compartilhado por QPlainTextEdits.
-    m_text->setDocumentLayout(new QPlainTextDocumentLayout(m_text));
+    // Sem layout explícito: o QTextDocument cria, sob demanda, o
+    // QTextDocumentLayout (layout rico) usado pelo QTextEdit — que honra
+    // margens/indentação de bloco (necessário para o wrap indentado).
     m_highlighter = new SyntaxHighlighter(m_text);
     connect(m_text, &QTextDocument::modificationChanged, this, &Document::changed);
     // Voltou a ser exatamente o texto salvo (apagou o que digitou, digitou de
