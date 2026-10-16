@@ -31,13 +31,65 @@ This is the Linux port of the Android Slayer Editor.
 
 ### Debian / Ubuntu (amd64)
 
-Download the latest `.deb` from the [Releases](https://github.com/wyllianbs/SE/releases)
-page and install it with `apt`, which pulls in the required Qt 6 and QTermWidget
-libraries:
+Slayer Editor needs **Qt 6 ≥ 6.8.2**, available on Debian 13 (trixie) and newer,
+and on recent Ubuntu releases. Pick one of the options below.
+
+#### Option 1 — APT repository via `extrepo` (recommended)
+
+[`extrepo`](https://salsa.debian.org/extrepo-team/extrepo) adds the signed
+repository and its key for you, and `apt` keeps the editor up to date:
 
 ```bash
-sudo apt install ./slayer-editor_0.4.2-2_amd64.deb
+sudo apt install extrepo
+sudo extrepo enable slayer-editor
+sudo apt update
+sudo apt install slayer-editor
 ```
+
+> The `extrepo` entry is under review
+> ([extrepo-data!585](https://salsa.debian.org/extrepo-team/extrepo-data/-/merge_requests/585)).
+> Until it is accepted, use Option 2.
+
+#### Option 2 — APT repository, manual
+
+Add the signed APT repository at <https://wyllianbs.github.io/slayer-apt/> — this
+also keeps the editor updated with `apt`:
+
+```bash
+# 1. Add the signing key
+curl -fsSL https://wyllianbs.github.io/slayer-apt/slayer-editor.gpg.asc \
+  | sudo gpg --dearmor -o /usr/share/keyrings/slayer-editor.gpg
+
+# 2. Add the repository
+echo "deb [signed-by=/usr/share/keyrings/slayer-editor.gpg] https://wyllianbs.github.io/slayer-apt stable main" \
+  | sudo tee /etc/apt/sources.list.d/slayer-editor.list
+
+# 3. Install
+sudo apt update
+sudo apt install slayer-editor
+```
+
+Update, uninstall and key-verification details are in the
+[slayer-apt](https://github.com/wyllianbs/slayer-apt) repository.
+
+#### Option 3 — Download the latest `.deb`
+
+A one-off install of the newest release (no repository, no automatic updates):
+
+```bash
+sudo apt update && sudo apt install -y curl wget
+
+wget -O /tmp/slayer-editor.deb \
+  "$(curl -s https://api.github.com/repos/wyllianbs/SE/releases/latest \
+  | grep browser_download_url \
+  | grep 'amd64.deb' \
+  | cut -d '"' -f 4)"
+
+sudo apt install /tmp/slayer-editor.deb
+```
+
+Or download it by hand from the [Releases](https://github.com/wyllianbs/SE/releases)
+page and run `sudo apt install ./slayer-editor_*_amd64.deb`.
 
 To run programs from the editor, install the relevant toolchains (for example
 `build-essential` and `python3`). Language servers and debuggers are optional
