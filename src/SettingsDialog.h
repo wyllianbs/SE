@@ -81,6 +81,7 @@ private:
     QCheckBox *m_highlightLine = nullptr;
     QCheckBox *m_minimap = nullptr;
     QSpinBox *m_minimapWidth = nullptr;
+    QCheckBox *m_wrapIndent = nullptr;
     QSpinBox *m_wrapIndentExtra = nullptr;
     QCheckBox *m_autoPairs = nullptr;
     QCheckBox *m_completion = nullptr;

@@ -455,14 +455,12 @@ void CodeEditor::applyWrapIndent()
     if (document()->revision() == m_wrapIndentRevision)
         return; // nada mudou desde a última aplicação (ex.: só rolagem)
 
-    // DESATIVADO: o recuo suspenso das linhas quebradas (margem esquerda +
-    // textIndent negativo no formato do bloco) provoca um segfault dentro do
-    // QTextDocumentLayout::draw do QTextEdit ao desenhar seleções sobre esses
-    // blocos — reproduzível ao BUSCAR num documento com wrap (confirmado por
-    // core dump: QTextLine::textStart dentro de QTextDocumentLayout::draw). Até
-    // haver uma forma segura de recuar as continuações, mantemos indentPx = 0
-    // (wrap padrão, estável). Com o flag em true o comportamento antigo volta.
-    static const bool kHangingIndent = false;
+    // O recuo das linhas quebradas (margem esquerda + textIndent negativo) é
+    // OPCIONAL e desligado por padrão: num documento com wrap, ao desenhar uma
+    // seleção sobre esses blocos houve segfault no QTextDocumentLayout::draw do
+    // QTextEdit (QTextLine::textStart) — observado só no Wayland (core dump).
+    // Mitigação: arredondar o recuo para pixel inteiro (evita coordenadas
+    // fracionárias que o backend pode tratar mal). Fica atrás de uma opção.
     const qreal spaceW = fontMetrics().horizontalAdvance(QLatin1Char(' '));
     const int tabW = qMax(1, m_indentSpaces);
 
@@ -474,7 +472,7 @@ void CodeEditor::applyWrapIndent()
     cur.joinPreviousEditBlock();
     for (QTextBlock b = document()->firstBlock(); b.isValid(); b = b.next()) {
         qreal indentPx = 0;
-        if (kHangingIndent && m_wordWrap) {
+        if (m_wrapIndentEnabled && m_wordWrap) {
             const QString t = b.text();
             int cols = 0, i = 0;
             for (; i < t.size(); ++i) {
@@ -490,7 +488,7 @@ void CodeEditor::applyWrapIndent()
             // continuação alinha sob o 1º caractere da linha; com recuo extra,
             // soma esses espaços para destacar a dobra.
             if (i < t.size())
-                indentPx = (cols + m_wrapIndentExtra) * spaceW;
+                indentPx = qRound((cols + m_wrapIndentExtra) * spaceW); // pixel inteiro
         }
         QTextBlockFormat fmt = b.blockFormat();
         if (!qFuzzyCompare(fmt.leftMargin(), indentPx) || !qFuzzyCompare(fmt.textIndent(), -indentPx)) {
@@ -530,6 +528,15 @@ void CodeEditor::setWordWrap(bool wrap)
     m_wordWrap = wrap;
     setLineWrapMode(wrap ? QTextEdit::WidgetWidth : QTextEdit::NoWrap);
     m_wrapIndentRevision = -1; // força reaplicar o recuo suspenso
+    applyWrapIndent();
+}
+
+void CodeEditor::setWrapIndentEnabled(bool on)
+{
+    if (m_wrapIndentEnabled == on)
+        return;
+    m_wrapIndentEnabled = on;
+    m_wrapIndentRevision = -1; // liga/desliga: reaplica (ou limpa)
     applyWrapIndent();
 }
 

@@ -2245,6 +2245,7 @@ void MainWindow::configureEditor(CodeEditor *editor) const
     editor->setTabWidthSpaces(m_settings.tabWidth);
     editor->setLineNumbersVisible(m_settings.lineNumbers);
     editor->setWrapIndentExtra(m_settings.wrapIndentExtra);
+    editor->setWrapIndentEnabled(m_settings.wrapIndent);
     editor->setWordWrap(m_settings.wordWrap);
     editor->setHighlightCurrentLine(m_settings.highlightCurrentLine);
     editor->setMinimapWidth(m_settings.minimapWidth);

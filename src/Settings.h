@@ -55,6 +55,7 @@ struct AppSettings
     int tabWidth = 4;
     bool lineNumbers = true;
     bool wordWrap = false;
+    bool wrapIndent = false;     //< recua as linhas quebradas (opcional; ver crash no Wayland)
     int wrapIndentExtra = 0;     //< espaços extras no recuo das linhas quebradas (0 = modo VSCode)
     bool highlightCurrentLine = true;
     bool minimap = true;         //< mostra o minimap do código à direita (como no Kate)
