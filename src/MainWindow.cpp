@@ -2420,6 +2420,7 @@ void MainWindow::refreshIcons()
         action->setIcon(Icons::icon(glyph, color, size));
     }
     m_runToolbarAction->setIcon(Icons::icon(Icons::Run, m_theme.window, size));
+    m_findBar->setIconColor(m_theme.textSecondary);
     for (ViewSpace *s : viewSpaces()) {
         for (int i = 0; i < s->count(); ++i) {
             if (auto *b = qobject_cast<QToolButton *>(s->tabBar()->tabButton(i, QTabBar::RightSide)))
