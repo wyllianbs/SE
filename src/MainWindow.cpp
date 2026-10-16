@@ -2111,10 +2111,11 @@ QWidget *MainWindow::buildGoToBar()
     row->addStretch(1); // mantém a barra encostada à esquerda
     row->addWidget(close);
 
-    // Vai para a linha ao vivo, conforme o valor muda (como no Kate).
+    // Vai para a linha ao vivo, conforme o valor muda (como no Kate). Sem roubar
+    // o foco do campo (senão as próximas teclas iriam para o editor).
     connect(m_gotoSpin, qOverload<int>(&QSpinBox::valueChanged), this, [this](int line) {
         if (CodeEditor *e = currentEditor())
-            e->goToLine(line);
+            e->goToLine(line, false);
     });
     auto confirm = [this]() {
         m_gotoBar->hide();
@@ -2614,6 +2615,13 @@ void MainWindow::restoreSession()
     const int current = s.value(QStringLiteral("session/current"), 0).toInt();
     if (current >= 0 && current < m_activeSpace->count())
         m_activeSpace->setCurrentIndex(current);
+
+    // A rolagem só centra de verdade depois que a janela aparece e o editor tem
+    // tamanho: reposiciona a vista no cursor restaurado no próximo ciclo.
+    QTimer::singleShot(0, this, [this]() {
+        if (CodeEditor *e = currentEditor())
+            e->centerCursor();
+    });
 }
 
 void MainWindow::saveSession()

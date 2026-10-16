@@ -305,7 +305,7 @@ void CodeEditor::toggleComment()
     cursor.endEditBlock();
 }
 
-void CodeEditor::goToLine(int line)
+void CodeEditor::goToLine(int line, bool focusEditor)
 {
     const QTextBlock block = document()->findBlockByNumber(qMax(0, line - 1));
     if (!block.isValid())
@@ -313,7 +313,10 @@ void CodeEditor::goToLine(int line)
     QTextCursor c(block);
     setTextCursor(c);
     centerCursorCompat();
-    setFocus();
+    // Na navegação ao vivo (barra "ir para linha") NÃO roubamos o foco, senão
+    // as próximas teclas digitadas vão para o editor em vez do campo.
+    if (focusEditor)
+        setFocus();
 }
 
 int CodeEditor::foldMarkerWidth() const

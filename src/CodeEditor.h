@@ -59,7 +59,7 @@ public:
     bool saveFile(const QString &path, QString *error = nullptr);
 
     void toggleComment();
-    void goToLine(int line);
+    void goToLine(int line, bool focusEditor = true);
     /** Centraliza o cursor na vista (substitui QPlainTextEdit::centerCursor). */
     void centerCursor() { centerCursorCompat(); }
 
