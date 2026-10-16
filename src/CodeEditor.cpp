@@ -478,9 +478,11 @@ void CodeEditor::applyWrapIndent()
                 else
                     break;
             }
-            // Indenta só linhas com conteúdo; soma um nível para destacar a dobra.
+            // Indenta só linhas com conteúdo. Por padrão (0 = modo VSCode) a
+            // continuação alinha sob o 1º caractere da linha; com recuo extra,
+            // soma esses espaços para destacar a dobra.
             if (i < t.size())
-                indentPx = (cols + tabW) * spaceW;
+                indentPx = (cols + m_wrapIndentExtra) * spaceW;
         }
         QTextBlockFormat fmt = b.blockFormat();
         if (!qFuzzyCompare(fmt.leftMargin(), indentPx) || !qFuzzyCompare(fmt.textIndent(), -indentPx)) {
@@ -520,6 +522,16 @@ void CodeEditor::setWordWrap(bool wrap)
     m_wordWrap = wrap;
     setLineWrapMode(wrap ? QTextEdit::WidgetWidth : QTextEdit::NoWrap);
     m_wrapIndentRevision = -1; // força reaplicar o recuo suspenso
+    applyWrapIndent();
+}
+
+void CodeEditor::setWrapIndentExtra(int spaces)
+{
+    spaces = qBound(0, spaces, 32);
+    if (m_wrapIndentExtra == spaces)
+        return;
+    m_wrapIndentExtra = spaces;
+    m_wrapIndentRevision = -1; // o recuo mudou: reaplica
     applyWrapIndent();
 }
 

@@ -55,6 +55,7 @@ struct AppSettings
     int tabWidth = 4;
     bool lineNumbers = true;
     bool wordWrap = false;
+    int wrapIndentExtra = 0;     //< espaços extras no recuo das linhas quebradas (0 = modo VSCode)
     bool highlightCurrentLine = true;
     bool minimap = true;         //< mostra o minimap do código à direita (como no Kate)
     int minimapWidth = 55;       //< largura do minimap em px

@@ -286,6 +286,18 @@ QWidget *SettingsDialog::buildEditorPage()
     auto *display = new QVBoxLayout;
     for (QCheckBox *c : {m_lineNumbers, m_wordWrap, m_highlightLine, m_minimap, m_editorBlink})
         display->addWidget(c);
+    // Recuo extra das linhas quebradas (0 = modo VSCode).
+    m_wrapIndentExtra = new QSpinBox;
+    m_wrapIndentExtra->setRange(0, 32);
+    m_wrapIndentExtra->setSuffix(tr(" spaces"));
+    m_wrapIndentExtra->setToolTip(tr("Extra indentation for wrapped lines, beyond the line's own indentation. "
+                                     "0 aligns the continuation under the first character (like VS Code)."));
+    auto *wrapIndentRow = new QHBoxLayout;
+    auto *wrapIndentLabel = new QLabel(tr("Extra indent on wrapped lines"));
+    wrapIndentRow->addWidget(wrapIndentLabel);
+    wrapIndentRow->addStretch(1);
+    wrapIndentRow->addWidget(m_wrapIndentExtra);
+    display->addLayout(wrapIndentRow);
 
     m_autoPairs = new QCheckBox(tr("Auto-close brackets and quotes  ( )  [ ]  { }  \" \"  ' '"));
     m_completion = new QCheckBox(tr("Code completion (words in the file + language keywords, Ctrl+Space)"));
@@ -998,6 +1010,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_tabWidth->setValue(s.tabWidth);
     m_lineNumbers->setChecked(s.lineNumbers);
     m_wordWrap->setChecked(s.wordWrap);
+    m_wrapIndentExtra->setValue(s.wrapIndentExtra);
     m_highlightLine->setChecked(s.highlightCurrentLine);
     m_minimap->setChecked(s.minimap);
     m_autoPairs->setChecked(s.autoClosePairs);
@@ -1081,6 +1094,7 @@ AppSettings SettingsDialog::settings() const
     s.tabWidth = m_tabWidth->value();
     s.lineNumbers = m_lineNumbers->isChecked();
     s.wordWrap = m_wordWrap->isChecked();
+    s.wrapIndentExtra = m_wrapIndentExtra->value();
     s.highlightCurrentLine = m_highlightLine->isChecked();
     s.minimap = m_minimap->isChecked();
     s.autoClosePairs = m_autoPairs->isChecked();

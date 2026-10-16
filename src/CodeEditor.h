@@ -37,6 +37,8 @@ public:
     void setTabWidthSpaces(int spaces);
     void setLineNumbersVisible(bool visible);
     void setWordWrap(bool wrap);
+    /** Recuo extra (em espaços) nas linhas quebradas; 0 = modo VSCode (padrão). */
+    void setWrapIndentExtra(int spaces);
     void setHighlightCurrentLine(bool enabled);
     void setCodeCompletion(bool enabled) { m_completionEnabled = enabled; }
     void setInsertSpaces(bool spaces) { m_insertSpaces = spaces; }
@@ -105,6 +107,7 @@ private:
     // suspenso em cada bloco conforme a indentação da própria linha.
     void applyWrapIndent();
     bool m_wordWrap = false;
+    int m_wrapIndentExtra = 0;         //< espaços extras no recuo do wrap (0 = VSCode)
     bool m_applyingWrapIndent = false;
     bool m_wrapIndentsApplied = false; //< há recuos de wrap aplicados aos blocos?
     int m_wrapIndentRevision = -1;

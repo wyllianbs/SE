@@ -156,6 +156,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("tabWidth")] = tabWidth;
     o[QStringLiteral("lineNumbers")] = lineNumbers;
     o[QStringLiteral("wordWrap")] = wordWrap;
+    o[QStringLiteral("wrapIndentExtra")] = wrapIndentExtra;
     o[QStringLiteral("highlightCurrentLine")] = highlightCurrentLine;
     o[QStringLiteral("minimap")] = minimap;
     o[QStringLiteral("minimapWidth")] = minimapWidth;
@@ -227,6 +228,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.tabWidth = qBound(1, num("tabWidth", s.tabWidth), 16);
     s.lineNumbers = flag("lineNumbers", s.lineNumbers);
     s.wordWrap = flag("wordWrap", s.wordWrap);
+    s.wrapIndentExtra = qBound(0, num("wrapIndentExtra", s.wrapIndentExtra), 32);
     s.highlightCurrentLine = flag("highlightCurrentLine", s.highlightCurrentLine);
     s.minimap = flag("minimap", s.minimap);
     s.minimapWidth = qBound(20, num("minimapWidth", s.minimapWidth), 400);
