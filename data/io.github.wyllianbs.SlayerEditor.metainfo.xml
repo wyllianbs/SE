@@ -42,6 +42,15 @@
   </screenshots>
   <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
   <releases>
+    <release version="0.4.5" date="2026-10-16">
+      <description>
+        <p>The find bar now keeps a search history and uses Kate-style arrows,
+        Go to Line opens as an inline bar instead of a dialog, and each file's
+        cursor position is remembered between sessions. Wrapped-line indentation
+        became an optional setting. Also fixes a crash when searching in a
+        word-wrapped document.</p>
+      </description>
+    </release>
     <release version="0.4.4" date="2026-10-15">
       <description>
         <p>Adds syntax highlighting for HTML, CSS, JSON, XML, Markdown and more,

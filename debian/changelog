@@ -1,4 +1,4 @@
-slayer-editor (0.4.4-1) unstable; urgency=medium
+slayer-editor (0.4.5-1) unstable; urgency=medium
 
   * Initial release. (Closes: #1150574)
     Qt 6 code editor with a tabbed interface, an embedded QTermWidget
@@ -8,9 +8,9 @@ slayer-editor (0.4.4-1) unstable; urgency=medium
     debugging, a Kate-style split view, status bar and auto-reload,
     syntax highlighting for many markup and config formats, a live HTML
     preview with automatic reload, a code minimap, indentation guides,
-    indentation of wrapped lines, matching block-delimiter and tag
-    highlighting, several color themes, an optional symbol display,
-    auto-save, an Open Recent menu, and drag-and-drop of files to open
-    them in new tabs.
+    matching block-delimiter and tag highlighting, several color themes,
+    an optional symbol display, auto-save, an Open Recent menu, a find bar
+    with search history, an inline go-to-line bar, per-file cursor
+    position memory, and drag-and-drop of files to open them in new tabs.
 
- -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Thu, 15 Oct 2026 21:26:36 -0300
+ -- Wyllian Bezerra da Silva <wyllianbs@gmail.com>  Fri, 16 Oct 2026 18:06:56 -0300
