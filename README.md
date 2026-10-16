@@ -46,8 +46,8 @@ sudo apt update
 sudo apt install slayer-editor
 ```
 
-> The `extrepo` entry is tracked at:
-> <https://salsa.debian.org/extrepo-team/extrepo-data/-/merge_requests/585>
+> The `extrepo` entry is tracked at
+> <https://salsa.debian.org/extrepo-team/extrepo-data/-/merge_requests/585>.
 
 #### Option 2 — APT repository, manual
 
