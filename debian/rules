@@ -1,8 +1,0 @@
-#!/usr/bin/make -f
-
-%:
-	dh $@ --buildsystem=cmake
-
-# The Qt test suites need a platform plugin; use the offscreen one on buildds.
-override_dh_auto_test:
-	QT_QPA_PLATFORM=offscreen dh_auto_test
