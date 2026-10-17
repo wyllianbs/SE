@@ -1,0 +1,14 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>icons/slayer-editor.png</file>
+        <file>icons/hicolor/16.png</file>
+        <file>icons/hicolor/22.png</file>
+        <file>icons/hicolor/24.png</file>
+        <file>icons/hicolor/32.png</file>
+        <file>icons/hicolor/48.png</file>
+        <file>icons/hicolor/64.png</file>
+        <file>icons/hicolor/128.png</file>
+        <file>fonts/SymbolsNerdFontMono-Regular.ttf</file>
+    </qresource>
+</RCC>
