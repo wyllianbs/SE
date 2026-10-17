@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.wyllianbs.SlayerEditor</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Slayer Editor</name>
+  <summary>Lightweight code editor with an embedded terminal</summary>
+  <description>
+    <p>Slayer Editor is a fast code editor with syntax highlighting, tabs and an
+    embedded terminal that can be docked on any edge of the window. Press F5 to
+    compile and run C, C++, Python, Rust, Go, JavaScript, Java and shell scripts.</p>
+  </description>
+  <launchable type="desktop-id">io.github.wyllianbs.SlayerEditor.desktop</launchable>
+  <url type="homepage">https://github.com/wyllianbs/SE</url>
+  <url type="bugtracker">https://github.com/wyllianbs/SE/issues</url>
+  <!-- Screenshots must be hosted publicly (https URLs) for AppStream. -->
+  <screenshots>
+    <screenshot type="default">
+      <caption>Code and run in one place, with a built-in terminal</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-01-run.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A visual debugger: breakpoints, variables and call stack</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-02-debug.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Split the view like Kate across several panes</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-03-split.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Real-time diagnostics and completion from language servers</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-04-lsp.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Dozens of light and dark themes that can follow the system</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-05-themes.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Editing C with the embedded terminal</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/editor.png</image>
+    </screenshot>
+  </screenshots>
+  <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
+  <releases>
+    <release version="0.4.5" date="2026-10-16">
+      <description>
+        <p>The find bar now keeps a search history and uses Kate-style arrows,
+        Go to Line opens as an inline bar instead of a dialog, and each file's
+        cursor position is remembered between sessions. Wrapped-line indentation
+        became an optional setting. Also fixes a crash when searching in a
+        word-wrapped document.</p>
+      </description>
+    </release>
+    <release version="0.4.4" date="2026-10-15">
+      <description>
+        <p>Adds syntax highlighting for HTML, CSS, JSON, XML, Markdown and more,
+        and a live HTML preview with automatic reload (built-in server or an
+        external one such as PHP). New editor features: a code minimap, VS
+        Code-style indentation guides, indentation of wrapped lines, auto-close
+        of HTML/XML tags, an Open Recent menu and optional auto-save. Also fixes
+        an editor freeze while editing HTML.</p>
+      </description>
+    </release>
+    <release version="0.4.3" date="2026-10-14">
+      <description>
+        <p>Fixes a crash when opening an empty file. Code completion now appears
+        inline as ghost text (accepted with Tab) instead of a popup, matching
+        block delimiters are highlighted, the disk-change bar can enable
+        auto-reload, and files can be dropped onto the welcome screen.</p>
+      </description>
+    </release>
+    <release version="0.4.2" date="2026-10-12">
+      <description>
+        <p>Dragging a file onto the editor now opens it in a new tab instead of
+        inserting its path as text.</p>
+      </description>
+    </release>
+    <release version="0.4.1" date="2026-10-10"/>
+    <release version="0.4.0" date="2026-10-08"/>
+    <release version="0.3.0" date="2026-10-08"/>
+    <release version="0.2.0" date="2026-09-30"/>
+    <release version="0.1.0" date="2026-09-30"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>
