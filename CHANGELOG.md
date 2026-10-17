@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.4.6 — 2026-10-17
 
 - Much faster theme switching and file opening on large files (no more
   multi-second freeze).
