@@ -1,5 +1,4 @@
 #include "LspManager.h"
-#include "Sandbox.h"
 #include "Document.h"
 #include "LspClient.h"
 
@@ -77,7 +76,7 @@ QList<LspPreset> LspManager::presets(const QString &id)
 bool LspManager::isInstalled(const QString &command)
 {
     const QStringList args = QProcess::splitCommand(command);
-    return !args.isEmpty() && Sandbox::hasExecutable(args.first());
+    return !args.isEmpty() && !QStandardPaths::findExecutable(args.first()).isEmpty();
 }
 
 QString LspManager::lspLanguageId(const QString &id)
@@ -105,7 +104,11 @@ QString LspManager::rootFor(const QString &filePath)
 void LspManager::setSettings(const AppSettings &settings)
 {
     const AppSettings old = m_settings;
+    const bool lspRelevant = old.lspEnabled != settings.lspEnabled || old.lsp != settings.lsp
+                             || old.languages != settings.languages;
     m_settings = settings;
+    if (!lspRelevant)
+        return;
 
     // Servidor desligado ou trocado: encerra e reassocia os documentos.
     const QStringList ids = m_clients.keys();

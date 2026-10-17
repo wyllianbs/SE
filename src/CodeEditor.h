@@ -114,6 +114,8 @@ private:
     bool m_applyingWrapIndent = false;
     bool m_wrapIndentsApplied = false; //< há recuos de wrap aplicados aos blocos?
     int m_wrapIndentRevision = -1;
+    int m_wrapDirtyFrom = -1; //< faixa editada pendente de recuo (posições)
+    int m_wrapDirtyTo = -1;
 
     void updateLineNumberAreaWidth();
     void updateViewportMargins();
@@ -132,6 +134,10 @@ private:
     void updateCompletion(bool fromTrigger = false);
     void showCompletions(const QString &prefix, QStringList words, const QList<ServerItem> &server);
     void updateExtraSelections();
+    void appendSelectionOccurrences(QList<QTextEdit::ExtraSelection> &extra);
+    const QString &plainTextCached() const;
+    mutable QString m_plainText;
+    mutable int m_plainRevision = -1;
     QString diagnosticTextAt(const QPoint &viewportPos) const;
     void insertCompletion(const QString &word);
 
@@ -167,6 +173,9 @@ private:
     int m_completionRequest = 0;
     QString m_ghostText;   //< sugestão inline (ghost text), aceita com Tab
     int m_ghostPos = -1;   //< posição do cursor onde o ghost é válido
+    QString m_occNeedle;          //< seleção cujas ocorrências estão destacadas
+    int m_occRevision = -1;
+    QList<int> m_occPositions;
     void setGhost(const QString &text);
     void clearGhost();
     void paintGhostText(class QPainter &p);

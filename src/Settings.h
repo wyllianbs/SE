@@ -15,6 +15,8 @@ struct LanguageConfig
     QString tool;
     QString flags;
     QString extensions; //< separadas por espaço ou vírgula
+    bool operator==(const LanguageConfig &o) const
+    { return tool == o.tool && flags == o.flags && extensions == o.extensions; }
 };
 
 /** Servidor LSP de uma linguagem. */
@@ -32,6 +34,8 @@ struct LspConfig
 {
     bool enabled = true;
     QString command; //< vazio = primeiro servidor conhecido
+    bool operator==(const LspConfig &o) const
+    { return enabled == o.enabled && command == o.command; }
 };
 
 /** Linguagem definida pelo usuário: "<tool> <flags> arquivo". */
@@ -41,6 +45,10 @@ struct CustomLanguage
     QString tool;
     QString flags;
     QString extensions;
+    bool operator==(const CustomLanguage &o) const
+    {
+        return name == o.name && tool == o.tool && flags == o.flags && extensions == o.extensions;
+    }
 };
 
 /**
@@ -89,6 +97,7 @@ struct AppSettings
     QString shell;               //< vazio = $SHELL
     bool terminalCursorBlink = true;
     int terminalTransparency = 0; //< % (0 = opaco, máx. 90)
+    int runFocus = 2;             //< foco ao executar: 0 = terminal, 1 = editor, 2 = terminal só se pedir entrada (padrão)
 
     // Pré-visualização de HTML/CSS/JS (Run abre no navegador)
     QString previewCommand;      //< servidor externo, ex. "php -S {host}:{port}"; vazio = servidor embutido
@@ -97,7 +106,7 @@ struct AppSettings
     QString previewBrowser;      //< comando do navegador; vazio = padrão do sistema
     int previewReload = 1;       //< 0 = nunca, 1 = a cada mudança, 2 = por intervalo
     int previewReloadInterval = 2; //< segundos (modo intervalo)
-    bool previewCrossOriginIsolation = false; //< COOP/COEP (SharedArrayBuffer p/ WASM com threads)
+    bool previewCrossOriginIsolation = true;  //< COOP/COEP (SharedArrayBuffer p/ WASM com threads)
 
     // Linguagens
     QMap<QString, LanguageConfig> languages; //< id da linguagem embutida → config

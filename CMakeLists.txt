@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(slayer-editor VERSION 0.4.5 LANGUAGES CXX)
+project(slayer-editor VERSION 0.4.6 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,7 +22,6 @@ add_executable(slayer-editor
     src/TerminalDock.cpp src/TerminalDock.h
     src/FindBar.cpp src/FindBar.h
     src/Icons.cpp src/Icons.h
-    src/Sandbox.cpp src/Sandbox.h
     src/ToolbarDialog.cpp src/ToolbarDialog.h
     src/NewFileDialog.cpp src/NewFileDialog.h
     src/ThemeEditor.cpp src/ThemeEditor.h
@@ -79,8 +78,7 @@ if(BUILD_TESTING)
     target_link_libraries(tst_document PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME document COMMAND tst_document)
     add_executable(tst_lsp tests/tst_lsp.cpp src/Document.cpp src/Folding.cpp src/SyntaxHighlighter.cpp
-                   src/Language.cpp src/Theme.cpp src/Settings.cpp src/LspManager.cpp src/LspClient.cpp
-                   src/Sandbox.cpp)
+                   src/Language.cpp src/Theme.cpp src/Settings.cpp src/LspManager.cpp src/LspClient.cpp)
     target_link_libraries(tst_lsp PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME lsp COMMAND tst_lsp)
     add_executable(tst_help tests/tst_help.cpp src/HelpDialog.cpp src/Icons.cpp resources/resources.qrc)
@@ -92,15 +90,12 @@ if(BUILD_TESTING)
     add_executable(tst_themes tests/tst_themes.cpp src/Theme.cpp)
     target_link_libraries(tst_themes PRIVATE Qt6::Gui Qt6::Test)
     add_test(NAME themes COMMAND tst_themes)
-    add_executable(tst_sandbox tests/tst_sandbox.cpp src/Sandbox.cpp)
-    target_link_libraries(tst_sandbox PRIVATE Qt6::Core Qt6::Test)
-    add_test(NAME sandbox COMMAND tst_sandbox)
-    add_executable(tst_languages tests/tst_languages.cpp src/Language.cpp src/Settings.cpp src/LspManager.cpp src/Sandbox.cpp
+    add_executable(tst_languages tests/tst_languages.cpp src/Language.cpp src/Settings.cpp src/LspManager.cpp
                    src/LspClient.cpp src/Document.cpp src/Folding.cpp src/SyntaxHighlighter.cpp src/Theme.cpp)
     target_link_libraries(tst_languages PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME languages COMMAND tst_languages)
     add_executable(tst_settings tests/tst_settings.cpp src/SettingsDialog.cpp src/ThemeEditor.cpp src/Settings.cpp
-                   src/LspManager.cpp src/LspClient.cpp src/Language.cpp src/Theme.cpp src/Icons.cpp src/Sandbox.cpp
+                   src/LspManager.cpp src/LspClient.cpp src/Language.cpp src/Theme.cpp src/Icons.cpp
                    src/SyntaxHighlighter.cpp src/Document.cpp src/Folding.cpp resources/resources.qrc)
     target_link_libraries(tst_settings PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME settings COMMAND tst_settings)
@@ -110,7 +105,7 @@ if(BUILD_TESTING)
     target_link_libraries(tst_viewspace PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME viewspace COMMAND tst_viewspace)
     add_executable(tst_debug tests/tst_debug.cpp src/DebugSession.cpp src/DapClient.cpp src/LspClient.cpp
-                   src/TerminalDock.cpp src/Theme.cpp src/Icons.cpp src/Settings.cpp src/LspManager.cpp src/Sandbox.cpp
+                   src/TerminalDock.cpp src/Theme.cpp src/Icons.cpp src/Settings.cpp src/LspManager.cpp
                    src/Document.cpp src/Folding.cpp src/SyntaxHighlighter.cpp src/Language.cpp
                    resources/resources.qrc)
     target_link_libraries(tst_debug PRIVATE Qt6::Widgets Qt6::Test qtermwidget6)

@@ -110,6 +110,7 @@ private:
     void applySettings(const AppSettings &settings);
     void applyTheme(const QString &themeId);
     void applyFontSize(int pointSize);
+    void toggleDarkMode();
     void configureEditor(CodeEditor *editor) const;
     void showSettings();
     void rebuildLanguageCombo();
@@ -119,7 +120,9 @@ private:
     QFont terminalFont() const;
     void refreshIcons();
     void updateStatus();
+    void polishThemeChrome();
     QString styleSheetFor(const Theme &theme) const;
+    void scheduleSettingsSave();
 
     QSplitter *m_rootSplitter = nullptr;
     ViewSpace *m_activeSpace = nullptr;
@@ -146,6 +149,8 @@ private:
     quint16 m_previewBackendPort = 0;     //< porta interna em que o servidor externo roda
     QTimer *m_previewReloadTimer = nullptr;
     QTimer *m_autoSaveTimer = nullptr;
+    QTimer *m_saveSettingsTimer = nullptr;
+    QTimer *m_themeChromeTimer = nullptr;
     QSet<CodeEditor *> m_autoSavePending;
     void autoSavePending();
     void changeEncoding(const QString &encoding, bool bom);
@@ -158,6 +163,8 @@ private:
     QStringList m_recentFiles;          //< caminhos recentes, mais recente primeiro
     QList<QPair<QAction *, Icons::Glyph>> m_iconActions;
     QAction *m_runAction = nullptr;
+    QAction *m_darkModeAction = nullptr;
+    QList<QAction *> m_debugToolbarActions; //< passo/continuar/parar na barra: só durante o debug
     QAction *m_runToolbarAction = nullptr;
     QAction *m_runInteractiveAction = nullptr;
     QAction *m_livePreviewAction = nullptr;

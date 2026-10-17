@@ -32,6 +32,8 @@ struct Language
     static const Language &plainText();
     static const Language &forFileName(const QString &fileName);
     static const Language &byId(const QString &id);
+    /** O depurador embutido suporta esta linguagem (Python, C, C++)? */
+    static bool debuggable(const QString &id);
 
     bool isCustom() const { return id.startsWith(QLatin1String("custom:")); }
 

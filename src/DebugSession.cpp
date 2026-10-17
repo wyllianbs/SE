@@ -1,6 +1,6 @@
 #include "DebugSession.h"
-#include "Sandbox.h"
 #include "DapClient.h"
+#include "Language.h"
 #include "TerminalDock.h"
 
 #include <QDir>
@@ -39,7 +39,7 @@ DebugSession::~DebugSession()
 
 bool DebugSession::supports(const QString &id)
 {
-    return id == QLatin1String("python") || id == QLatin1String("c") || id == QLatin1String("cpp");
+    return Language::debuggable(id);
 }
 
 void DebugSession::setState(State state)
@@ -92,8 +92,7 @@ void DebugSession::compileAsync(const QString &filePath, const QString &id, cons
         done(binary);
     });
     Q_EMIT status(tr("Compiling %1 with -g…").arg(QFileInfo(filePath).fileName()));
-    const auto [ccProg, ccArgs] = Sandbox::command(cfg.tool, before + QStringList{"-g", "-O0", filePath, "-o", binary} + after);
-    cc->start(ccProg, ccArgs);
+    cc->start(cfg.tool, before + QStringList{"-g", "-O0", filePath, "-o", binary} + after);
 }
 
 void DebugSession::start(const QString &filePath, const QString &id, const AppSettings &settings,
@@ -109,8 +108,7 @@ void DebugSession::start(const QString &filePath, const QString &id, const AppSe
     if (id == QLatin1String("python")) {
         const QString python = settings.languageConfig(id).tool;
         QProcess probe;
-        const auto [probeProg, probeArgs] = Sandbox::command(python, {"-c", "import debugpy"});
-        probe.start(probeProg, probeArgs);
+        probe.start(python, {"-c", "import debugpy"});
         probe.waitForFinished(5000);
         if (probe.exitStatus() != QProcess::NormalExit || probe.exitCode() != 0) {
             Q_EMIT error(tr("debugpy is not installed for %1.\n\nInstall it with:\nsudo apt install python3-debugpy")
@@ -126,14 +124,14 @@ void DebugSession::start(const QString &filePath, const QString &id, const AppSe
     }
 
     // C / C++: gdb com DAP nativo (gdb 14+).
-    if (!Sandbox::hasExecutable(QStringLiteral("gdb"))) {
+    if (QStandardPaths::findExecutable(QStringLiteral("gdb")).isEmpty()) {
         Q_EMIT error(tr("gdb is not installed.\n\nInstall it with:\nsudo apt install gdb"));
         return;
     }
     setState(State::Starting);
     compileAsync(filePath, id, settings, [this, filePath](const QString &binary) {
-        // Aba própria (PTY sem shell): o programa lê e escreve nela.
-        const QString tty = m_terminal->newTeletype(tr("Debug: %1").arg(QFileInfo(filePath).fileName()));
+        // A aba de shell do terminal, com o shell em espera: o programa lê e escreve nela.
+        const QString tty = m_terminal->debugTty();
         QStringList args{"-q", "-nx", "-i", "dap"};
         if (!tty.isEmpty())
             args << "-iex" << QStringLiteral("set inferior-tty %1").arg(tty);
@@ -337,6 +335,7 @@ void DebugSession::end(const QString &message)
         });
     }
     m_configured = false;
+    m_terminal->releaseDebugTty();
     setState(State::Idle);
     if (!message.isEmpty())
         Q_EMIT finished(message);

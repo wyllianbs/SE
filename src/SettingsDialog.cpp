@@ -1,6 +1,5 @@
 #include "SettingsDialog.h"
 #include "Icons.h"
-#include "Sandbox.h"
 #include "Language.h"
 #include "LspManager.h"
 #include "ThemeEditor.h"
@@ -527,6 +526,13 @@ QWidget *SettingsDialog::buildTerminalPage()
     form->addRow(tr("Size"), m_terminalFontSize);
     form->addRow(tr("Shell"), m_shell);
     form->addRow(QString(), m_terminalBlink);
+    m_runFocus = new QComboBox;
+    m_runFocus->addItem(tr("Terminal only when input is needed"), 2);
+    m_runFocus->addItem(tr("Terminal (for programs that read input)"), 0);
+    m_runFocus->addItem(tr("Editor"), 1);
+    m_runFocus->setToolTip(tr("Interactive runs always focus the terminal. Otherwise the editor keeps the "
+                              "focus until the program waits for keyboard input."));
+    form->addRow(tr("Focus on run"), m_runFocus);
 
     m_terminalTransparency = new QSlider(Qt::Horizontal);
     m_terminalTransparency->setRange(0, 90);
@@ -583,7 +589,7 @@ QWidget *SettingsDialog::buildPreviewPage()
     };
     QSet<QString> seen;
     for (const auto &b : known) {
-        if (seen.contains(b.second) || !Sandbox::hasExecutable(b.first))
+        if (seen.contains(b.second) || QStandardPaths::findExecutable(b.first).isEmpty())
             continue;
         seen.insert(b.second);
         m_previewBrowser->addItem(b.second, b.first);
@@ -1059,6 +1065,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_previewPort->setValue(s.previewPort);
     m_previewBrowser->setCurrentIndex(qMax(0, m_previewBrowser->findData(s.previewBrowser)));
     m_previewReload->setCurrentIndex(qMax(0, m_previewReload->findData(s.previewReload)));
+    m_runFocus->setCurrentIndex(qMax(0, m_runFocus->findData(s.runFocus)));
     m_previewInterval->setValue(s.previewReloadInterval);
     m_previewCoi->setChecked(s.previewCrossOriginIsolation);
     m_previewInterval->setEnabled(s.previewReload == 2);
@@ -1153,6 +1160,7 @@ AppSettings SettingsDialog::settings() const
     s.previewPort = m_previewPort->value();
     s.previewBrowser = m_previewBrowser->currentData().toString();
     s.previewReload = m_previewReload->currentData().toInt();
+    s.runFocus = m_runFocus->currentData().toInt();
     s.previewReloadInterval = m_previewInterval->value();
     s.previewCrossOriginIsolation = m_previewCoi->isChecked();
     // Preserva opções fora deste formulário.

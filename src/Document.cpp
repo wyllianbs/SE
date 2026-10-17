@@ -99,8 +99,13 @@ bool Document::isUntitledAndEmpty() const
 
 void Document::setLanguage(const Language &language)
 {
+    if (m_language.id == language.id && m_language.extensions == language.extensions
+        && m_language.keywords == language.keywords && m_language.types == language.types)
+        return;
     m_language = language;
     m_highlighter->setLanguage(language);
+    if (!Language::debuggable(language.id))
+        clearBreakpoints();
     m_folded.clear();
     recomputeFolds();
     Q_EMIT changed();
@@ -276,6 +281,9 @@ void Document::setTheme(const Theme &theme)
 
 void Document::toggleBreakpoint(int line)
 {
+    if (!Language::debuggable(m_language.id))
+        return; // sem depurador para esta linguagem: ponto de parada não serve
+
     if (!m_breakpoints.remove(line))
         m_breakpoints.insert(line);
     Q_EMIT breakpointsChanged();

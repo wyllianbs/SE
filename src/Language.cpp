@@ -295,6 +295,11 @@ const Language &Language::forFileName(const QString &fileName)
     return plainText();
 }
 
+bool Language::debuggable(const QString &id)
+{
+    return id == QLatin1String("python") || id == QLatin1String("c") || id == QLatin1String("cpp");
+}
+
 const Language &Language::byId(const QString &id)
 {
     for (const Language &lang : all()) {

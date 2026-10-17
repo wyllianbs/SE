@@ -116,6 +116,7 @@ private:
     QSpinBox *m_previewPort = nullptr;
     QComboBox *m_previewBrowser = nullptr;
     QComboBox *m_previewReload = nullptr;
+    QComboBox *m_runFocus = nullptr;
     QSpinBox *m_previewInterval = nullptr;
     QCheckBox *m_previewCoi = nullptr;
     QCheckBox *m_terminalBlink = nullptr;

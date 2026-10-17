@@ -89,6 +89,7 @@ private Q_SLOTS:
     {
         Document doc;
         doc.text()->setPlainText("a\nb\nc\nd\n");
+        doc.setLanguage(Language::byId("python")); // só linguagens com depurador têm a coluna
         CodeEditor editor(&doc);
         editor.resize(500, 300);
         editor.show();
@@ -104,6 +105,13 @@ private Q_SLOTS:
         QTest::mouseClick(gutter, Qt::LeftButton, {}, third);
         QCOMPARE(doc.breakpoints(), QSet<int>{2});
         QTest::mouseClick(gutter, Qt::LeftButton, {}, third);
+        QVERIFY(doc.breakpoints().isEmpty());
+        // Sem depurador (HTML): o clique na margem não cria ponto de parada.
+        doc.toggleBreakpoint(1);
+        doc.setLanguage(Language::byId("html"));
+        QVERIFY(doc.breakpoints().isEmpty()); // trocar de linguagem limpa
+        QTest::mouseClick(gutter, Qt::LeftButton, {}, third);
+        doc.toggleBreakpoint(2);
         QVERIFY(doc.breakpoints().isEmpty());
     }
 };

@@ -3,6 +3,24 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Much faster theme switching and file opening on large files (no more
+  multi-second freeze).
+- View ▸ Dark Mode (Ctrl+Shift+D) switches the theme to its light/dark variant.
+- Focus on run (View menu and Settings ▸ Terminal): terminal only when the
+  program waits for input (default), always the terminal, or the editor.
+- Selecting text highlights its other occurrences.
+- Debugging uses the same terminal tab as Run; the step buttons and the
+  debugger panel appear only during a session.
+- Breakpoints only for languages the debugger supports (Python, C, C++).
+- The terminal button is a plain show/hide toggle.
+- Preview: cross-origin isolation (COOP/COEP) on by default.
+- The automatic interface language follows LANGUAGE/LC_MESSAGES/LANG;
+  complete pt_BR translation.
+- Removed the leftover Flatpak support: the editor is distributed as a Debian
+  package.
+
 ## 0.4.5 — 2026-10-16
 
 - Find bar: persistent search history and Kate-style navigation arrows.

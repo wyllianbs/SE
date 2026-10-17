@@ -424,6 +424,130 @@ sudo apt install gdb</translation>
 <context>
     <name>MainWindow</name>
     <message>
+        <source>F&amp;ocus on Run</source>
+        <translation>F&amp;oco ao executar</translation>
+    </message>
+    <message>
+        <source>&amp;Terminal</source>
+        <translation>&amp;Terminal</translation>
+    </message>
+    <message>
+        <source>&amp;Editor</source>
+        <translation>&amp;Editor</translation>
+    </message>
+    <message>
+        <source>Terminal Only When &amp;Input Is Needed</source>
+        <translation>Terminal só quando pedir &amp;entrada</translation>
+    </message>
+    <message>
+        <source>&amp;Dark Mode</source>
+        <translation>Modo &amp;escuro</translation>
+    </message>
+    <message>
+        <source>“%1” has no %2 variant.</source>
+        <translation>“%1” não tem variante %2.</translation>
+    </message>
+    <message>
+        <source>light</source>
+        <translation>clara</translation>
+    </message>
+    <message>
+        <source>dark</source>
+        <translation>escura</translation>
+    </message>
+    <message>
+        <source>Open &amp;Recent</source>
+        <translation>Abrir &amp;recente</translation>
+    </message>
+    <message>
+        <source>&amp;Wrap Long Lines</source>
+        <translation>&amp;Quebrar linhas longas</translation>
+    </message>
+    <message>
+        <source>Line wrapping enabled</source>
+        <translation>Quebra de linha ativada</translation>
+    </message>
+    <message>
+        <source>Line wrapping disabled</source>
+        <translation>Quebra de linha desativada</translation>
+    </message>
+    <message>
+        <source>Show &amp;Minimap</source>
+        <translation>Mostrar &amp;minimapa</translation>
+    </message>
+    <message>
+        <source>Minimap enabled</source>
+        <translation>Minimapa ativado</translation>
+    </message>
+    <message>
+        <source>Minimap disabled</source>
+        <translation>Minimapa desativado</translation>
+    </message>
+    <message>
+        <source>&amp;Live Preview in Browser</source>
+        <translation>&amp;Pré-visualização ao vivo no navegador</translation>
+    </message>
+    <message>
+        <source>Preview HTML in the browser with live reload (Shift+F5)</source>
+        <translation>Pré-visualizar HTML no navegador com recarga automática (Shift+F5)</translation>
+    </message>
+    <message>
+        <source>No Recent Files</source>
+        <translation>Nenhum arquivo recente</translation>
+    </message>
+    <message>
+        <source>&amp;%1  %2</source>
+        <translation>&amp;%1  %2</translation>
+    </message>
+    <message>
+        <source>Clear List</source>
+        <translation>Limpar lista</translation>
+    </message>
+    <message>
+        <source>Enable Auto Reload</source>
+        <translation>Ativar recarga automática</translation>
+    </message>
+    <message>
+        <source>From now on, reload files changed by other programs automatically (unless they have unsaved changes)</source>
+        <translation>De agora em diante, recarregar automaticamente arquivos alterados por outros programas (exceto os que tiverem alterações não salvas)</translation>
+    </message>
+    <message>
+        <source>Use the Live Preview button to open HTML in the browser.</source>
+        <translation>Use o botão de pré-visualização ao vivo para abrir HTML no navegador.</translation>
+    </message>
+    <message>
+        <source>Could not start the preview server.</source>
+        <translation>Não foi possível iniciar o servidor de pré-visualização.</translation>
+    </message>
+    <message>
+        <source>Could not determine the preview server address.</source>
+        <translation>Não foi possível determinar o endereço do servidor de pré-visualização.</translation>
+    </message>
+    <message>
+        <source>“%1” is not installed — set the preview tool in Settings.</source>
+        <translation>“%1” não está instalado — defina a ferramenta de pré-visualização nas Configurações.</translation>
+    </message>
+    <message>
+        <source>Could not start the preview proxy.</source>
+        <translation>Não foi possível iniciar o proxy de pré-visualização.</translation>
+    </message>
+    <message>
+        <source>Could not build the preview URL.</source>
+        <translation>Não foi possível montar a URL de pré-visualização.</translation>
+    </message>
+    <message>
+        <source>Previewing %1 at %2</source>
+        <translation>Pré-visualizando %1 em %2</translation>
+    </message>
+    <message>
+        <source>Live preview stopped.</source>
+        <translation>Pré-visualização ao vivo encerrada.</translation>
+    </message>
+    <message>
+        <source>Go to</source>
+        <translation>Ir para</translation>
+    </message>
+    <message>
         <source>&amp;File</source>
         <translation>&amp;Arquivo</translation>
     </message>
@@ -1148,6 +1272,130 @@ sudo apt install gdb</translation>
 </context>
 <context>
     <name>SettingsDialog</name>
+    <message>
+        <source>Terminal only when input is needed</source>
+        <translation>Terminal só quando pedir entrada</translation>
+    </message>
+    <message>
+        <source>Interactive runs always focus the terminal. Otherwise the editor keeps the focus until the program waits for keyboard input.</source>
+        <translation>A execução interativa sempre foca o terminal. Nos demais casos, o editor mantém o foco até o programa esperar entrada do teclado.</translation>
+    </message>
+    <message>
+        <source>Show the code minimap (overview on the right)</source>
+        <translation>Mostrar o minimapa do código (visão geral à direita)</translation>
+    </message>
+    <message>
+        <source>Indent wrapped lines (experimental — may be unstable on Wayland)</source>
+        <translation>Recuar linhas quebradas (experimental — pode ser instável no Wayland)</translation>
+    </message>
+    <message>
+        <source>Indent the continuation of wrapped lines to the line's own indentation. Disabled by default because it has crashed Qt's text drawing on some Wayland setups while searching.</source>
+        <translation>Recua a continuação das linhas quebradas até a indentação da própria linha. Desativado por padrão porque já derrubou o desenho de texto do Qt em algumas configurações Wayland durante buscas.</translation>
+    </message>
+    <message>
+        <source>Extra indentation for wrapped lines, beyond the line's own indentation. 0 aligns the continuation under the first character (like VS Code).</source>
+        <translation>Recuo extra para linhas quebradas, além da indentação da própria linha. 0 alinha a continuação sob o primeiro caractere (como no VS Code).</translation>
+    </message>
+    <message>
+        <source>Extra indent on wrapped lines</source>
+        <translation>Recuo extra em linhas quebradas</translation>
+    </message>
+    <message>
+        <source>Auto-save edited files</source>
+        <translation>Salvar automaticamente arquivos editados</translation>
+    </message>
+    <message>
+        <source> px</source>
+        <translation> px</translation>
+    </message>
+    <message>
+        <source>Width of the code minimap (View ▸ Show Minimap)</source>
+        <translation>Largura do minimapa do código (Exibir ▸ Mostrar minimapa)</translation>
+    </message>
+    <message>
+        <source>Minimap width</source>
+        <translation>Largura do minimapa</translation>
+    </message>
+    <message>
+        <source>Terminal (for programs that read input)</source>
+        <translation>Terminal (para programas que leem entrada)</translation>
+    </message>
+    <message>
+        <source>Focus on run</source>
+        <translation>Foco ao executar</translation>
+    </message>
+    <message>
+        <source>Built-in server (leave empty), or e.g.  php -S {host}:{port}</source>
+        <translation>Servidor embutido (deixe vazio) ou, p. ex.,  php -S {host}:{port}</translation>
+    </message>
+    <message>
+        <source>System default</source>
+        <translation>Padrão do sistema</translation>
+    </message>
+    <message>
+        <source>On all changes in the editor</source>
+        <translation>A cada alteração no editor</translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <translation>Nunca</translation>
+    </message>
+    <message>
+        <source>Every N seconds</source>
+        <translation>A cada N segundos</translation>
+    </message>
+    <message>
+        <source> s</source>
+        <translation> s</translation>
+    </message>
+    <message>
+        <source>Default: built-in live-preview server. The browser opens at the host and port above, with live reload.</source>
+        <translation>Padrão: servidor de pré-visualização embutido. O navegador abre no host e porta acima, com recarga automática.</translation>
+    </message>
+    <message>
+        <source>Backend: %1. The preview opens at %2:%3 (from the command) with live reload; the Host/port above is used only when the command has no port.</source>
+        <translation>Backend: %1. A pré-visualização abre em %2:%3 (do comando) com recarga automática; o host/porta acima só é usado quando o comando não tem porta.</translation>
+    </message>
+    <message>
+        <source>Backend: %1. Slayer serves at the host and port above and forwards to it, adding live reload.</source>
+        <translation>Backend: %1. O Slayer serve no host e porta acima e encaminha para ele, adicionando recarga automática.</translation>
+    </message>
+    <message>
+        <source>Server command</source>
+        <translation>Comando do servidor</translation>
+    </message>
+    <message>
+        <source>Host / port</source>
+        <translation>Host / porta</translation>
+    </message>
+    <message>
+        <source>Browser</source>
+        <translation>Navegador</translation>
+    </message>
+    <message>
+        <source>Cross-origin isolation (COOP/COEP)</source>
+        <translation>Isolamento de origem cruzada (COOP/COEP)</translation>
+    </message>
+    <message>
+        <source>Send the headers that enable SharedArrayBuffer — needed by in-browser WASM apps that use threads (C/Python compilers, some games). May block cross-origin resources that lack CORP/CORS.</source>
+        <translation>Envia os cabeçalhos que habilitam o SharedArrayBuffer — necessários para apps WASM no navegador que usam threads (compiladores C/Python, alguns jogos). Pode bloquear recursos de outras origens sem CORP/CORS.</translation>
+    </message>
+    <message>
+        <source>Live reload</source>
+        <translation>Recarga automática</translation>
+    </message>
+    <message>
+        <source>Interval</source>
+        <translation>Intervalo</translation>
+    </message>
+    <message>
+        <source>Run opens HTML in the browser. Leave the server command empty to use the built-in live-preview server (best for static HTML/CSS/JS); set a command like “php -S {host}:{port}” for a backend.</source>
+        <translation>Executar abre o HTML no navegador. Deixe o comando do servidor vazio para usar o servidor de pré-visualização embutido (ideal para HTML/CSS/JS estático); defina um comando como “php -S {host}:{port}” para um backend.</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Pré-visualização</translation>
+    </message>
     <message>
         <source>Settings</source>
         <translation>Configurações</translation>

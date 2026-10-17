@@ -16,6 +16,8 @@ public:
     void setLanguage(const Language &language);
     void setTheme(const Theme &theme);
 
+    enum class Role { None, Function, Number, Type, Keyword, Preprocessor, String, Comment };
+
 protected:
     void highlightBlock(const QString &text) override;
 
@@ -25,7 +27,8 @@ private:
         QTextCharFormat format;
     };
 
-    void rebuildRules();
+    void rebuildRules(bool rehighlightNow);
+    void recolor();
     bool inString(int pos) const;
 
     Language m_language;

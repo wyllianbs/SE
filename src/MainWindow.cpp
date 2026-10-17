@@ -19,7 +19,6 @@
 #include <QClipboard>
 #include <QCloseEvent>
 #include "PreviewServer.h"
-#include "Sandbox.h"
 
 #include <QDesktopServices>
 #include <QDragEnterEvent>
@@ -49,6 +48,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QStatusBar>
 #include <QStyleHints>
 #include <QTabBar>
@@ -134,6 +134,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_debugPanel, &DebugPanel::frameActivated, this, &MainWindow::showExecutionPoint);
     connect(m_debug, &DebugSession::finished, this, [this](const QString &msg) {
         clearExecutionPoint();
+        // Abre ao iniciar, fecha ao terminar: variáveis e pilha já não valem.
+        // Em erro (sinal error) fica aberto, para ajudar a entender o que houve.
+        m_debugPanel->hide();
         statusBar()->showMessage(msg, 5000);
     });
     connect(m_debug, &DebugSession::error, this, [this](const QString &msg) {
@@ -390,7 +393,9 @@ void MainWindow::createActions()
 
     QMenu *view = menuBar()->addMenu(tr("&View"));
     QAction *termA = add(view, tr("Show/Hide &Terminal"), QKeySequence(Qt::CTRL | Qt::Key_QuoteLeft), [this]() {
-        if (m_terminal->isVisible() && m_terminal->isAncestorOf(QApplication::focusWidget())) {
+        // Toggle simples: visível → esconde, mesmo sem foco (antes só escondia
+        // com o foco no terminal, e o botão parecia não funcionar).
+        if (m_terminal->isVisible()) {
             m_terminal->hide();
             if (auto *e = currentEditor()) e->setFocus();
         } else {
@@ -442,6 +447,32 @@ void MainWindow::createActions()
                 if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
                     nav->setCurrentRow(2);
         });
+    });
+    // Alterna o tema atual entre as variantes escura e clara (Mocha ↔ Latte…).
+    m_darkModeAction = reg(QStringLiteral("darkMode"),
+                           add(view, tr("&Dark Mode"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_D),
+                               [this]() { toggleDarkMode(); }, Icons::Moon));
+    m_darkModeAction->setCheckable(true);
+    m_darkModeAction->setChecked(m_theme.dark);
+    // Foco ao executar (o mesmo de Settings → Terminal), à mão no menu.
+    QMenu *runFocusMenu = view->addMenu(tr("F&ocus on Run"));
+    connect(runFocusMenu, &QMenu::aboutToShow, this, [this, runFocusMenu]() {
+        runFocusMenu->clear();
+        auto *group = new QActionGroup(runFocusMenu);
+        const QList<QPair<QString, int>> choices{{tr("Terminal Only When &Input Is Needed"), 2},
+                                                 {tr("&Terminal"), 0},
+                                                 {tr("&Editor"), 1}};
+        for (const auto &[text, value] : choices) {
+            QAction *a = runFocusMenu->addAction(text);
+            a->setCheckable(true);
+            a->setChecked(m_settings.runFocus == value);
+            group->addAction(a);
+            connect(a, &QAction::triggered, this, [this, value]() {
+                AppSettings s = m_settings;
+                s.runFocus = value;
+                applySettings(s);
+            });
+        }
     });
     view->addSeparator();
     // Dobramento de código, como no Kate.
@@ -558,8 +589,13 @@ void MainWindow::createActions()
     m_stepActions = {overA, intoA, outA, contA};
     debug->addSeparator();
     add(debug, tr("Toggle &Breakpoint"), QKeySequence(Qt::Key_F9), [this]() {
-        if (CodeEditor *e = currentEditor())
+        if (CodeEditor *e = currentEditor()) {
+            if (!Language::debuggable(e->language().id)) {
+                statusBar()->showMessage(tr("The debugger supports Python, C and C++."), 4000);
+                return;
+            }
             e->doc()->toggleBreakpoint(e->textCursor().blockNumber());
+        }
     });
     add(debug, tr("&Remove All Breakpoints"), QKeySequence(), [this]() {
         QSet<Document *> docs;
@@ -586,13 +622,32 @@ void MainWindow::createActions()
     m_runToolbarAction->setToolTip(m_runAction->toolTip());
     connect(m_runToolbarAction, &QAction::triggered, this, [this]() { runCurrent(); });
 
+    // Botões de passo/continuar/parar na barra: cópias das ações do menu,
+    // escondidas fora de uma sessão de debug (aparecem ao clicar em Debug).
+    // Esconder as ações originais tiraria os itens do menu Debug também.
+    auto debugProxy = [this](QAction *original, Icons::Glyph glyph) {
+        auto *proxy = new QAction(original->text(), this);
+        proxy->setToolTip(original->toolTip());
+        proxy->setEnabled(original->isEnabled());
+        proxy->setVisible(false);
+        connect(proxy, &QAction::triggered, original, &QAction::trigger);
+        connect(original, &QAction::changed, proxy, [proxy, original]() { proxy->setEnabled(original->isEnabled()); });
+        m_iconActions.append({proxy, glyph});
+        m_debugToolbarActions.append(proxy);
+        return proxy;
+    };
+    QAction *overT = debugProxy(m_stepActions[0], Icons::StepOver);
+    QAction *intoT = debugProxy(m_stepActions[1], Icons::StepInto);
+    QAction *outT = debugProxy(m_stepActions[2], Icons::StepOut);
+    QAction *contT = debugProxy(m_stepActions[3], Icons::Continue);
+    QAction *stopT = debugProxy(m_stopDebugAction, Icons::Stop);
+
     // Na ordem em que aparecem em "Ações disponíveis".
     const QList<QPair<QString, QAction *>> main{
         {"new", newA}, {"open", openA}, {"save", saveA}, {"saveAs", saveAsA}, {"saveAll", saveAllA},
         {"undo", undoA}, {"redo", redoA}, {"find", findA}, {"terminal", termA}, {"run", m_runToolbarAction},
-        {"runInteractive", m_runInteractiveAction}, {"livePreview", m_livePreviewAction}, {"debug", m_debugAction}, {"stepOver", m_stepActions[0]},
-        {"stepInto", m_stepActions[1]}, {"stepOut", m_stepActions[2]}, {"continue", m_stepActions[3]},
-        {"stopDebug", m_stopDebugAction}};
+        {"runInteractive", m_runInteractiveAction}, {"livePreview", m_livePreviewAction}, {"debug", m_debugAction}, {"stepOver", overT},
+        {"stepInto", intoT}, {"stepOut", outT}, {"continue", contT}, {"stopDebug", stopT}};
     m_toolbarRegistry = main + m_toolbarRegistry;
 
     m_toolbar = addToolBar(tr("Main Toolbar"));
@@ -1174,6 +1229,10 @@ void MainWindow::openFile(const QString &path)
     if (!editor || !editor->doc()->isUntitledAndEmpty() || editorsFor(editor->doc()).size() > 1)
         editor = newTab();
 
+    // Linguagem antes do texto: o realce acontece durante o setPlainText (um
+    // único layout), em vez de um rehighlight() completo depois — que, no
+    // QTextDocumentLayout, relayouta bloco a bloco e trava em arquivos grandes.
+    editor->setLanguage(languageForPath(abs));
     if (QFileInfo::exists(abs)) {
         QString error;
         if (!editor->loadFile(abs, &error)) {
@@ -1186,7 +1245,6 @@ void MainWindow::openFile(const QString &path)
     } else {
         editor->setFilePath(abs);
     }
-    editor->setLanguage(languageForPath(abs));
     m_lastDir = QFileInfo(abs).absolutePath();
     if (QFileInfo::exists(abs))
         addRecentFile(abs);
@@ -1796,7 +1854,18 @@ void MainWindow::runCurrent(bool interactive)
         tool = cfg.tool;
         flags = cfg.flags;
     }
-    m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags, interactive), info.absolutePath());
+    // Foco no terminal (padrão): o programa pode ler entrada. Ou fica no editor.
+    // Foco: terminal (padrão), editor, ou terminal só quando o programa pedir
+    // entrada (o modo interativo sempre pede).
+    TerminalDock::RunFocus focus = TerminalDock::RunFocus::Terminal;
+    if (m_settings.runFocus == 1)
+        focus = TerminalDock::RunFocus::None;
+    else if (m_settings.runFocus == 2 && !interactive)
+        focus = TerminalDock::RunFocus::OnInput;
+    m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags, interactive), info.absolutePath(),
+                           focus);
+    if (focus != TerminalDock::RunFocus::Terminal)
+        editor->setFocus();
 }
 
 void MainWindow::previewCurrent(CodeEditor *editor)
@@ -1911,7 +1980,7 @@ void MainWindow::previewCurrent(CodeEditor *editor)
             statusBar()->showMessage(tr("Could not determine the preview server address."), 5000);
             return;
         }
-        if (!Sandbox::hasExecutable(parts.first())) {
+        if (QStandardPaths::findExecutable(parts.first()).isEmpty()) {
             statusBar()->showMessage(tr("“%1” is not installed — set the preview tool in Settings.").arg(parts.first()), 6000);
             return;
         }
@@ -1923,8 +1992,7 @@ void MainWindow::previewCurrent(CodeEditor *editor)
             m_previewProcess->kill();
             m_previewProcess->waitForFinished(500);
             m_previewProcess->setWorkingDirectory(root);
-            const auto [program, args] = Sandbox::command(parts.first(), parts.mid(1));
-            m_previewProcess->start(program, args);
+            m_previewProcess->start(parts.first(), parts.mid(1));
             m_previewBackendPort = backendPort;
             delay = true; // o backend precisa de um instante para subir
         }
@@ -1958,8 +2026,7 @@ void MainWindow::previewCurrent(CodeEditor *editor)
             const QStringList b = QProcess::splitCommand(m_settings.previewBrowser);
             QStringList args = b.mid(1);
             args << url.toString();
-            const auto [program, a] = Sandbox::command(b.first(), args);
-            QProcess::startDetached(program, a);
+            QProcess::startDetached(b.first(), args);
         }
     };
     if (delay)
@@ -2075,6 +2142,8 @@ void MainWindow::updateDebugActions()
     for (QAction *a : std::as_const(m_stepActions))
         a->setEnabled(st == DebugSession::State::Stopped);
     m_stopDebugAction->setEnabled(st != DebugSession::State::Idle);
+    for (QAction *a : std::as_const(m_debugToolbarActions))
+        a->setVisible(st != DebugSession::State::Idle);
     if (st == DebugSession::State::Running)
         clearExecutionPoint();
 }
@@ -2215,6 +2284,23 @@ void MainWindow::applyTheme(const QString &themeId)
     applySettings(s);
 }
 
+void MainWindow::toggleDarkMode()
+{
+    const Theme &target = Theme::variant(m_theme.id, !m_theme.dark);
+    if (target.id == m_theme.id) {
+        m_darkModeAction->setChecked(m_theme.dark);
+        statusBar()->showMessage(tr("“%1” has no %2 variant.")
+                                     .arg(m_theme.name, m_theme.dark ? tr("light") : tr("dark")),
+                                 4000);
+        return;
+    }
+    AppSettings s = m_settings;
+    s.theme = target.id;
+    // Escolha explícita do usuário: seguir o sistema a desfaria na próxima mudança.
+    s.themeFollowSystem = false;
+    applySettings(s);
+}
+
 void MainWindow::applyFontSize(int pointSize)
 {
     AppSettings s = m_settings;
@@ -2274,23 +2360,59 @@ void MainWindow::configureEditor(CodeEditor *editor) const
         lsp->triggerCharacters(doc));
 }
 
+void MainWindow::scheduleSettingsSave()
+{
+    if (!m_saveSettingsTimer) {
+        m_saveSettingsTimer = new QTimer(this);
+        m_saveSettingsTimer->setSingleShot(true);
+        m_saveSettingsTimer->setInterval(200);
+        connect(m_saveSettingsTimer, &QTimer::timeout, this, [this]() { m_settings.save(); });
+    }
+    m_saveSettingsTimer->start();
+}
+
+void MainWindow::polishThemeChrome()
+{
+    // Stylesheet na janela (não no qApp): polish só desta árvore de widgets.
+    if (!qApp->styleSheet().isEmpty())
+        qApp->setStyleSheet(QString());
+    const QString sheet = styleSheetFor(m_theme);
+    if (styleSheet() != sheet)
+        setStyleSheet(sheet);
+    m_terminal->setTheme(m_theme);
+    refreshIcons();
+}
+
 void MainWindow::applySettings(const AppSettings &settings)
 {
+    const AppSettings old = m_settings;
     m_settings = settings;
-    m_settings.save();
-    QList<Theme> userThemes;
-    for (const QJsonValue &v : std::as_const(m_settings.userThemes))
-        userThemes << Theme::fromJson(v.toObject());
-    Theme::setUserThemes(userThemes);
-    m_theme = Theme::byId(m_settings.theme);
-    // Seguir o sistema: variante clara/escura conforme o desktop.
+    scheduleSettingsSave();
+
+    const bool userThemesChanged = old.userThemes != m_settings.userThemes;
+    if (userThemesChanged) {
+        QList<Theme> userThemes;
+        for (const QJsonValue &v : std::as_const(m_settings.userThemes))
+            userThemes << Theme::fromJson(v.toObject());
+        Theme::setUserThemes(userThemes);
+    }
+
+    Theme next = Theme::byId(m_settings.theme);
     if (m_settings.themeFollowSystem) {
         const Qt::ColorScheme scheme = QGuiApplication::styleHints()->colorScheme();
         if (scheme != Qt::ColorScheme::Unknown)
-            m_theme = Theme::variant(m_settings.theme, scheme == Qt::ColorScheme::Dark);
+            next = Theme::variant(m_settings.theme, scheme == Qt::ColorScheme::Dark);
     }
+    // Folha de estilo vazia = primeira aplicação (startup); não pular.
+    const bool themeChanged = styleSheet().isEmpty() || userThemesChanged
+                              || old.theme != m_settings.theme
+                              || old.themeFollowSystem != m_settings.themeFollowSystem
+                              || m_theme.id != next.id || m_theme.surface != next.surface
+                              || m_theme.primary != next.primary || m_theme.window != next.window
+                              || m_theme.text != next.text;
 
-    {
+    if (themeChanged) {
+        m_theme = next;
         QPalette p;
         p.setColor(QPalette::Window, m_theme.window);
         p.setColor(QPalette::WindowText, m_theme.text);
@@ -2309,11 +2431,42 @@ void MainWindow::applySettings(const AppSettings &settings)
         p.setColor(QPalette::Disabled, QPalette::ButtonText, m_theme.textSecondary);
         p.setColor(QPalette::Disabled, QPalette::WindowText, m_theme.textSecondary);
         qApp->setPalette(p);
-        qApp->setStyleSheet(styleSheetFor(m_theme));
+        if (m_darkModeAction)
+            m_darkModeAction->setChecked(m_theme.dark);
+
+        // Resposta imediata: paleta do editor + abas. Stylesheet/ícones/terminal
+        // no próximo tick para o menu fechar sem freeze.
+        for (CodeEditor *ed : allEditors())
+            ed->setTheme(m_theme);
+        for (ViewSpace *s : viewSpaces())
+            s->setTheme(m_theme);
+
+        // Startup: aplica na hora. Trocas seguintes: no próximo tick (menu não congela).
+        if (styleSheet().isEmpty()) {
+            polishThemeChrome();
+        } else {
+            if (!m_themeChromeTimer) {
+                m_themeChromeTimer = new QTimer(this);
+                m_themeChromeTimer->setSingleShot(true);
+                connect(m_themeChromeTimer, &QTimer::timeout, this, [this]() { polishThemeChrome(); });
+            }
+            m_themeChromeTimer->start(0);
+        }
     }
 
-    QApplication::setCursorFlashTime(m_settings.editorCursorBlink ? 1000 : 0);
-    rebuildToolbar();
+    if (themeChanged || old.editorCursorBlink != m_settings.editorCursorBlink)
+        QApplication::setCursorFlashTime(m_settings.editorCursorBlink ? 1000 : 0);
+
+    const bool toolbarChanged = !m_toolbar || m_toolbar->actions().isEmpty()
+                                || old.toolbarActions != m_settings.toolbarActions
+                                || old.toolbarStyle != m_settings.toolbarStyle
+                                || old.toolbarIconSize != m_settings.toolbarIconSize
+                                || old.toolbarLocked != m_settings.toolbarLocked;
+    if (toolbarChanged) {
+        rebuildToolbar();
+        if (!themeChanged)
+            refreshIcons();
+    }
 
     m_lsp->setSettings(m_settings);
     if (m_lspAction) {
@@ -2324,28 +2477,58 @@ void MainWindow::applySettings(const AppSettings &settings)
         const QSignalBlocker blocker(action);
         action->setChecked(m_settings.*field);
     }
-    QSet<Document *> docs;
-    for (CodeEditor *ed : allEditors()) {
-        configureEditor(ed);
-        docs.insert(ed->doc());
-    }
-    for (Document *doc : std::as_const(docs)) {
-        doc->setTheme(m_theme);
-        doc->setFoldingEnabled(m_settings.codeFolding);
-        doc->setAutoReload(m_settings.autoReload);
-        // Extensões e linguagens personalizadas podem ter mudado.
-        if (!doc->filePath().isEmpty())
-            doc->setLanguage(languageForPath(doc->filePath()));
-    }
-    for (ViewSpace *s : viewSpaces())
-        s->setTheme(m_theme);
-    rebuildLanguageCombo();
 
-    m_terminal->setTheme(m_theme);
-    m_terminal->setTerminalFont(terminalFont());
-    m_terminal->configure(m_settings.shell, m_settings.terminalCursorBlink);
-    m_terminal->setTransparency(m_settings.terminalTransparency);
-    refreshIcons();
+    const bool editorChanged = old.editorFont != m_settings.editorFont
+        || old.editorFontSize != m_settings.editorFontSize
+        || old.tabWidth != m_settings.tabWidth
+        || old.lineNumbers != m_settings.lineNumbers
+        || old.wrapIndentExtra != m_settings.wrapIndentExtra
+        || old.wrapIndent != m_settings.wrapIndent
+        || old.wordWrap != m_settings.wordWrap
+        || old.highlightCurrentLine != m_settings.highlightCurrentLine
+        || old.minimapWidth != m_settings.minimapWidth
+        || old.minimap != m_settings.minimap
+        || old.autoClosePairs != m_settings.autoClosePairs
+        || old.codeCompletion != m_settings.codeCompletion
+        || old.insertSpaces != m_settings.insertSpaces
+        || old.prettySymbols != m_settings.prettySymbols
+        || old.symbols != m_settings.symbols
+        || old.lspEnabled != m_settings.lspEnabled;
+
+    const bool langsChanged = old.languages != m_settings.languages
+                              || old.customLanguages != m_settings.customLanguages;
+    const bool foldingChanged = old.codeFolding != m_settings.codeFolding;
+    const bool reloadChanged = old.autoReload != m_settings.autoReload;
+
+    if (editorChanged || foldingChanged || reloadChanged || langsChanged) {
+        QSet<Document *> docs;
+        for (CodeEditor *ed : allEditors()) {
+            if (editorChanged)
+                configureEditor(ed);
+            docs.insert(ed->doc());
+        }
+        for (Document *doc : std::as_const(docs)) {
+            if (foldingChanged)
+                doc->setFoldingEnabled(m_settings.codeFolding);
+            if (reloadChanged)
+                doc->setAutoReload(m_settings.autoReload);
+            if (langsChanged && !doc->filePath().isEmpty())
+                doc->setLanguage(languageForPath(doc->filePath()));
+        }
+    }
+
+    if (m_languageCombo->count() == 0 || langsChanged || old.lsp != m_settings.lsp)
+        rebuildLanguageCombo();
+
+    const bool termFontChanged = old.terminalFont != m_settings.terminalFont
+                                 || old.terminalFontSize != m_settings.terminalFontSize;
+    if (termFontChanged)
+        m_terminal->setTerminalFont(terminalFont());
+    if (old.shell != m_settings.shell || old.terminalCursorBlink != m_settings.terminalCursorBlink)
+        m_terminal->configure(m_settings.shell, m_settings.terminalCursorBlink);
+    if (old.terminalTransparency != m_settings.terminalTransparency)
+        m_terminal->setTransparency(m_settings.terminalTransparency);
+
     updateStatus();
 }
 
@@ -2432,8 +2615,18 @@ void MainWindow::refreshIcons()
 
 QString MainWindow::styleSheetFor(const Theme &t) const
 {
+    // Cache por cores: troca de tema repetida (ou id igual) não remonta a string.
+    const QString cacheKey = t.id + QLatin1Char('|') + t.window.name() + t.surface.name()
+                             + t.primary.name() + t.text.name() + t.divider.name()
+                             + t.textSecondary.name() + t.selection.name()
+                             + t.terminalBackground.name() + (t.dark ? '1' : '0');
+    static QString s_key;
+    static QString s_sheet;
+    if (s_key == cacheKey)
+        return s_sheet;
+
     const QString hover = t.divider.name();
-    return QStringLiteral(R"(
+    s_sheet = QStringLiteral(R"(
 QMainWindow { background: %1; }
 #Central { background: %1; }
 QToolBar#MainToolbar { background: %1; border: none; padding: 6px 8px; spacing: 4px; }
@@ -2573,11 +2766,14 @@ QSpinBox::up-arrow { image: url("%10"); width: 10px; height: 10px; }
 QSpinBox::down-arrow, QComboBox::down-arrow { image: url("%11"); width: 10px; height: 10px; }
 QComboBox::drop-down { border: none; width: 22px; background: transparent; }
 )")
-        .arg(t.window.name(), t.surface.name(), t.text.name(), hover, t.primary.name(),
-             t.primary.lighter(115).name(), t.textSecondary.name(), t.selection.name(),
-             Icons::glyphFile(Icons::Check, t.window, 14),
-             Icons::glyphFile(Icons::ChevronUp, t.textSecondary, 12),
-             Icons::glyphFile(Icons::ChevronDown, t.textSecondary, 12), t.terminalBackground.name());
+                         .arg(t.window.name(), t.surface.name(), t.text.name(), hover, t.primary.name(),
+                              t.primary.lighter(115).name(), t.textSecondary.name(), t.selection.name(),
+                              Icons::glyphUrl(Icons::Check, t.window, 14),
+                              Icons::glyphUrl(Icons::ChevronUp, t.textSecondary, 12),
+                              Icons::glyphUrl(Icons::ChevronDown, t.textSecondary, 12),
+                              t.terminalBackground.name());
+    s_key = cacheKey;
+    return s_sheet;
 }
 
 // ------------------------------------------------------------ sessão

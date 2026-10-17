@@ -1,6 +1,4 @@
 #include "TerminalDock.h"
-#include "Sandbox.h"
-
 #include <QAction>
 #include <QActionGroup>
 #include <QCoreApplication>
@@ -26,6 +24,8 @@
 
 #include <qtermwidget.h>
 
+#include <memory>
+#include <sys/syscall.h>
 #include <unistd.h>
 
 #include "Icons.h"
@@ -200,8 +200,6 @@ QString TerminalDock::effectiveShell() const
 {
     if (!m_shell.trimmed().isEmpty())
         return m_shell.trimmed();
-    if (Sandbox::inFlatpak())
-        return Sandbox::hostLoginShell();
     return qEnvironmentVariable("SHELL", QStringLiteral("/bin/bash"));
 }
 
@@ -250,11 +248,7 @@ void TerminalDock::restartShell()
 QTermWidget *TerminalDock::createTerminal()
 {
     auto *term = new QTermWidget(0, m_tabs);
-    // Em Flatpak, o shell do usuário roda no hospedeiro, com pty via "script".
-    const auto [prog, args] = Sandbox::hostTerminalCommand(effectiveShell());
-    term->setShellProgram(prog);
-    if (!args.isEmpty())
-        term->setArgs(args);
+    term->setShellProgram(effectiveShell());
     QStringList env = QProcessEnvironment::systemEnvironment().toStringList();
     env << QStringLiteral("TERM=xterm-256color");
     term->setEnvironment(env);
@@ -364,45 +358,38 @@ QTermWidget *TerminalDock::newTerminal()
     return term;
 }
 
-QString TerminalDock::newTeletype(const QString &title)
+/**
+ * Terminal para o programa depurado: a aba de shell atual. O shell fica em
+ * espera ("sleep infinity" em primeiro plano, sem ler o teclado) e o gdb
+ * liga o programa a este PTY (inferior-tty) — entrada e saída na mesma aba
+ * usada pelo Run. releaseDebugTty() devolve o prompt no fim da sessão.
+ */
+QString TerminalDock::debugTty()
 {
-    // Um PTY cujo processo nunca lê o teclado: o programa depurado (em outra
-    // sessão, sem terminal de controle) lê e escreve nele, e o que se digita
-    // chega a ele com eco normal. (O modo "teletype" do QTermWidget não serve:
-    // as teclas viram sinais em vez de ir para o PTY.)
-    auto *term = new QTermWidget(0, m_tabs);
-    term->setShellProgram(QStringLiteral("/bin/sleep"));
-    term->setArgs({QStringLiteral("infinity")});
-    term->setScrollBarPosition(QTermWidget::ScrollBarRight);
-    term->setTerminalSizeHint(false);
-    term->setBlinkingCursor(m_cursorBlink);
-    if (!m_schemeName.isEmpty())
-        term->setColorScheme(m_schemeName);
-    if (m_font != QFont())
-        term->setTerminalFont(m_font);
-    term->setTerminalOpacity(opacity());
-    applyScrollbarStyle(term);
-    installContextMenu(term);
-    term->startShellProgram();
-    const int fd = term->getPtySlaveFd();
-    const char *name = fd >= 0 ? ::ttyname(fd) : nullptr;
-    if (!name) {
-        delete term;
-        return QString();
-    }
-    const int index = m_tabs->addTab(term, title);
-    auto *close = new QToolButton(m_tabs->tabBar());
-    close->setObjectName(QStringLiteral("TabClose"));
-    close->setAutoRaise(true);
-    close->setIconSize(QSize(12, 12));
-    close->setToolTip(tr("Close terminal tab"));
-    connect(close, &QToolButton::clicked, this, [this, term]() { closeTerminal(m_tabs->indexOf(term)); });
-    m_tabs->tabBar()->setTabButton(index, QTabBar::RightSide, close);
-    m_tabs->setCurrentIndex(index);
-    updateTabBar();
+    QTermWidget *term = shellTerminal();
     show();
     raise();
+    const int fd = term->getPtySlaveFd();
+    const char *name = fd >= 0 ? ::ttyname(fd) : nullptr;
+    if (!name)
+        return QString();
+    m_debugTerm = term;
+    sendWhenIdle(term, QStringLiteral("clear; sleep infinity\r"), 0);
     return QString::fromLocal8Bit(name);
+}
+
+void TerminalDock::releaseDebugTty()
+{
+    QTermWidget *term = m_debugTerm;
+    m_debugTerm = nullptr;
+    if (!term)
+        return;
+    // Só interrompe o nosso "sleep" (o usuário pode já ter voltado ao prompt).
+    const int fg = term->getForegroundProcessId();
+    QFile comm(QStringLiteral("/proc/%1/comm").arg(fg));
+    if (fg > 0 && fg != term->getShellPID() && comm.open(QIODevice::ReadOnly)
+        && comm.readAll().trimmed() == "sleep")
+        term->sendText(QStringLiteral("\x03"));
 }
 
 void TerminalDock::closeTerminal(int index)
@@ -506,10 +493,25 @@ void TerminalDock::setWorkingDirectory(const QString &dir)
     m_workingDir = dir;
 }
 
-void TerminalDock::runCommand(const QString &command, const QString &workingDir)
+/** Aba com shell para rodar comandos: a atual, outra com shell, ou uma nova. */
+QTermWidget *TerminalDock::shellTerminal()
 {
-    if (m_tabs->count() == 0 || !current()->getShellPID())
-        newTerminal();
+    QTermWidget *term = current();
+    if (term && term->getShellPID())
+        return term;
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        auto *t = qobject_cast<QTermWidget *>(m_tabs->widget(i));
+        if (t && t->getShellPID()) {
+            m_tabs->setCurrentIndex(i);
+            return t;
+        }
+    }
+    return newTerminal();
+}
+
+void TerminalDock::runCommand(const QString &command, const QString &workingDir, RunFocus focus)
+{
+    shellTerminal();
     show();
     raise();
     QString dir = workingDir;
@@ -517,7 +519,97 @@ void TerminalDock::runCommand(const QString &command, const QString &workingDir)
     const QString line = QStringLiteral("cd '") + dir + QStringLiteral("' && clear && ") + command + QLatin1Char('\r');
     QTermWidget *term = current();
     sendWhenIdle(term, line, 0);
-    focusTerminal();
+    if (m_inputWatch)
+        m_inputWatch->stop();
+    if (focus == RunFocus::Terminal)
+        focusTerminal();
+    else if (focus == RunFocus::OnInput)
+        watchForInput(term);
+}
+
+/**
+ * Algum processo da árvore de `pid` está parado esperando o teclado? Olha a
+ * chamada de sistema em curso de cada thread (/proc/<pid>/task/<tid>/syscall):
+ * read() no fd 0, ou a espera do readline (select/poll), cujo fd não dá para
+ * ver — por isso só conta se o fd 0 do processo for um terminal.
+ */
+static bool waitingForInput(int pid, int depth = 0)
+{
+#ifdef Q_OS_LINUX
+    if (pid <= 0 || depth > 4)
+        return false;
+    const QString base = QStringLiteral("/proc/%1/task").arg(pid);
+    const QStringList tids = QDir(base).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    const bool stdinIsTty = QFileInfo(QStringLiteral("/proc/%1/fd/0").arg(pid)).symLinkTarget()
+                                .startsWith(QLatin1String("/dev/pts/"));
+    for (const QString &tid : tids) {
+        QFile f(base + QLatin1Char('/') + tid + QStringLiteral("/syscall"));
+        if (f.open(QIODevice::ReadOnly)) {
+            const QList<QByteArray> parts = f.readAll().simplified().split(' ');
+            bool ok = false;
+            const long nr = parts.value(0).toLong(&ok);
+            if (ok && stdinIsTty) {
+                if (nr == SYS_read && parts.value(1).toLongLong(nullptr, 16) == 0)
+                    return true;
+                if (nr == SYS_pselect6 || nr == SYS_ppoll
+#ifdef SYS_select
+                    || nr == SYS_select
+#endif
+#ifdef SYS_poll
+                    || nr == SYS_poll
+#endif
+                )
+                    return true;
+            }
+        }
+        // Filhos (ex.: "make run" → ./programa).
+        QFile children(base + QLatin1Char('/') + tid + QStringLiteral("/children"));
+        if (children.open(QIODevice::ReadOnly)) {
+            for (const QByteArray &c : children.readAll().simplified().split(' '))
+                if (!c.isEmpty() && waitingForInput(c.toInt(), depth + 1))
+                    return true;
+        }
+    }
+#else
+    Q_UNUSED(pid)
+    Q_UNUSED(depth)
+#endif
+    return false;
+}
+
+/** Enquanto o programa roda, passa o foco ao terminal quando ele pedir entrada. */
+void TerminalDock::watchForInput(QTermWidget *term)
+{
+    if (!m_inputWatch) {
+        m_inputWatch = new QTimer(this);
+        m_inputWatch->setInterval(150);
+    }
+    m_inputWatch->disconnect();
+    QPointer<QTermWidget> guard(term);
+    auto started = std::make_shared<bool>(false);
+    auto ticks = std::make_shared<int>(0);
+    connect(m_inputWatch, &QTimer::timeout, this, [this, guard, started, ticks]() {
+        if (!guard) {
+            m_inputWatch->stop();
+            return;
+        }
+        const int shell = guard->getShellPID();
+        const int fg = guard->getForegroundProcessId();
+        const bool running = fg > 0 && fg != shell;
+        ++*ticks;
+        if (!running) {
+            // Terminou (ou nem começou em ~5 s: compilação que falhou etc.).
+            if (*started || *ticks > 33)
+                m_inputWatch->stop();
+            return;
+        }
+        *started = true;
+        if (waitingForInput(fg)) {
+            m_inputWatch->stop();
+            guard->setFocus();
+        }
+    });
+    m_inputWatch->start();
 }
 
 /**
@@ -554,9 +646,10 @@ void TerminalDock::setTheme(const Theme &theme)
     refreshTabIcons();
     // Arquivo novo só quando as cores mudam; o nome inclui o PID para não
     // colidir com outra instância do app.
-    const QJsonObject colors = theme.toJson();
-    if (colors != m_schemeColors) {
-        m_schemeColors = colors;
+    const QString schemeKey = theme.id + theme.terminalBackground.name() + theme.text.name()
+                              + theme.ansi[0].name() + theme.ansi[7].name() + theme.ansi[15].name();
+    if (schemeKey != m_schemeKey) {
+        m_schemeKey = schemeKey;
         const QString name = QStringLiteral("SlayerEditor-%1-%2").arg(QCoreApplication::applicationPid()).arg(m_nextSlot++);
         theme.writeTerminalScheme(schemeDir(), name);
         // Caminho completo: o QTermWidget lê o arquivo, sem depender da lista

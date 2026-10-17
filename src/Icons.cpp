@@ -1,16 +1,32 @@
 #include "Icons.h"
 
+#include <QBuffer>
 #include <QFontDatabase>
 #include <QGuiApplication>
+#include <QHash>
 #include <QPainter>
-#include <QDir>
-#include <QFile>
 #include <QPixmap>
-#include <QStandardPaths>
 
 namespace {
 QString s_symbols = QStringLiteral("Symbols Nerd Font Mono");
 QString s_mono = QStringLiteral("Hack"); //< padrão do editor e do terminal (pacote fonts-hack)
+
+struct IconKey {
+    Icons::Glyph glyph;
+    QRgb color;
+    int size;
+    bool operator==(const IconKey &o) const
+    { return glyph == o.glyph && color == o.color && size == o.size; }
+};
+size_t qHash(const IconKey &k, size_t seed = 0)
+{
+    return qHashMulti(seed, quint32(k.glyph), k.color, k.size);
+}
+QHash<IconKey, QIcon> &iconCache()
+{
+    static QHash<IconKey, QIcon> cache;
+    return cache;
+}
 }
 
 void Icons::loadFonts()
@@ -64,12 +80,18 @@ static QPixmap render(Icons::Glyph glyph, const QColor &color, int size, qreal d
 
 QIcon Icons::icon(Glyph glyph, const QColor &color, int size)
 {
+    const IconKey key{glyph, color.rgba(), size};
+    auto &cache = iconCache();
+    if (const auto it = cache.constFind(key); it != cache.cend())
+        return it.value();
+
     const qreal dpr = qMax<qreal>(1.0, qApp->devicePixelRatio());
     QIcon ic;
     ic.addPixmap(render(glyph, color, size, dpr), QIcon::Normal);
     QColor disabled = color;
     disabled.setAlphaF(0.35);
     ic.addPixmap(render(glyph, disabled, size, dpr), QIcon::Disabled);
+    cache.insert(key, ic);
     return ic;
 }
 
@@ -116,14 +138,22 @@ QColor Icons::colorForLanguage(const QString &id)
     return QColor("#8b949e");
 }
 
-QString Icons::glyphFile(Glyph glyph, const QColor &color, int size)
+QString Icons::glyphUrl(Glyph glyph, const QColor &color, int size)
 {
-    const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/glyphs");
-    QDir().mkpath(dir);
-    // "@2x": o Qt lê como imagem de densidade 2 e desenha no tamanho lógico.
-    const QString path = QStringLiteral("%1/%2-%3-%4@2x.png")
-                             .arg(dir, QString::number(uint(glyph), 16), color.name().mid(1), QString::number(size));
-    if (!QFile::exists(path))
-        render(glyph, color, size, 2.0).save(path);
-    return path;
+    static QHash<IconKey, QString> urlCache;
+    const IconKey key{glyph, color.rgba(), size};
+    if (const auto it = urlCache.constFind(key); it != urlCache.cend())
+        return it.value();
+
+    // Densidade 2: o Qt trata data-URLs PNG pelo tamanho em pixels.
+    QByteArray png;
+    {
+        QBuffer buf(&png);
+        buf.open(QIODevice::WriteOnly);
+        render(glyph, color, size, 2.0).save(&buf, "PNG");
+    }
+    const QString url = QStringLiteral("data:image/png;base64,")
+                        + QString::fromLatin1(png.toBase64(QByteArray::Base64Encoding));
+    urlCache.insert(key, url);
+    return url;
 }

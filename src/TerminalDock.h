@@ -4,7 +4,7 @@
 #include "Theme.h"
 
 #include <QDockWidget>
-#include <QJsonObject>
+#include <QPointer>
 
 class QMainWindow;
 class QTermWidget;
@@ -23,7 +23,9 @@ public:
     explicit TerminalDock(QMainWindow *mainWindow);
 
     /** Executa um comando no shell, a partir de um diretório. */
-    void runCommand(const QString &command, const QString &workingDir);
+    /** Foco ao executar: no terminal já, nunca, ou só quando o programa pedir entrada. */
+    enum class RunFocus { Terminal, None, OnInput };
+    void runCommand(const QString &command, const QString &workingDir, RunFocus focus = RunFocus::Terminal);
     void setTheme(const Theme &theme);
     void setTerminalFont(const QFont &font);
     void moveToArea(Qt::DockWidgetArea area);
@@ -42,7 +44,9 @@ public:
      * Aba sem shell (PTY livre) para o programa depurado: devolve o caminho do
      * TTY (/dev/pts/N), que o gdb usa com "set inferior-tty".
      */
-    QString newTeletype(const QString &title);
+    /** PTY da aba de shell para o programa depurado (o shell fica em espera). */
+    QString debugTty();
+    void releaseDebugTty();
     QTermWidget *current() const;
     QList<QTermWidget *> terminals() const;
 
@@ -62,6 +66,10 @@ private:
     QTermWidget *createTerminal();
     void updateTabBar();
     void sendWhenIdle(QTermWidget *term, const QString &line, int attempt);
+    void watchForInput(QTermWidget *term);
+    QTermWidget *shellTerminal();
+    QTimer *m_inputWatch = nullptr;
+    QPointer<QTermWidget> m_debugTerm;
     void refreshTabIcons();
     void installContextMenu(QTermWidget *term);
     void showTerminalMenu(QTermWidget *term, const QPoint &globalPos);
@@ -74,7 +82,7 @@ private:
     int m_counter = 0;
     QColor m_iconColor;
     QString m_schemeName;
-    QJsonObject m_schemeColors;
+    QString m_schemeKey;
     int m_nextSlot = 0;
     QFont m_font;
     QString m_shell;

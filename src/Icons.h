@@ -86,8 +86,8 @@ QFont editorFont(const QString &family, int pointSize);
 
 QIcon icon(Glyph glyph, const QColor &color, int size = 18);
 QString glyphText(Glyph glyph);
-/** Grava o glifo como PNG (para url() em folhas de estilo) e devolve o caminho. */
-QString glyphFile(Glyph glyph, const QColor &color, int size);
+/** PNG em memória como data-URL (para url() em folhas de estilo); sem disco. */
+QString glyphUrl(Glyph glyph, const QColor &color, int size);
 Glyph forLanguage(const QString &languageId);
 QColor colorForLanguage(const QString &languageId);
 

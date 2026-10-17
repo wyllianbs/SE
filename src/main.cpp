@@ -10,6 +10,19 @@
 #include <QTranslator>
 #include <QStyleFactory>
 
+/** "pt_BR" se o idioma das mensagens do sistema é português; senão "en". */
+static QString systemUiLanguage()
+{
+    QString value;
+    for (const char *var : {"LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"}) {
+        value = QString::fromLocal8Bit(qgetenv(var)).section(QLatin1Char(':'), 0, 0);
+        if (!value.isEmpty())
+            break;
+    }
+    return value.startsWith(QLatin1String("pt"), Qt::CaseInsensitive) ? QStringLiteral("pt_BR")
+                                                                       : QStringLiteral("en");
+}
+
 int main(int argc, char *argv[])
 {
     // Escala da interface (Settings → Appearance): precisa ser definida antes do QApplication.
@@ -22,14 +35,20 @@ int main(int argc, char *argv[])
             qputenv("QT_SCALE_FACTOR", QByteArray::number(scale / 100.0));
     }
 
+    // Idioma decidido pelo ambiente ANTES do QApplication: o tema de plataforma
+    // do KDE pode ajustar o QLocale do sistema a partir do kdeglobals, mesmo com
+    // LANGUAGE/LANG em inglês. Ordem do gettext: LANGUAGE, LC_ALL, LC_MESSAGES, LANG.
+    QString language = settings.uiLanguage;
+    if (language == QLatin1String("auto"))
+        language = systemUiLanguage();
+
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("slayer-editor"));
     QApplication::setApplicationDisplayName(QStringLiteral("Slayer Editor"));
     QApplication::setOrganizationName(QStringLiteral("slayer-editor"));
     QApplication::setApplicationVersion(QStringLiteral(SLAYER_VERSION));
     // app_id = basename do .desktop instalado, para o compositor achar o ícone.
-    // No Flatpak é o FLATPAK_ID (= o app-id); fora dele, o mesmo app-id.
-    QApplication::setDesktopFileName(qEnvironmentVariable("FLATPAK_ID", QStringLiteral("io.github.wyllianbs.SlayerEditor")));
+    QApplication::setDesktopFileName(QStringLiteral("io.github.wyllianbs.SlayerEditor"));
     QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
 
     // Ícone da aplicação, com vários tamanhos para a barra de título ficar
@@ -42,10 +61,6 @@ int main(int argc, char *argv[])
     appIcon.addFile(QStringLiteral(":/icons/slayer-editor.png"), QSize(256, 256));
     QApplication::setWindowIcon(appIcon);
 
-    // Idioma: inglês por padrão; pt-BR quando escolhido ou quando o sistema é pt_BR.
-    QString language = settings.uiLanguage;
-    if (language == QLatin1String("auto"))
-        language = QLocale::system().name() == QLatin1String("pt_BR") ? QStringLiteral("pt_BR") : QStringLiteral("en");
     QTranslator appTranslator;
     QTranslator qtTranslator;
     if (language == QLatin1String("pt_BR")) {

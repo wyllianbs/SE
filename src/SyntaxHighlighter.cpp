@@ -1,5 +1,9 @@
 #include "SyntaxHighlighter.h"
 
+#include <QTextBlock>
+#include <QTextDocument>
+#include <QTextLayout>
+
 SyntaxHighlighter::SyntaxHighlighter(QTextDocument *document)
     : QSyntaxHighlighter(document)
     , m_language(Language::plainText())
@@ -9,20 +13,80 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument *document)
 
 void SyntaxHighlighter::setLanguage(const Language &language)
 {
+    if (m_language.id == language.id && m_language.keywords == language.keywords
+        && m_language.types == language.types
+        && m_language.lineComment == language.lineComment
+        && m_language.blockCommentStart == language.blockCommentStart
+        && m_language.blockCommentEnd == language.blockCommentEnd)
+        return;
     m_language = language;
-    rebuildRules();
+    rebuildRules(true);
+}
+
+// Propriedade que marca o papel (keyword, string…) de cada formato: na troca
+// de tema basta trocar a cor, sem reexecutar as regras.
+static constexpr int RoleProperty = QTextFormat::UserProperty + 1;
+
+static QColor roleColor(const Theme &t, SyntaxHighlighter::Role role)
+{
+    using R = SyntaxHighlighter::Role;
+    switch (role) {
+    case R::Function: return t.function;
+    case R::Number: return t.number;
+    case R::Type: return t.type;
+    case R::Keyword: return t.keyword;
+    case R::Preprocessor: return t.preprocessor;
+    case R::String: return t.string;
+    case R::Comment: return t.comment;
+    case R::None: break;
+    }
+    return t.text;
 }
 
 void SyntaxHighlighter::setTheme(const Theme &theme)
 {
+    if (m_theme.id == theme.id && m_theme.keyword == theme.keyword && m_theme.type == theme.type
+        && m_theme.comment == theme.comment && m_theme.string == theme.string
+        && m_theme.number == theme.number && m_theme.function == theme.function
+        && m_theme.preprocessor == theme.preprocessor && m_theme.text == theme.text)
+        return;
     m_theme = theme;
-    rebuildRules();
+    rebuildRules(false);
+    recolor();
 }
 
-static QTextCharFormat fmt(const QColor &color, bool bold = false, bool italic = false)
+void SyntaxHighlighter::recolor()
+{
+    // Só as cores mudam. rehighlight() reexecutaria as regras e marcaria cada
+    // bloco sujo isoladamente — no QTextDocumentLayout isso relayouta o
+    // documento N vezes (segundos de freeze). Aqui: troca a cor nos formatos
+    // já aplicados e invalida o documento uma única vez.
+    QTextDocument *doc = document();
+    if (!doc)
+        return;
+    for (QTextBlock b = doc->firstBlock(); b.isValid(); b = b.next()) {
+        QTextLayout *layout = b.layout();
+        QList<QTextLayout::FormatRange> ranges = layout->formats();
+        bool changed = false;
+        for (QTextLayout::FormatRange &r : ranges) {
+            const int role = r.format.intProperty(RoleProperty);
+            if (role != int(Role::None)) {
+                r.format.setForeground(roleColor(m_theme, Role(role)));
+                changed = true;
+            }
+        }
+        if (changed)
+            layout->setFormats(ranges);
+    }
+    doc->markContentsDirty(0, doc->characterCount());
+}
+
+static QTextCharFormat fmt(const Theme &theme, SyntaxHighlighter::Role role, bool bold = false,
+                           bool italic = false)
 {
     QTextCharFormat f;
-    f.setForeground(color);
+    f.setForeground(roleColor(theme, role));
+    f.setProperty(RoleProperty, int(role));
     if (bold)
         f.setFontWeight(QFont::Bold);
     f.setFontItalic(italic);
@@ -37,13 +101,14 @@ static QString wordAlternation(const QStringList &words)
     return QStringLiteral("\\b(?:") + escaped.join(QLatin1Char('|')) + QStringLiteral(")\\b");
 }
 
-void SyntaxHighlighter::rebuildRules()
+void SyntaxHighlighter::rebuildRules(bool rehighlightNow)
 {
     m_rules.clear();
     m_blocks.clear();
 
     if (m_language.id == QLatin1String("text")) {
-        rehighlight();
+        if (rehighlightNow)
+            rehighlight();
         return;
     }
 
@@ -55,54 +120,55 @@ void SyntaxHighlighter::rebuildRules()
         && m_language.id != QLatin1String("markdown")) {
         QRegularExpression fnRe(QStringLiteral("\\b[^\\W\\d]\\w*(?=\\s*\\()"),
                                 QRegularExpression::UseUnicodePropertiesOption);
-        m_rules.append({fnRe, fmt(m_theme.function)});
+        m_rules.append({fnRe, fmt(m_theme, Role::Function)});
     }
     m_rules.append({QRegularExpression(
                         QStringLiteral("\\b(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|\\d[\\d_]*(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)[uUlLfF]*\\b")),
-                    fmt(m_theme.number)});
+                    fmt(m_theme, Role::Number)});
     // \b com UseUnicodeProperties: palavras acentuadas não casam parcialmente.
     const auto uni = QRegularExpression::UseUnicodePropertiesOption;
     if (!m_language.types.isEmpty())
-        m_rules.append({QRegularExpression(wordAlternation(m_language.types), uni), fmt(m_theme.type)});
+        m_rules.append({QRegularExpression(wordAlternation(m_language.types), uni), fmt(m_theme, Role::Type)});
     if (!m_language.keywords.isEmpty())
         m_rules.append({QRegularExpression(wordAlternation(m_language.keywords), uni),
-                        fmt(m_theme.keyword, true)});
+                        fmt(m_theme, Role::Keyword, true)});
     if (m_language.id == QLatin1String("c") || m_language.id == QLatin1String("cpp"))
         m_rules.append({QRegularExpression(QStringLiteral("^\\s*#\\s*\\w+.*$")),
-                        fmt(m_theme.preprocessor)});
+                        fmt(m_theme, Role::Preprocessor)});
     if (m_language.id == QLatin1String("python"))
-        m_rules.append({QRegularExpression(QStringLiteral("^\\s*@[\\w.]+")), fmt(m_theme.preprocessor)});
+        m_rules.append({QRegularExpression(QStringLiteral("^\\s*@[\\w.]+")), fmt(m_theme, Role::Preprocessor)});
     if (m_language.id == QLatin1String("css"))
-        m_rules.append({QRegularExpression(QStringLiteral("@[\\w-]+")), fmt(m_theme.preprocessor)}); // @media, @import…
+        m_rules.append({QRegularExpression(QStringLiteral("@[\\w-]+")), fmt(m_theme, Role::Preprocessor)}); // @media, @import…
     if (m_language.id == QLatin1String("bash"))
         m_rules.append({QRegularExpression(QStringLiteral("\\$\\{?[A-Za-z_]\\w*\\}?")),
-                        fmt(m_theme.preprocessor)});
+                        fmt(m_theme, Role::Preprocessor)});
     m_rules.append({QRegularExpression(QStringLiteral("\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'")),
-                    fmt(m_theme.string)});
+                    fmt(m_theme, Role::String)});
     if (m_language.id == QLatin1String("javascript") || m_language.id == QLatin1String("go")
         || m_language.id == QLatin1String("typescript"))
-        m_rules.append({QRegularExpression(QStringLiteral("`[^`]*`")), fmt(m_theme.string)});
+        m_rules.append({QRegularExpression(QStringLiteral("`[^`]*`")), fmt(m_theme, Role::String)});
     if (m_language.id == QLatin1String("markdown")) {
         // Realce básico de Markdown (sem keywords/strings no sentido usual).
-        m_rules.append({QRegularExpression(QStringLiteral("`[^`]+`")), fmt(m_theme.string)});
+        m_rules.append({QRegularExpression(QStringLiteral("`[^`]+`")), fmt(m_theme, Role::String)});
         m_rules.append({QRegularExpression(QStringLiteral("(?:\\*\\*|__)(?=\\S)(.+?)(?:\\*\\*|__)")),
-                        fmt(m_theme.type, true)});
-        m_rules.append({QRegularExpression(QStringLiteral("\\[[^\\]]+\\]\\([^)]+\\)")), fmt(m_theme.function)});
-        m_rules.append({QRegularExpression(QStringLiteral("^#{1,6}\\s.*$")), fmt(m_theme.keyword, true)});
+                        fmt(m_theme, Role::Type, true)});
+        m_rules.append({QRegularExpression(QStringLiteral("\\[[^\\]]+\\]\\([^)]+\\)")), fmt(m_theme, Role::Function)});
+        m_rules.append({QRegularExpression(QStringLiteral("^#{1,6}\\s.*$")), fmt(m_theme, Role::Keyword, true)});
     }
 
-    m_commentFormat = fmt(m_theme.comment, false, true);
+    m_commentFormat = fmt(m_theme, Role::Comment, false, true);
     if (!m_language.blockCommentStart.isEmpty())
         m_blocks.append({m_language.blockCommentStart, m_language.blockCommentEnd});
     // Python: docstrings com ''' também são decoradas como comentário.
     if (m_language.id == QLatin1String("python"))
         m_blocks.append({QStringLiteral("'''"), QStringLiteral("'''")});
-    rehighlight();
+    if (rehighlightNow)
+        rehighlight();
 }
 
 bool SyntaxHighlighter::inString(int pos) const
 {
-    return format(pos).foreground().color() == m_theme.string;
+    return format(pos).intProperty(RoleProperty) == int(Role::String);
 }
 
 void SyntaxHighlighter::highlightBlock(const QString &text)

@@ -83,6 +83,13 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
     , m_completionModel(new QStringListModel(this))
 {
     setDocument(document->text());
+    // Recuo do wrap incremental: guarda só a faixa editada desde a última aplicação.
+    connect(document->text(), &QTextDocument::contentsChange, this, [this](int pos, int, int added) {
+        if (m_applyingWrapIndent)
+            return;
+        m_wrapDirtyFrom = m_wrapDirtyFrom < 0 ? pos : qMin(m_wrapDirtyFrom, pos);
+        m_wrapDirtyTo = qMax(m_wrapDirtyTo, pos + added);
+    });
     connect(document, &Document::foldingChanged, this, &CodeEditor::onFoldingChanged);
     connect(document, &Document::breakpointsChanged, m_lineNumberArea, qOverload<>(&QWidget::update));
     // Recarregar do disco não tira o cursor nem a rolagem do lugar.
@@ -168,22 +175,32 @@ void CodeEditor::setLanguage(const Language &language)
 
 void CodeEditor::setTheme(const Theme &theme)
 {
+    const bool same = m_theme.id == theme.id && m_theme.surface == theme.surface
+                      && m_theme.text == theme.text && m_theme.selection == theme.selection
+                      && m_theme.currentLine == theme.currentLine
+                      && m_theme.textSecondary == theme.textSecondary;
     m_theme = theme;
-    QPalette p = palette();
-    p.setColor(QPalette::Base, theme.surface);
-    p.setColor(QPalette::Text, theme.text);
-    p.setColor(QPalette::Highlight, theme.selection);
-    p.setColor(QPalette::HighlightedText, theme.text);
-    setPalette(p);
+    if (!same) {
+        QPalette p = palette();
+        p.setColor(QPalette::Base, theme.surface);
+        p.setColor(QPalette::Text, theme.text);
+        p.setColor(QPalette::Highlight, theme.selection);
+        p.setColor(QPalette::HighlightedText, theme.text);
+        setPalette(p);
+        highlightCurrentLine();
+        // O minimap guarda as cores do realce: reconstrói com o novo tema.
+        m_mmCacheRevision = -1;
+        m_lineNumberArea->update();
+        if (m_minimap)
+            m_minimap->update();
+    }
     m_doc->setTheme(theme);
-    highlightCurrentLine();
-    m_lineNumberArea->update();
-    if (m_minimap)
-        m_minimap->update();
 }
 
 void CodeEditor::setEditorFont(const QFont &font)
 {
+    if (this->font() == font)
+        return;
     setFont(font);
     setTabWidthSpaces(m_indentSpaces);
     updateLineNumberAreaWidth();
@@ -335,6 +352,9 @@ int CodeEditor::lineNumberAreaWidth() const
 
 int CodeEditor::breakpointWidth() const
 {
+    // Sem depurador para a linguagem (HTML, CSS…): sem coluna de pontos de parada.
+    if (!Language::debuggable(language().id))
+        return 0;
     return fontMetrics().height() + 2;
 }
 
@@ -473,7 +493,17 @@ void CodeEditor::applyWrapIndent()
     // joinPreviousEditBlock: funde o recuo na mesma ação de desfazer da edição
     // do usuário (um só Ctrl+Z), em vez de criar um passo separado.
     cur.joinPreviousEditBlock();
-    for (QTextBlock b = document()->firstBlock(); b.isValid(); b = b.next()) {
+    // Só os blocos editados desde a última vez; tudo quando a configuração
+    // mudou (revisão -1) — antes, cada tecla percorria o documento inteiro.
+    QTextBlock b = document()->firstBlock();
+    QTextBlock stop;
+    if (m_wrapIndentRevision >= 0 && m_wrapDirtyFrom >= 0) {
+        b = document()->findBlock(m_wrapDirtyFrom);
+        stop = document()->findBlock(m_wrapDirtyTo).next();
+    }
+    m_wrapDirtyFrom = -1;
+    m_wrapDirtyTo = -1;
+    for (; b.isValid() && b != stop; b = b.next()) {
         qreal indentPx = 0;
         if (m_wrapIndentEnabled && m_wordWrap) {
             const QString t = b.text();
@@ -520,6 +550,8 @@ void CodeEditor::resizeEvent(QResizeEvent *event)
 
 void CodeEditor::setLineNumbersVisible(bool visible)
 {
+    if (m_lineNumbers == visible)
+        return;
     m_lineNumbers = visible;
     m_lineNumberArea->setVisible(visible);
     updateLineNumberAreaWidth();
@@ -528,6 +560,8 @@ void CodeEditor::setLineNumbersVisible(bool visible)
 
 void CodeEditor::setWordWrap(bool wrap)
 {
+    if (m_wordWrap == wrap && lineWrapMode() == (wrap ? QTextEdit::WidgetWidth : QTextEdit::NoWrap))
+        return;
     m_wordWrap = wrap;
     setLineWrapMode(wrap ? QTextEdit::WidgetWidth : QTextEdit::NoWrap);
     m_wrapIndentRevision = -1; // força reaplicar o recuo suspenso
@@ -709,6 +743,8 @@ void CodeEditor::minimapWheelEvent(QWheelEvent *event)
 
 void CodeEditor::setHighlightCurrentLine(bool enabled)
 {
+    if (m_highlightLine == enabled)
+        return;
     m_highlightLine = enabled;
     highlightCurrentLine();
 }
@@ -724,6 +760,65 @@ static QColor severityColor(int severity)
 }
 
 /** Linha atual + sublinhado ondulado dos diagnósticos (do menos para o mais grave). */
+/**
+ * Com um trecho selecionado numa só linha (um caractere, uma palavra…),
+ * destaca as demais ocorrências no documento. As posições ficam em cache
+ * por (texto buscado, revisão do documento): mover o cursor não refaz a busca.
+ */
+/** Texto do documento, copiado só quando a revisão muda (cursor/seleção não copiam de novo). */
+const QString &CodeEditor::plainTextCached() const
+{
+    const int revision = document()->revision();
+    if (revision != m_plainRevision) {
+        m_plainText = document()->toPlainText();
+        m_plainRevision = revision;
+    }
+    return m_plainText;
+}
+
+void CodeEditor::appendSelectionOccurrences(QList<QTextEdit::ExtraSelection> &extra)
+{
+    const QTextCursor cur = textCursor();
+    QString needle;
+    if (cur.hasSelection()) {
+        needle = cur.selectedText();
+        // Multilinha (U+2029), longo demais ou só espaços: não destaca.
+        if (needle.size() > 200 || needle.contains(QChar::ParagraphSeparator) || needle.trimmed().isEmpty())
+            needle.clear();
+    }
+    if (needle.isEmpty()) {
+        m_occNeedle.clear();
+        m_occPositions.clear();
+        return;
+    }
+    const int revision = document()->revision();
+    if (needle != m_occNeedle || revision != m_occRevision) {
+        m_occNeedle = needle;
+        m_occRevision = revision;
+        m_occPositions.clear();
+        const QString text = plainTextCached();
+        constexpr int maxMatches = 2000; // limite: arquivos enormes não travam
+        for (int pos = text.indexOf(needle); pos >= 0 && m_occPositions.size() < maxMatches;
+             pos = text.indexOf(needle, pos + needle.size()))
+            m_occPositions.append(pos);
+    }
+    if (m_occPositions.size() < 2)
+        return; // só a própria seleção
+    QColor bg = m_theme.selection;
+    bg.setAlpha(110);
+    const int selStart = cur.selectionStart();
+    for (int pos : std::as_const(m_occPositions)) {
+        if (pos == selStart)
+            continue;
+        QTextEdit::ExtraSelection sel;
+        sel.cursor = QTextCursor(document());
+        sel.cursor.setPosition(pos);
+        sel.cursor.setPosition(pos + needle.size(), QTextCursor::KeepAnchor);
+        sel.format.setBackground(bg);
+        extra.append(sel);
+    }
+}
+
 void CodeEditor::updateExtraSelections()
 {
     QList<QTextEdit::ExtraSelection> extra;
@@ -735,6 +830,7 @@ void CodeEditor::updateExtraSelections()
         sel.cursor.clearSelection();
         extra.append(sel);
     }
+    appendSelectionOccurrences(extra);
     if (m_doc->executionLine() >= 0) {
         const QTextBlock b = document()->findBlockByNumber(m_doc->executionLine());
         if (b.isValid()) {
@@ -834,7 +930,7 @@ void CodeEditor::updateExtraSelections()
     if (language().id == QLatin1String("html") || language().id == QLatin1String("xml")) {
         struct TagInfo { bool valid = false; bool close = false; bool self = false;
                          QString name; int nameStart = 0; int nameLen = 0; };
-        const QString text = toPlainText();
+        const QString text = plainTextCached();
         const int len = text.size();
         auto parseTag = [&](int i, int j) -> TagInfo {
             TagInfo t;
@@ -1354,7 +1450,7 @@ void CodeEditor::updateCompletion(bool fromTrigger)
         for (const QString &k : language().keywords) consider(k);
         for (const QString &t : language().types) consider(t);
         static const QRegularExpression wordRe(QStringLiteral("[A-Za-z_][A-Za-z0-9_]{2,}"));
-        auto it = wordRe.globalMatch(toPlainText());
+        auto it = wordRe.globalMatch(plainTextCached());
         int scanned = 0;
         while (it.hasNext() && scanned++ < 20000)
             consider(it.next().captured());
@@ -1476,6 +1572,8 @@ void CodeEditor::insertCompletion(const QString &label)
 /** Marcador "⋯" no fim das linhas cujo bloco está dobrado. */
 void CodeEditor::setPrettySymbols(bool enabled, const QList<QPair<QString, QString>> &rules)
 {
+    if (m_prettySymbols == enabled && m_symbols == rules)
+        return;
     m_prettySymbols = enabled;
     m_symbols = rules;
     viewport()->update();

@@ -78,6 +78,23 @@ private Q_SLOTS:
         QVERIFY(!isComment(0, 7));
         QVERIFY(isComment(0, 13));
     }
+    void themeSwitchRecolorsWithoutRehighlight()
+    {
+        // Troca de tema só recolore: o resultado tem de ser idêntico a um
+        // realce completo feito já com o novo tema.
+        load("python", "def f(x):  # c\n    return \"s\" + 1\n");
+        m_theme = Theme::all().last();
+        m_hl->setTheme(m_theme);
+        QList<QList<QTextLayout::FormatRange>> recolored;
+        for (QTextBlock b = m_doc.firstBlock(); b.isValid(); b = b.next())
+            recolored << b.layout()->formats();
+        m_hl->rehighlight();
+        int i = 0;
+        for (QTextBlock b = m_doc.firstBlock(); b.isValid(); b = b.next(), ++i)
+            QCOMPARE(b.layout()->formats(), recolored.at(i));
+        QVERIFY(isComment(0, 12));
+        m_theme = Theme::all().first();
+    }
 };
 
 int main(int argc, char **argv)

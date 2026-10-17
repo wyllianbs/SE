@@ -126,6 +126,7 @@ private Q_SLOTS:
                                    "    printf(\"%d\\n\", dobro);\n"
                                    "    return 0;\n"
                                    "}\n");
+        const int tabs = m_terminal->terminals().size();
         DebugSession s(m_terminal);
         QSignalSpy stopped(&s, &DebugSession::stopped);
         QSignalSpy scopes(&s, &DebugSession::scopesReady);
@@ -140,6 +141,10 @@ private Q_SLOTS:
         QCOMPARE(valueOf(locals(s, scopes), "dobro"), QStringLiteral("10"));
         s.resume();
         QVERIFY(QTest::qWaitFor([&]() { return finished.count() > 0; }, 20000));
+        // Mesma aba do Run (nenhuma aba nova) e o prompt volta ao fim da sessão.
+        QCOMPARE(m_terminal->terminals().size(), tabs);
+        QTermWidget *t = m_terminal->current();
+        QVERIFY(QTest::qWaitFor([t]() { return t->getForegroundProcessId() == t->getShellPID(); }, 5000));
     }
 
     void compileErrorIsReported()

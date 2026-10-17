@@ -1,5 +1,4 @@
 #include "LspClient.h"
-#include "Sandbox.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -64,9 +63,7 @@ bool LspClient::start()
     QStringList parts = QProcess::splitCommand(m_command);
     if (parts.isEmpty())
         return false;
-    const QString serverProg = parts.takeFirst();
-    // Em Flatpak, o servidor de linguagem roda no hospedeiro.
-    const auto [program, args] = Sandbox::command(serverProg, parts);
+    const QString program = parts.takeFirst();
 
     m_process = new QProcess(this);
     // stderr do servidor é só log; descartá-lo evita encher o pipe.
@@ -82,7 +79,7 @@ bool LspClient::start()
         if (!m_shuttingDown)
             Q_EMIT exited();
     });
-    m_process->start(program, args);
+    m_process->start(program, parts);
     if (!m_process->waitForStarted(3000))
         return false;
 
