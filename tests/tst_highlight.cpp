@@ -19,6 +19,32 @@ class TestHighlight : public QObject
         m_doc.setPlainText(text);
         m_hl->setLanguage(Language::byId(languageId));
     }
+    bool hasRole(int line, int column, SyntaxHighlighter::Role role)
+    {
+        const QColor expected = roleColor(m_theme, role);
+        const QTextBlock b = m_doc.findBlockByNumber(line);
+        for (const QTextLayout::FormatRange &r : b.layout()->formats()) {
+            if (column >= r.start && column < r.start + r.length)
+                return r.format.foreground().color() == expected;
+        }
+        // sem formato = cor padrão
+        return role == SyntaxHighlighter::Role::None;
+    }
+    static QColor roleColor(const Theme &t, SyntaxHighlighter::Role role)
+    {
+        using R = SyntaxHighlighter::Role;
+        switch (role) {
+        case R::Function:     return t.function;
+        case R::Number:       return t.number;
+        case R::Type:         return t.type;
+        case R::Keyword:      return t.keyword;
+        case R::Preprocessor: return t.preprocessor;
+        case R::String:       return t.string;
+        case R::Comment:      return t.comment;
+        case R::None:         break;
+        }
+        return t.text;
+    }
     bool isComment(int line, int column)
     {
         const QTextBlock b = m_doc.findBlockByNumber(line);
@@ -77,6 +103,42 @@ private Q_SLOTS:
         load("python", "s = \"a # b\"  # c\n");
         QVERIFY(!isComment(0, 7));
         QVERIFY(isComment(0, 13));
+    }
+    // --- HTML ---
+    void htmlTagNameHighlighted()
+    {
+        // "<div>" deve colorir "div" como keyword
+        load("html", "<div class=\"c\">texto</div>\n");
+        QVERIFY(hasRole(0, 1, SyntaxHighlighter::Role::Keyword)); // d de div
+    }
+    void htmlArticleNotHighlighted()
+    {
+        // "a" solto no texto não deve receber cor de tag
+        load("html", "<p>Na última declaração, a função retorna int.</p>\n");
+        // posição 25 = 'a' (artigo)
+        const QString line = QStringLiteral("<p>Na última declaração, a função retorna int.</p>");
+        const int pos = line.indexOf(QStringLiteral(", a ")) + 2; // índice do artigo "a"
+        QVERIFY(hasRole(0, pos, SyntaxHighlighter::Role::None));
+    }
+    void htmlAnchorTagHighlighted()
+    {
+        // "<a href=" — o "a" do tag deve ser keyword
+        load("html", "<a href=\"url\">link</a>\n");
+        QVERIFY(hasRole(0, 1, SyntaxHighlighter::Role::Keyword)); // o 'a' tag
+    }
+    void htmlTagNameClosingHighlighted()
+    {
+        // "</p>" deve colorir "p" como keyword
+        load("html", "<p>texto</p>\n");
+        const int closeP = QStringLiteral("<p>texto</").length(); // posição do 'p' em </p>
+        QVERIFY(hasRole(0, closeP, SyntaxHighlighter::Role::Keyword));
+    }
+    void htmlAttributeHighlighted()
+    {
+        // href= deve ser colorido como tipo (atributo)
+        load("html", "<a href=\"url\">link</a>\n");
+        const int hPos = QStringLiteral("<a ").length(); // h de href
+        QVERIFY(hasRole(0, hPos, SyntaxHighlighter::Role::Type));
     }
     void themeSwitchRecolorsWithoutRehighlight()
     {

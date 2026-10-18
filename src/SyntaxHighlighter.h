@@ -25,6 +25,8 @@ private:
     struct Rule {
         QRegularExpression pattern;
         QTextCharFormat format;
+        // Grupo de captura usado para determinar o intervalo colorido (0 = match inteiro).
+        int captureGroup = 0;
     };
 
     void rebuildRules(bool rehighlightNow);

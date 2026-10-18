@@ -127,11 +127,34 @@ void SyntaxHighlighter::rebuildRules(bool rehighlightNow)
                     fmt(m_theme, Role::Number)});
     // \b com UseUnicodeProperties: palavras acentuadas não casam parcialmente.
     const auto uni = QRegularExpression::UseUnicodePropertiesOption;
-    if (!m_language.types.isEmpty())
-        m_rules.append({QRegularExpression(wordAlternation(m_language.types), uni), fmt(m_theme, Role::Type)});
-    if (!m_language.keywords.isEmpty())
-        m_rules.append({QRegularExpression(wordAlternation(m_language.keywords), uni),
-                        fmt(m_theme, Role::Keyword, true)});
+    if (m_language.id == QLatin1String("html") || m_language.id == QLatin1String("xml")) {
+        // Tag names: apenas após "<" ou "</". O grupo 1 cobre só o nome.
+        if (!m_language.keywords.isEmpty()) {
+            QStringList tagEsc;
+            for (const QString &w : m_language.keywords)
+                tagEsc << QRegularExpression::escape(w);
+            m_rules.append({QRegularExpression(
+                                QStringLiteral("<\\/?\\s*(") + tagEsc.join(QLatin1Char('|'))
+                                    + QStringLiteral(")(?=[\\s>/>])"),
+                                QRegularExpression::CaseInsensitiveOption),
+                            fmt(m_theme, Role::Keyword, true), 1});
+        }
+        // Atributos: nome seguido de "=" (fora de string).
+        if (!m_language.types.isEmpty()) {
+            QStringList escaped;
+            for (const QString &w : m_language.types)
+                escaped << QRegularExpression::escape(w);
+            m_rules.append({QRegularExpression(
+                                QStringLiteral("\\b(") + escaped.join(QLatin1Char('|')) + QStringLiteral(")(?=\\s*=)")),
+                            fmt(m_theme, Role::Type), 1});
+        }
+    } else {
+        if (!m_language.types.isEmpty())
+            m_rules.append({QRegularExpression(wordAlternation(m_language.types), uni), fmt(m_theme, Role::Type)});
+        if (!m_language.keywords.isEmpty())
+            m_rules.append({QRegularExpression(wordAlternation(m_language.keywords), uni),
+                            fmt(m_theme, Role::Keyword, true)});
+    }
     if (m_language.id == QLatin1String("c") || m_language.id == QLatin1String("cpp"))
         m_rules.append({QRegularExpression(QStringLiteral("^\\s*#\\s*\\w+.*$")),
                         fmt(m_theme, Role::Preprocessor)});
@@ -182,7 +205,8 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
         auto it = rule.pattern.globalMatch(text);
         while (it.hasNext()) {
             const auto match = it.next();
-            setFormat(match.capturedStart(), match.capturedLength(), rule.format);
+            setFormat(match.capturedStart(rule.captureGroup),
+                      match.capturedLength(rule.captureGroup), rule.format);
         }
     }
 
