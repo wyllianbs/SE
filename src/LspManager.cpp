@@ -86,9 +86,12 @@ QString LspManager::lspLanguageId(const QString &id)
     return id; // c, cpp, python, javascript, rust, go, java
 }
 
-/** Raiz do projeto: repositório git que contém o arquivo, senão a pasta dele. */
-QString LspManager::rootFor(const QString &filePath)
+/** Raiz: o projeto aberto, se contém o arquivo; senão o repositório git dele, ou a pasta. */
+QString LspManager::rootFor(const QString &filePath) const
 {
+    if (!m_projectRoot.isEmpty()
+        && (filePath == m_projectRoot || filePath.startsWith(m_projectRoot + QLatin1Char('/'))))
+        return m_projectRoot;
     QDir dir = QFileInfo(filePath).absoluteDir();
     const QString fallback = dir.absolutePath();
     for (int i = 0; i < 64; ++i) {
@@ -124,6 +127,29 @@ void LspManager::setSettings(const AppSettings &settings)
         }
     }
     m_failures.clear();
+    const QList<Document *> docs = m_docs.keys();
+    for (Document *d : docs)
+        attach(d);
+    Q_EMIT statusChanged();
+}
+
+void LspManager::setProjectRoot(const QString &root)
+{
+    if (m_projectRoot == root)
+        return;
+    m_projectRoot = root;
+    restartClients(); // um servidor por linguagem: a raiz nova exige reiniciá-los
+}
+
+void LspManager::restartClients()
+{
+    const QStringList ids = m_clients.keys();
+    for (const QString &id : ids) {
+        if (LspClient *c = m_clients.take(id)) {
+            c->shutdown();
+            c->deleteLater();
+        }
+    }
     const QList<Document *> docs = m_docs.keys();
     for (Document *d : docs)
         attach(d);

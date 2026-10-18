@@ -77,6 +77,11 @@ struct AppSettings
     bool insertSpaces = true;    //< Tab insere espaços (tabulações emuladas)
     bool editorCursorBlink = true;
     bool prettySymbols = false;  //< exibir sequências como símbolos (<= vira ≤); texto não muda
+
+    // Projeto (pasta aberta)
+    QStringList projectExclude;  //< padrões no estilo .gitignore escondidos na árvore e na busca; vazio = padrão
+    QStringList effectiveProjectExclude() const;
+    static QStringList defaultProjectExclude();
     QList<SymbolRule> symbols;   //< regras de exibição; vazio = conjunto padrão
 
     // Aparência

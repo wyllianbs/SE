@@ -1,4 +1,5 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
 <TS version="2.1" language="pt_BR">
 <context>
     <name>CodeEditor</name>
@@ -87,10 +88,6 @@ sudo apt install gdb</source>
 
 Instale com:
 sudo apt install gdb</translation>
-    </message>
-    <message>
-        <source>Debug: %1</source>
-        <translation>Depuração: %1</translation>
     </message>
     <message>
         <source>Debugger finished.</source>
@@ -349,8 +346,8 @@ sudo apt install gdb</translation>
         <translation>shortcuts keys keyboard hotkeys atalhos teclas teclado</translation>
     </message>
     <message>
-        <source>&lt;table cellpadding='3'&gt;&lt;tr&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td&gt;New / open / save&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%2&lt;/td&gt;&lt;td&gt;Save as / save all&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%3&lt;/td&gt;&lt;td&gt;Close tab&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%4&lt;/td&gt;&lt;td&gt;Run&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%5&lt;/td&gt;&lt;td&gt;Terminal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%6&lt;/td&gt;&lt;td&gt;Find / replace&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%7&lt;/td&gt;&lt;td&gt;Go to line&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%8&lt;/td&gt;&lt;td&gt;Toggle comment&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%9&lt;/td&gt;&lt;td&gt;Split vertical / horizontal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%10&lt;/td&gt;&lt;td&gt;Settings&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%11&lt;/td&gt;&lt;td&gt;Help&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</source>
-        <translation>&lt;table cellpadding='3'&gt;&lt;tr&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td&gt;Novo / abrir / salvar&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%2&lt;/td&gt;&lt;td&gt;Salvar como / salvar tudo&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%3&lt;/td&gt;&lt;td&gt;Fechar aba&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%4&lt;/td&gt;&lt;td&gt;Executar&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%5&lt;/td&gt;&lt;td&gt;Terminal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%6&lt;/td&gt;&lt;td&gt;Localizar / substituir&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%7&lt;/td&gt;&lt;td&gt;Ir para linha&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%8&lt;/td&gt;&lt;td&gt;Alternar comentário&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%9&lt;/td&gt;&lt;td&gt;Dividir vertical / horizontal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%10&lt;/td&gt;&lt;td&gt;Configurações&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%11&lt;/td&gt;&lt;td&gt;Ajuda&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</translation>
+        <source>&lt;table cellpadding=&apos;3&apos;&gt;&lt;tr&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td&gt;New / open / save&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%2&lt;/td&gt;&lt;td&gt;Save as / save all&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%3&lt;/td&gt;&lt;td&gt;Close tab&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%4&lt;/td&gt;&lt;td&gt;Run&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%5&lt;/td&gt;&lt;td&gt;Terminal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%6&lt;/td&gt;&lt;td&gt;Find / replace&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%7&lt;/td&gt;&lt;td&gt;Go to line&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%8&lt;/td&gt;&lt;td&gt;Toggle comment&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%9&lt;/td&gt;&lt;td&gt;Split vertical / horizontal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%10&lt;/td&gt;&lt;td&gt;Settings&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%11&lt;/td&gt;&lt;td&gt;Help&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</source>
+        <translation>&lt;table cellpadding=&apos;3&apos;&gt;&lt;tr&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td&gt;Novo / abrir / salvar&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%2&lt;/td&gt;&lt;td&gt;Salvar como / salvar tudo&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%3&lt;/td&gt;&lt;td&gt;Fechar aba&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%4&lt;/td&gt;&lt;td&gt;Executar&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%5&lt;/td&gt;&lt;td&gt;Terminal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%6&lt;/td&gt;&lt;td&gt;Localizar / substituir&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%7&lt;/td&gt;&lt;td&gt;Ir para linha&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%8&lt;/td&gt;&lt;td&gt;Alternar comentário&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%9&lt;/td&gt;&lt;td&gt;Dividir vertical / horizontal&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%10&lt;/td&gt;&lt;td&gt;Configurações&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;%11&lt;/td&gt;&lt;td&gt;Ajuda&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</translation>
     </message>
     <message>
         <source>Slayer Editor Help</source>
@@ -632,6 +629,26 @@ sudo apt install gdb</translation>
         <translation>&amp;Configurações…</translation>
     </message>
     <message>
+        <source>Open &amp;Folder…</source>
+        <translation>Abrir &amp;Pasta…</translation>
+    </message>
+    <message>
+        <source>Open Recent &amp;Project</source>
+        <translation>Abrir &amp;Projeto Recente</translation>
+    </message>
+    <message>
+        <source>&amp;Quick Open…</source>
+        <translation>Abertura &amp;Rápida…</translation>
+    </message>
+    <message>
+        <source>Close F&amp;older</source>
+        <translation>Fechar P&amp;asta</translation>
+    </message>
+    <message>
+        <source>Find in &amp;Project…</source>
+        <translation>Buscar no &amp;Projeto…</translation>
+    </message>
+    <message>
         <source>&amp;View</source>
         <translation>E&amp;xibir</translation>
     </message>
@@ -658,6 +675,14 @@ sudo apt install gdb</translation>
     <message>
         <source>Bottom</source>
         <translation>Base</translation>
+    </message>
+    <message>
+        <source>&amp;Project Panel</source>
+        <translation>Painel do &amp;Projeto</translation>
+    </message>
+    <message>
+        <source>Project &amp;Search Panel</source>
+        <translation>Painel de &amp;Busca no Projeto</translation>
     </message>
     <message>
         <source>&amp;Split View</source>
@@ -746,6 +771,10 @@ sudo apt install gdb</translation>
     <message>
         <source>Open File…</source>
         <translation>Abrir arquivo…</translation>
+    </message>
+    <message>
+        <source>Open Folder…</source>
+        <translation>Abrir Pasta…</translation>
     </message>
     <message>
         <source>Close tab</source>
@@ -860,8 +889,24 @@ sudo apt install gdb</translation>
         <translation>Sem comando de execução para arquivos %1 — defina um em Configurações → Linguagens.</translation>
     </message>
     <message>
-        <source>Go to Line</source>
-        <translation>Ir para linha</translation>
+        <source>Open Folder</source>
+        <translation>Abrir Pasta</translation>
+    </message>
+    <message>
+        <source>Quick Open needs an open folder (File ▸ Open Folder…)</source>
+        <translation>A Abertura Rápida precisa de uma pasta aberta (Arquivo ▸ Abrir Pasta…)</translation>
+    </message>
+    <message>
+        <source>Find in Project needs an open folder (File ▸ Open Folder…)</source>
+        <translation>Buscar no Projeto precisa de uma pasta aberta (Arquivo ▸ Abrir Pasta…)</translation>
+    </message>
+    <message>
+        <source>No Recent Projects</source>
+        <translation>Nenhum projeto recente</translation>
+    </message>
+    <message>
+        <source>Folder not found: %1</source>
+        <translation>Pasta não encontrada: %1</translation>
     </message>
     <message>
         <source>Line:</source>
@@ -1271,6 +1316,170 @@ sudo apt install gdb</translation>
     </message>
 </context>
 <context>
+    <name>ProjectPanel</name>
+    <message>
+        <source>Project</source>
+        <translation>Projeto</translation>
+    </message>
+    <message>
+        <source>No folder open.
+File ▸ Open Folder… (Ctrl+Shift+O)</source>
+        <translation>Nenhuma pasta aberta.
+Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Abrir</translation>
+    </message>
+    <message>
+        <source>New File…</source>
+        <translation>Novo Arquivo…</translation>
+    </message>
+    <message>
+        <source>New Folder…</source>
+        <translation>Nova Pasta…</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Renomear…</translation>
+    </message>
+    <message>
+        <source>Move to Trash</source>
+        <translation>Mover para a Lixeira</translation>
+    </message>
+    <message>
+        <source>Copy Path</source>
+        <translation>Copiar Caminho</translation>
+    </message>
+    <message>
+        <source>Copy Relative Path</source>
+        <translation>Copiar Caminho Relativo</translation>
+    </message>
+    <message>
+        <source>New Folder</source>
+        <translation>Nova Pasta</translation>
+    </message>
+    <message>
+        <source>New File</source>
+        <translation>Novo Arquivo</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <translation>Nome:</translation>
+    </message>
+    <message>
+        <source>“%1” already exists.</source>
+        <translation>“%1” já existe.</translation>
+    </message>
+    <message>
+        <source>Could not create “%1”.</source>
+        <translation>Não foi possível criar “%1”.</translation>
+    </message>
+    <message>
+        <source>Rename</source>
+        <translation>Renomear</translation>
+    </message>
+    <message>
+        <source>New name:</source>
+        <translation>Novo nome:</translation>
+    </message>
+    <message>
+        <source>Could not rename to “%1”.</source>
+        <translation>Não foi possível renomear para “%1”.</translation>
+    </message>
+    <message>
+        <source>Move “%1” to the trash?</source>
+        <translation>Mover “%1” para a lixeira?</translation>
+    </message>
+    <message>
+        <source>Could not move “%1” to the trash.</source>
+        <translation>Não foi possível mover “%1” para a lixeira.</translation>
+    </message>
+</context>
+<context>
+    <name>ProjectSearch</name>
+    <message>
+        <source>Search</source>
+        <translation>Busca</translation>
+    </message>
+    <message>
+        <source>Aa</source>
+        <translation>Aa</translation>
+    </message>
+    <message>
+        <source>Word</source>
+        <translation>Palavra</translation>
+    </message>
+    <message>
+        <source>.*</source>
+        <translation>.*</translation>
+    </message>
+    <message>
+        <source>Search in project (Enter)</source>
+        <translation>Buscar no projeto (Enter)</translation>
+    </message>
+    <message>
+        <source>Match case</source>
+        <translation>Diferenciar maiúsculas</translation>
+    </message>
+    <message>
+        <source>Whole words</source>
+        <translation>Palavras inteiras</translation>
+    </message>
+    <message>
+        <source>Regular expression</source>
+        <translation>Expressão regular</translation>
+    </message>
+    <message>
+        <source>Searching…</source>
+        <translation>Buscando…</translation>
+    </message>
+    <message>
+        <source>No results for “%1”</source>
+        <translation>Nenhum resultado para “%1”</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n result(s)</source>
+        <translation>
+            <numerusform>%n resultado</numerusform>
+            <numerusform>%n resultados</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n file(s)</source>
+        <translation>
+            <numerusform>%n arquivo</numerusform>
+            <numerusform>%n arquivos</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>stopped at %1 results</source>
+        <translation>interrompido em %1 resultados</translation>
+    </message>
+</context>
+<context>
+    <name>QuickOpen</name>
+    <message>
+        <source>Search files by name (%1)</source>
+        <translation>Buscar arquivos pelo nome (%1)</translation>
+    </message>
+    <message>
+        <source>Listing files…</source>
+        <translation>Listando arquivos…</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n file(s)</source>
+        <translation>
+            <numerusform>%n arquivo</numerusform>
+            <numerusform>%n arquivos</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>listing truncated (very large folder)</source>
+        <translation>listagem truncada (pasta muito grande)</translation>
+    </message>
+</context>
+<context>
     <name>SettingsDialog</name>
     <message>
         <source>Terminal only when input is needed</source>
@@ -1289,11 +1498,11 @@ sudo apt install gdb</translation>
         <translation>Recuar linhas quebradas (experimental — pode ser instável no Wayland)</translation>
     </message>
     <message>
-        <source>Indent the continuation of wrapped lines to the line's own indentation. Disabled by default because it has crashed Qt's text drawing on some Wayland setups while searching.</source>
+        <source>Indent the continuation of wrapped lines to the line&apos;s own indentation. Disabled by default because it has crashed Qt&apos;s text drawing on some Wayland setups while searching.</source>
         <translation>Recua a continuação das linhas quebradas até a indentação da própria linha. Desativado por padrão porque já derrubou o desenho de texto do Qt em algumas configurações Wayland durante buscas.</translation>
     </message>
     <message>
-        <source>Extra indentation for wrapped lines, beyond the line's own indentation. 0 aligns the continuation under the first character (like VS Code).</source>
+        <source>Extra indentation for wrapped lines, beyond the line&apos;s own indentation. 0 aligns the continuation under the first character (like VS Code).</source>
         <translation>Recuo extra para linhas quebradas, além da indentação da própria linha. 0 alinha a continuação sob o primeiro caractere (como no VS Code).</translation>
     </message>
     <message>
@@ -1509,8 +1718,8 @@ sudo apt install gdb</translation>
         <translation>Cursor piscante</translation>
     </message>
     <message>
-        <source>Auto-close brackets and quotes  ( )  [ ]  { }  " "  ' '</source>
-        <translation>Fechar parênteses e aspas automaticamente  ( )  [ ]  { }  " "  ' '</translation>
+        <source>Auto-close brackets and quotes  ( )  [ ]  { }  &quot; &quot;  &apos; &apos;</source>
+        <translation>Fechar parênteses e aspas automaticamente  ( )  [ ]  { }  &quot; &quot;  &apos; &apos;</translation>
     </message>
     <message>
         <source>Code completion (words in the file + language keywords, Ctrl+Space)</source>
@@ -1525,12 +1734,24 @@ sudo apt install gdb</translation>
         <translation>Servidores de linguagem (LSP): diagnósticos e autocompletar mais inteligente</translation>
     </message>
     <message>
+        <source>One pattern per line, like .gitignore (&quot;build/&quot;, &quot;*.o&quot;, &quot;/dist&quot;). Empty = the defaults shown. The project&apos;s .gitignore is also honored by Quick Open and Find in Project.</source>
+        <translation>Um padrão por linha, como no .gitignore (&quot;build/&quot;, &quot;*.o&quot;, &quot;/dist&quot;). Vazio = os padrões exibidos. O .gitignore do projeto também é respeitado pela Abertura Rápida e por Buscar no Projeto.</translation>
+    </message>
+    <message>
+        <source>Hidden files and folders (one pattern per line, .gitignore style)</source>
+        <translation>Arquivos e pastas ocultos (um padrão por linha, estilo .gitignore)</translation>
+    </message>
+    <message>
         <source>Display</source>
         <translation>Exibição</translation>
     </message>
     <message>
         <source>Features</source>
         <translation>Recursos</translation>
+    </message>
+    <message>
+        <source>Project</source>
+        <translation>Projeto</translation>
     </message>
     <message>
         <source>Theme</source>

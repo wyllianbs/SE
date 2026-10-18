@@ -29,6 +29,9 @@ class QProcess;
 class QTimer;
 class DebugSession;
 class DebugPanel;
+class Project;
+class ProjectPanel;
+class ProjectSearch;
 struct DebugFrame;
 
 class MainWindow : public QMainWindow
@@ -52,6 +55,21 @@ private:
     void createActions();
     void restoreSession();
     void saveSession();
+    // Abas abertas, sob uma chave: "session" (sem projeto) ou a do projeto.
+    QString sessionKey() const;
+    void saveTabs(const QString &key);
+    void restoreTabs(const QString &key);
+    bool closeAllTabs();
+
+    // Projeto (pasta aberta), como no VS Code / Kate.
+    void openFolder();
+    bool openProject(const QString &root, bool restore = true);
+    void closeProject();
+    void quickOpen();
+    void findInProject();
+    void openAt(const QString &path, int line, int column, int length);
+    void addRecentProject(const QString &root);
+    void rebuildRecentProjectsMenu();
 
     CodeEditor *newTab();
     void newFileFromTemplate();
@@ -160,6 +178,12 @@ private:
     AppSettings m_settings;
     QString m_lastDir;
     QMenu *m_recentMenu = nullptr;      //< submenu "Open Recent"
+    QMenu *m_recentProjectsMenu = nullptr;
+    QStringList m_recentProjects;
+    Project *m_project = nullptr;
+    ProjectPanel *m_projectPanel = nullptr;
+    ProjectSearch *m_projectSearch = nullptr;
+    QList<QAction *> m_projectActions; //< ativas só com projeto aberto
     QStringList m_recentFiles;          //< caminhos recentes, mais recente primeiro
     QList<QPair<QAction *, Icons::Glyph>> m_iconActions;
     QAction *m_runAction = nullptr;

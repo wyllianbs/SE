@@ -160,6 +160,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("highlightCurrentLine")] = highlightCurrentLine;
     o[QStringLiteral("minimap")] = minimap;
     o[QStringLiteral("minimapWidth")] = minimapWidth;
+    o[QStringLiteral("projectExclude")] = QJsonArray::fromStringList(projectExclude);
     o[QStringLiteral("autoClosePairs")] = autoClosePairs;
     o[QStringLiteral("codeCompletion")] = codeCompletion;
     o[QStringLiteral("codeFolding")] = codeFolding;
@@ -234,6 +235,9 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.highlightCurrentLine = flag("highlightCurrentLine", s.highlightCurrentLine);
     s.minimap = flag("minimap", s.minimap);
     s.minimapWidth = qBound(20, num("minimapWidth", s.minimapWidth), 400);
+    for (const QJsonValue &v : o.value(QLatin1String("projectExclude")).toArray())
+        if (!v.toString().trimmed().isEmpty())
+            s.projectExclude << v.toString().trimmed();
     s.autoClosePairs = flag("autoClosePairs", s.autoClosePairs);
     s.codeCompletion = flag("codeCompletion", s.codeCompletion);
     s.codeFolding = flag("codeFolding", s.codeFolding);
@@ -370,4 +374,16 @@ QString AppSettings::activeProfile()
 void AppSettings::setActiveProfile(const QString &name)
 {
     QSettings().setValue(kActiveProfileKey, name);
+}
+
+QStringList AppSettings::effectiveProjectExclude() const
+{
+    return projectExclude.isEmpty() ? defaultProjectExclude() : projectExclude;
+}
+
+QStringList AppSettings::defaultProjectExclude()
+{
+    return {QStringLiteral(".git/"), QStringLiteral(".hg/"), QStringLiteral(".svn/"),
+            QStringLiteral("node_modules/"), QStringLiteral("__pycache__/"), QStringLiteral(".cache/"),
+            QStringLiteral("*.o"), QStringLiteral("*.pyc")};
 }
