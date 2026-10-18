@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QRegularExpression>
 #include <QString>
 #include <QStringList>
 
@@ -27,6 +28,14 @@ struct Language
     QString newFileName;
     /** Ferramentas além da {tool} que precisam existir (ex.: javac para Java). */
     QStringList requires;
+    /**
+     * Padrões de recuo inspirados nas indentationRules do VSCode/VSCodium.
+     * increaseIndentPattern: casado contra a linha atual → próxima linha recebe +1 nível.
+     * decreaseIndentPattern: casado contra a linha atual (incluindo o caractere recém-digitado)
+     *   → a linha é automaticamente recuada -1 nível ao ser digitada.
+     */
+    QRegularExpression increaseIndentPattern;
+    QRegularExpression decreaseIndentPattern;
 
     static const QList<Language> &all();
     static const Language &plainText();
