@@ -1,4 +1,6 @@
 #include "SettingsDialog.h"
+
+#include "TerminalDock.h"
 #include "Icons.h"
 #include "Language.h"
 #include "LspManager.h"
@@ -591,6 +593,28 @@ QWidget *SettingsDialog::buildTerminalPage()
     transparencyRow->addWidget(m_terminalTransparencyLabel);
     form->addRow(tr("Transparency"), transparencyRow);
 
+    // Também no botão direito do terminal ▸ Configurar.
+    m_terminalScheme = new QComboBox;
+    m_terminalScheme->addItem(tr("Follow the theme"), QString());
+    for (const QString &name : TerminalDock::colorSchemes())
+        m_terminalScheme->addItem(name, name);
+    form->addRow(tr("Color scheme"), m_terminalScheme);
+    m_terminalCursorShape = new QComboBox;
+    m_terminalCursorShape->addItem(tr("Block"), 0);
+    m_terminalCursorShape->addItem(tr("Underline"), 1);
+    m_terminalCursorShape->addItem(tr("I-Beam"), 2);
+    form->addRow(tr("Cursor shape"), m_terminalCursorShape);
+    m_terminalHistory = new QComboBox;
+    for (int lines : {1000, 10000, 50000, 100000})
+        m_terminalHistory->addItem(tr("%L1 lines").arg(lines), lines);
+    m_terminalHistory->addItem(tr("Unlimited"), -1);
+    form->addRow(tr("History"), m_terminalHistory);
+    m_terminalScrollbar = new QComboBox;
+    m_terminalScrollbar->addItem(tr("Right"), 2);
+    m_terminalScrollbar->addItem(tr("Left"), 1);
+    m_terminalScrollbar->addItem(tr("Hidden"), 0);
+    form->addRow(tr("Scrollbar"), m_terminalScrollbar);
+
     auto *hint = new QLabel(tr("Move the terminal to the left, top, right or bottom with the ▥ button on its "
                                "title bar, or drag it by the title. Typing “exit” starts a new shell.<br><br>"
                                "Transparency applies to the detached terminal (❐ button): the desktop shows "
@@ -1107,6 +1131,14 @@ void SettingsDialog::setForm(const AppSettings &s)
         m_shell->setEditText(s.shell);
     m_terminalBlink->setChecked(s.terminalCursorBlink);
     m_terminalTransparency->setValue(s.terminalTransparency);
+    if (m_terminalScheme->findData(s.terminalColorScheme) < 0) // esquema que sumiu do sistema
+        m_terminalScheme->addItem(s.terminalColorScheme, s.terminalColorScheme);
+    m_terminalScheme->setCurrentIndex(qMax(0, m_terminalScheme->findData(s.terminalColorScheme)));
+    m_terminalCursorShape->setCurrentIndex(qMax(0, m_terminalCursorShape->findData(s.terminalCursorShape)));
+    if (m_terminalHistory->findData(s.terminalHistory) < 0)
+        m_terminalHistory->addItem(tr("%L1 lines").arg(s.terminalHistory), s.terminalHistory);
+    m_terminalHistory->setCurrentIndex(qMax(0, m_terminalHistory->findData(s.terminalHistory)));
+    m_terminalScrollbar->setCurrentIndex(qMax(0, m_terminalScrollbar->findData(s.terminalScrollbar)));
 
     m_autoSave->setChecked(s.autoSave);
     m_previewCommand->setText(s.previewCommand);
@@ -1208,6 +1240,10 @@ AppSettings SettingsDialog::settings() const
                   : m_shell->currentText().trimmed();
     s.terminalCursorBlink = m_terminalBlink->isChecked();
     s.terminalTransparency = m_terminalTransparency->value();
+    s.terminalColorScheme = m_terminalScheme->currentData().toString();
+    s.terminalCursorShape = m_terminalCursorShape->currentData().toInt();
+    s.terminalHistory = m_terminalHistory->currentData().toInt();
+    s.terminalScrollbar = m_terminalScrollbar->currentData().toInt();
 
     s.autoSave = m_autoSave->isChecked();
     s.previewCommand = m_previewCommand->text().trimmed();

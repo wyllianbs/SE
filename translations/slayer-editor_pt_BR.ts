@@ -234,6 +234,10 @@ sudo apt install gdb</translation>
         <translation>terminal shell bash console dock position left right top bottom float exit posição esquerda direita topo base flutuante sair painel</translation>
     </message>
     <message>
+        <source>&lt;p&gt;%1 shows or hides the terminal and moves the focus to it; %2 opens a new terminal tab. The ▥ button on its title bar moves it to the left, top, right or bottom; you can also drag it by the title or detach it as a window. %3 / %4 copy and paste in the terminal.&lt;/p&gt;&lt;p&gt;Right-click the terminal for copy and paste, select all, find, clear, save the output, zoom, open the file manager there, rename the tab and monitor activity or silence; &lt;b&gt;Configure&lt;/b&gt; sets the color scheme, cursor shape, history and scrollbar (also in &lt;b&gt;Settings → Terminal&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Typing &lt;code&gt;exit&lt;/code&gt; starts a new shell. With a folder open, new terminals start in it. Font, size, shell and cursor are in &lt;b&gt;Settings → Terminal&lt;/b&gt;.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;%1 mostra ou oculta o terminal e move o foco para ele; %2 abre uma nova aba de terminal. O botão ▥ na barra de título dele o move para a esquerda, topo, direita ou base; também dá para arrastá-lo pelo título ou destacá-lo como janela. %3 / %4 copiam e colam no terminal.&lt;/p&gt;&lt;p&gt;Clique com o botão direito no terminal para copiar e colar, selecionar tudo, localizar, limpar, salvar a saída, zoom, abrir o gerenciador de arquivos ali, renomear a aba e monitorar atividade ou silêncio; &lt;b&gt;Configurar&lt;/b&gt; define o esquema de cores, a forma do cursor, o histórico e a barra de rolagem (também em &lt;b&gt;Configurações → Terminal&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Digitar &lt;code&gt;exit&lt;/code&gt; inicia um novo shell. Com uma pasta aberta, os terminais novos começam nela. Fonte, tamanho, shell e cursor ficam em &lt;b&gt;Configurações → Terminal&lt;/b&gt;.&lt;/p&gt;</translation>
+    </message>
+    <message>
         <source>Split view</source>
         <translation>Dividir visão</translation>
     </message>
@@ -408,10 +412,6 @@ sudo apt install gdb</translation>
     <message>
         <source>&lt;p&gt;%1 saves the file and runs it in the terminal. C, C++ and Rust are compiled to &lt;code&gt;/tmp/slayer_out&lt;/code&gt; and then executed; interpreted languages run directly.&lt;/p&gt;&lt;p&gt;%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds and runs the whole project (see &lt;b&gt;Projects&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Change the tool, flags and extensions of each language in &lt;b&gt;Settings → Languages&lt;/b&gt;, or add your own language (Ruby, Lua, Perl…) with &lt;b&gt;Add Language…&lt;/b&gt;.&lt;/p&gt;</source>
         <translation>&lt;p&gt;%1 salva o arquivo e o executa no terminal. C, C++ e Rust são compilados em &lt;code&gt;/tmp/slayer_out&lt;/code&gt; e depois executados; linguagens interpretadas rodam direto.&lt;/p&gt;&lt;p&gt;%2 executa e fica no interpretador (Python, JavaScript, shell). Com uma pasta aberta, %3 compila e executa o projeto inteiro (veja &lt;b&gt;Projetos&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Altere a ferramenta, as flags e as extensões de cada linguagem em &lt;b&gt;Configurações → Linguagens&lt;/b&gt;, ou adicione sua própria linguagem (Ruby, Lua, Perl…) com &lt;b&gt;Adicionar Linguagem…&lt;/b&gt;.&lt;/p&gt;</translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;%1 shows or hides the terminal and moves the focus to it; %2 opens a new terminal tab. The ▥ button on its title bar moves it to the left, top, right or bottom; you can also drag it by the title or detach it as a window. %3 / %4 copy and paste in the terminal.&lt;/p&gt;&lt;p&gt;Typing &lt;code&gt;exit&lt;/code&gt; starts a new shell. With a folder open, new terminals start in it. Font, size, shell and cursor are in &lt;b&gt;Settings → Terminal&lt;/b&gt;.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;%1 mostra ou oculta o terminal e move o foco para ele; %2 abre uma nova aba de terminal. O botão ▥ na barra de título dele o move para a esquerda, topo, direita ou base; também dá para arrastá-lo pelo título ou destacá-lo como janela. %3 / %4 copiam e colam no terminal.&lt;/p&gt;&lt;p&gt;Digitar &lt;code&gt;exit&lt;/code&gt; inicia um novo shell. Com uma pasta aberta, os terminais novos começam nela. Fonte, tamanho, shell e cursor ficam em &lt;b&gt;Configurações → Terminal&lt;/b&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Suggestions appear after two letters: words of the file, language keywords and, when a language server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.&lt;/p&gt;&lt;p&gt;Turn it on or off in &lt;b&gt;View&lt;/b&gt; or &lt;b&gt;Settings → Editor → Features&lt;/b&gt;.&lt;/p&gt;</source>
@@ -1942,6 +1942,58 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
         <translation>Shell</translation>
     </message>
     <message>
+        <source>Follow the theme</source>
+        <translation>Seguir o tema</translation>
+    </message>
+    <message>
+        <source>Color scheme</source>
+        <translation>Esquema de cores</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>Bloco</translation>
+    </message>
+    <message>
+        <source>Underline</source>
+        <translation>Sublinhado</translation>
+    </message>
+    <message>
+        <source>I-Beam</source>
+        <translation>Barra</translation>
+    </message>
+    <message>
+        <source>Cursor shape</source>
+        <translation>Forma do cursor</translation>
+    </message>
+    <message>
+        <source>%L1 lines</source>
+        <translation>%L1 linhas</translation>
+    </message>
+    <message>
+        <source>Unlimited</source>
+        <translation>Ilimitado</translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation>Histórico</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Direita</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Esquerda</translation>
+    </message>
+    <message>
+        <source>Hidden</source>
+        <translation>Oculta</translation>
+    </message>
+    <message>
+        <source>Scrollbar</source>
+        <translation>Barra de rolagem</translation>
+    </message>
+    <message>
         <source>Tip</source>
         <translation>Dica</translation>
     </message>
@@ -2201,12 +2253,128 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
         <translation>Nova aba de terminal (Ctrl+Shift+`)</translation>
     </message>
     <message>
+        <source>Select All</source>
+        <translation>Selecionar Tudo</translation>
+    </message>
+    <message>
+        <source>Find…</source>
+        <translation>Localizar…</translation>
+    </message>
+    <message>
+        <source>Clear Terminal and History</source>
+        <translation>Limpar Terminal e Histórico</translation>
+    </message>
+    <message>
+        <source>Save Output As…</source>
+        <translation>Salvar Saída Como…</translation>
+    </message>
+    <message>
+        <source>Save Output As</source>
+        <translation>Salvar Saída Como</translation>
+    </message>
+    <message>
+        <source>Zoom In</source>
+        <translation>Aumentar Zoom</translation>
+    </message>
+    <message>
+        <source>Zoom Out</source>
+        <translation>Reduzir Zoom</translation>
+    </message>
+    <message>
+        <source>Reset Zoom</source>
+        <translation>Restaurar Zoom</translation>
+    </message>
+    <message>
+        <source>Open File Manager Here</source>
+        <translation>Abrir Gerenciador de Arquivos Aqui</translation>
+    </message>
+    <message>
+        <source>Rename Tab…</source>
+        <translation>Renomear Aba…</translation>
+    </message>
+    <message>
+        <source>Rename Tab</source>
+        <translation>Renomear Aba</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <translation>Nome:</translation>
+    </message>
+    <message>
+        <source>Monitor for Activity</source>
+        <translation>Monitorar Atividade</translation>
+    </message>
+    <message>
+        <source>Monitor for Silence (10 s)</source>
+        <translation>Monitorar Silêncio (10 s)</translation>
+    </message>
+    <message>
+        <source>Configure</source>
+        <translation>Configurar</translation>
+    </message>
+    <message>
+        <source>Color Scheme</source>
+        <translation>Esquema de Cores</translation>
+    </message>
+    <message>
+        <source>Follow the Theme</source>
+        <translation>Seguir o Tema</translation>
+    </message>
+    <message>
+        <source>Cursor Shape</source>
+        <translation>Forma do Cursor</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>Bloco</translation>
+    </message>
+    <message>
+        <source>Underline</source>
+        <translation>Sublinhado</translation>
+    </message>
+    <message>
+        <source>I-Beam</source>
+        <translation>Barra</translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation>Histórico</translation>
+    </message>
+    <message>
+        <source>Unlimited</source>
+        <translation>Ilimitado</translation>
+    </message>
+    <message>
+        <source>%L1 lines</source>
+        <translation>%L1 linhas</translation>
+    </message>
+    <message>
+        <source>Scrollbar</source>
+        <translation>Barra de rolagem</translation>
+    </message>
+    <message>
+        <source>Hidden</source>
+        <translation>Oculta</translation>
+    </message>
+    <message>
+        <source>Terminal Settings…</source>
+        <translation>Configurações do Terminal…</translation>
+    </message>
+    <message>
         <source>Terminal %1</source>
         <translation>Terminal %1</translation>
     </message>
     <message>
         <source>Close terminal tab</source>
         <translation>Fechar aba do terminal</translation>
+    </message>
+    <message>
+        <source>Activity</source>
+        <translation>Atividade</translation>
+    </message>
+    <message>
+        <source>Silence</source>
+        <translation>Silêncio</translation>
     </message>
     <message>
         <source>Copy</source>

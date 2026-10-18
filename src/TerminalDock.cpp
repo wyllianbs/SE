@@ -12,6 +12,11 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <QMenu>
+#include <QLineEdit>
+#include <QUrl>
+#include <QInputDialog>
+#include <QFileDialog>
+#include <QDesktopServices>
 #include <QMouseEvent>
 #include <QPointer>
 #include <QTimer>
@@ -44,6 +49,12 @@ TerminalDock::TerminalDock(QMainWindow *mainWindow)
     auto *layout = new QVBoxLayout(m_container);
     layout->setContentsMargins(6, 0, 6, 6);
     m_tabs = new QTabWidget(m_container);
+    // Aba vista: tira a marca ● de atividade/silêncio.
+    connect(m_tabs, &QTabWidget::currentChanged, this, [this](int i) {
+        const QString text = m_tabs->tabText(i);
+        if (text.startsWith(QStringLiteral("● ")))
+            m_tabs->setTabText(i, text.mid(2));
+    });
     m_tabs->setObjectName(QStringLiteral("TerminalTabs"));
     m_tabs->setDocumentMode(true);
     m_tabs->setMovable(true);
@@ -260,11 +271,9 @@ QTermWidget *TerminalDock::createTerminal()
             dir = cwd;
     }
     term->setWorkingDirectory(dir);
-    term->setScrollBarPosition(QTermWidget::ScrollBarRight);
     term->setTerminalSizeHint(false);
     term->setBlinkingCursor(m_cursorBlink);
-    if (!m_schemeName.isEmpty())
-        term->setColorScheme(m_schemeName);
+    applyAppearance(term);
     if (m_font != QFont())
         term->setTerminalFont(m_font);
     term->setTerminalOpacity(opacity());
@@ -308,12 +317,122 @@ void TerminalDock::installContextMenu(QTermWidget *term)
 void TerminalDock::showTerminalMenu(QTermWidget *term, const QPoint &globalPos)
 {
     QMenu menu(this);
+    // Sobre um link: abrir / copiar endereço (ações do próprio QTermWidget).
+    const QList<QAction *> linkActions = term->filterActions(term->mapFromGlobal(globalPos));
+    if (!linkActions.isEmpty()) {
+        menu.addActions(linkActions);
+        menu.addSeparator();
+    }
     QAction *copy = menu.addAction(tr("Copy"), term, &QTermWidget::copyClipboard);
+    copy->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C));
     copy->setEnabled(!term->selectedText().isEmpty());
-    menu.addAction(tr("Paste"), term, &QTermWidget::pasteClipboard);
+    menu.addAction(tr("Paste"), term, &QTermWidget::pasteClipboard)
+        ->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_V));
     menu.addAction(tr("Paste Selection"), term, &QTermWidget::pasteSelection);
+    menu.addAction(tr("Select All"), term, [term]() {
+        term->setSelectionStart(-term->historyLinesCount(), 0);
+        term->setSelectionEnd(term->screenLinesCount(), term->screenColumnsCount());
+    });
     menu.addSeparator();
-    menu.addAction(tr("Clear"), term, &QTermWidget::clear);
+    menu.addAction(tr("Find…"), term, &QTermWidget::toggleShowSearchBar);
+    menu.addAction(tr("Clear Terminal and History"), term, &QTermWidget::clear);
+    menu.addAction(tr("Save Output As…"), this, [this, term]() {
+        const QString path = QFileDialog::getSaveFileName(this, tr("Save Output As"),
+                                                          QDir(term->workingDirectory()).filePath(QStringLiteral("terminal.txt")));
+        if (path.isEmpty())
+            return;
+        QFile f(path);
+        if (f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+            term->saveHistory(&f);
+    });
+    menu.addSeparator();
+    menu.addAction(tr("Zoom In"), term, &QTermWidget::zoomIn);
+    menu.addAction(tr("Zoom Out"), term, &QTermWidget::zoomOut);
+    menu.addAction(tr("Reset Zoom"), this, [this, term]() { term->setTerminalFont(m_font != QFont() ? m_font : term->font()); });
+    menu.addSeparator();
+    menu.addAction(tr("Open File Manager Here"), this, [term]() {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(term->workingDirectory()));
+    });
+    menu.addAction(tr("Rename Tab…"), this, [this, term]() {
+        const int i = m_tabs->indexOf(term);
+        bool ok = false;
+        const QString name = QInputDialog::getText(this, tr("Rename Tab"), tr("Name:"), QLineEdit::Normal,
+                                                   m_tabs->tabText(i), &ok).trimmed();
+        if (!ok || i < 0)
+            return;
+        term->setProperty("customTitle", !name.isEmpty()); // vazio volta ao título automático
+        if (!name.isEmpty())
+            m_tabs->setTabText(i, name);
+    });
+    QAction *activity = menu.addAction(tr("Monitor for Activity"));
+    activity->setCheckable(true);
+    activity->setChecked(term->property("monitorActivity").toBool());
+    connect(activity, &QAction::toggled, term, [term](bool on) {
+        term->setProperty("monitorActivity", on);
+        term->setMonitorActivity(on);
+    });
+    QAction *silence = menu.addAction(tr("Monitor for Silence (10 s)"));
+    silence->setCheckable(true);
+    silence->setChecked(term->property("monitorSilence").toBool());
+    connect(silence, &QAction::toggled, term, [term](bool on) {
+        term->setProperty("monitorSilence", on);
+        term->setSilenceTimeout(10);
+        term->setMonitorSilence(on);
+    });
+
+    // Configurar: esquema de cores, cursor, histórico e barra de rolagem (salvos nas configurações).
+    menu.addSeparator();
+    QMenu *configure = menu.addMenu(tr("Configure"));
+    const auto request = [this](const QString &scheme, int cursor, int history, int bar) {
+        Q_EMIT appearanceChangeRequested(scheme, cursor, history, bar);
+    };
+    QMenu *schemes = configure->addMenu(tr("Color Scheme"));
+    auto *schemeGroup = new QActionGroup(schemes);
+    QAction *followTheme = schemes->addAction(tr("Follow the Theme"));
+    followTheme->setCheckable(true);
+    followTheme->setChecked(m_userScheme.isEmpty());
+    schemeGroup->addAction(followTheme);
+    connect(followTheme, &QAction::triggered, this,
+            [=, this]() { request(QString(), m_cursorShape, m_historyLines, m_scrollbar); });
+    schemes->addSeparator();
+    for (const QString &name : colorSchemes()) {
+        QAction *a = schemes->addAction(name);
+        a->setCheckable(true);
+        a->setChecked(name == m_userScheme);
+        schemeGroup->addAction(a);
+        connect(a, &QAction::triggered, this, [=, this]() { request(name, m_cursorShape, m_historyLines, m_scrollbar); });
+    }
+    QMenu *cursor = configure->addMenu(tr("Cursor Shape"));
+    auto *cursorGroup = new QActionGroup(cursor);
+    const QStringList cursorNames{tr("Block"), tr("Underline"), tr("I-Beam")};
+    for (int i = 0; i < cursorNames.size(); ++i) {
+        QAction *a = cursor->addAction(cursorNames.at(i));
+        a->setCheckable(true);
+        a->setChecked(i == m_cursorShape);
+        cursorGroup->addAction(a);
+        connect(a, &QAction::triggered, this, [=, this]() { request(m_userScheme, i, m_historyLines, m_scrollbar); });
+    }
+    QMenu *history = configure->addMenu(tr("History"));
+    auto *historyGroup = new QActionGroup(history);
+    for (int lines : {1000, 10000, 50000, 100000, -1}) {
+        QAction *a = history->addAction(lines < 0 ? tr("Unlimited") : tr("%L1 lines").arg(lines));
+        a->setCheckable(true);
+        a->setChecked(lines == m_historyLines);
+        historyGroup->addAction(a);
+        connect(a, &QAction::triggered, this, [=, this]() { request(m_userScheme, m_cursorShape, lines, m_scrollbar); });
+    }
+    QMenu *bar = configure->addMenu(tr("Scrollbar"));
+    auto *barGroup = new QActionGroup(bar);
+    const QList<QPair<QString, int>> bars{{tr("Right"), 2}, {tr("Left"), 1}, {tr("Hidden"), 0}};
+    for (const auto &[label, value] : bars) {
+        QAction *a = bar->addAction(label);
+        a->setCheckable(true);
+        a->setChecked(value == m_scrollbar);
+        barGroup->addAction(a);
+        connect(a, &QAction::triggered, this, [=, this]() { request(m_userScheme, m_cursorShape, m_historyLines, value); });
+    }
+    configure->addSeparator();
+    configure->addAction(tr("Terminal Settings…"), this, [this]() { Q_EMIT settingsRequested(); });
     menu.exec(globalPos);
 }
 
@@ -332,11 +451,13 @@ QTermWidget *TerminalDock::newTerminal()
     connect(term, &QTermWidget::titleChanged, this, [this, term]() {
         const int i = m_tabs->indexOf(term);
         const QString title = term->title().trimmed();
-        if (i >= 0 && !title.isEmpty()) {
+        if (i >= 0 && !title.isEmpty() && !term->property("customTitle").toBool()) {
             m_tabs->setTabText(i, title.length() > 32 ? QStringLiteral("…") + title.right(31) : title);
             m_tabs->setTabToolTip(i, title);
         }
     });
+    connect(term, &QTermWidget::activity, this, [this, term]() { markTabActivity(term, tr("Activity")); });
+    connect(term, &QTermWidget::silence, this, [this, term]() { markTabActivity(term, tr("Silence")); });
     // "exit": numa aba extra, fecha a aba; na última, abre um shell novo.
     connect(term, &QTermWidget::finished, this, [this, term]() {
         const int i = m_tabs->indexOf(term);
@@ -671,9 +792,56 @@ void TerminalDock::setTheme(const Theme &theme)
         .arg(track.name(), handle.name(), handleHover.name());
     updateContainerBackground();
     for (QTermWidget *t : terminals()) {
-        t->setColorScheme(m_schemeName);
+        if (m_userScheme.isEmpty())
+            t->setColorScheme(m_schemeName);
         applyScrollbarStyle(t);
     }
+}
+
+QStringList TerminalDock::colorSchemes()
+{
+    QStringList list;
+    for (const QString &s : QTermWidget::availableColorSchemes())
+        if (!s.startsWith(QLatin1String("SlayerEditor-"))) // os do tema são internos
+            list << s;
+    list.sort(Qt::CaseInsensitive);
+    return list;
+}
+
+void TerminalDock::applyAppearance(QTermWidget *term) const
+{
+    if (!effectiveScheme().isEmpty())
+        term->setColorScheme(effectiveScheme());
+    static const QTermWidget::KeyboardCursorShape shapes[] = {
+        QTermWidget::KeyboardCursorShape::BlockCursor, QTermWidget::KeyboardCursorShape::UnderlineCursor,
+        QTermWidget::KeyboardCursorShape::IBeamCursor};
+    term->setKeyboardCursorShape(shapes[qBound(0, m_cursorShape, 2)]);
+    term->setHistorySize(m_historyLines);
+    static const QTermWidget::ScrollBarPosition bars[] = {QTermWidget::NoScrollBar, QTermWidget::ScrollBarLeft,
+                                                         QTermWidget::ScrollBarRight};
+    term->setScrollBarPosition(bars[qBound(0, m_scrollbar, 2)]);
+}
+
+void TerminalDock::setAppearance(const QString &colorScheme, int cursorShape, int historyLines, int scrollbar)
+{
+    m_userScheme = colorScheme;
+    m_cursorShape = cursorShape;
+    m_historyLines = historyLines;
+    m_scrollbar = scrollbar;
+    for (QTermWidget *t : terminals())
+        applyAppearance(t);
+}
+
+/** Aba em segundo plano com atividade (ou silêncio): marca com ● até ser vista. */
+void TerminalDock::markTabActivity(QTermWidget *term, const QString &reason)
+{
+    const int i = m_tabs->indexOf(term);
+    if (i < 0 || i == m_tabs->currentIndex())
+        return;
+    const QString text = m_tabs->tabText(i);
+    if (!text.startsWith(QStringLiteral("● ")))
+        m_tabs->setTabText(i, QStringLiteral("● ") + text);
+    m_tabs->setTabToolTip(i, reason);
 }
 
 /** Cores do tema no scrollbar e na "sobra" de célula à direita/abaixo do texto. */
