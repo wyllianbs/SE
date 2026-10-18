@@ -196,6 +196,10 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("shell")] = shell;
     o[QStringLiteral("terminalCursorBlink")] = terminalCursorBlink;
     o[QStringLiteral("terminalTransparency")] = terminalTransparency;
+    o[QStringLiteral("terminalColorScheme")] = terminalColorScheme;
+    o[QStringLiteral("terminalCursorShape")] = terminalCursorShape;
+    o[QStringLiteral("terminalHistory")] = terminalHistory;
+    o[QStringLiteral("terminalScrollbar")] = terminalScrollbar;
     o[QStringLiteral("runFocus")] = runFocus;
 
     o[QStringLiteral("previewCommand")] = previewCommand;
@@ -286,6 +290,10 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.shell = str("shell", s.shell);
     s.terminalCursorBlink = flag("terminalCursorBlink", s.terminalCursorBlink);
     s.terminalTransparency = qBound(0, num("terminalTransparency", s.terminalTransparency), 90);
+    s.terminalColorScheme = str("terminalColorScheme", s.terminalColorScheme);
+    s.terminalCursorShape = qBound(0, num("terminalCursorShape", s.terminalCursorShape), 2);
+    s.terminalHistory = qBound(-1, num("terminalHistory", s.terminalHistory), 1000000);
+    s.terminalScrollbar = qBound(0, num("terminalScrollbar", s.terminalScrollbar), 2);
     s.runFocus = qBound(0, num("runFocus", s.runFocus), 2);
 
     s.previewCommand = str("previewCommand", s.previewCommand);

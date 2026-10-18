@@ -68,6 +68,9 @@ QList<HelpTopic> HelpDialog::topics()
          tr("<p>%1 shows or hides the terminal and moves the focus to it; %2 opens a new terminal tab. The ▥ "
             "button on its title bar moves it to the left, top, right or bottom; you can also drag it by the title "
             "or detach it as a window. %3 / %4 copy and paste in the terminal.</p>"
+            "<p>Right-click the terminal for copy and paste, select all, find, clear, save the output, zoom, open "
+            "the file manager there, rename the tab and monitor activity or silence; <b>Configure</b> sets the "
+            "color scheme, cursor shape, history and scrollbar (also in <b>Settings → Terminal</b>).</p>"
             "<p>Typing <code>exit</code> starts a new shell. With a folder open, new terminals start in it. "
             "Font, size, shell and cursor are in <b>Settings → Terminal</b>.</p>")
              .arg(keys("Ctrl+`"), keys("Ctrl+Shift+`"), keys("Ctrl+Shift+C"), keys("Ctrl+Shift+V"))},

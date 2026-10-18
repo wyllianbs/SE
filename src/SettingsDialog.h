@@ -125,6 +125,10 @@ private:
     QCheckBox *m_previewCoi = nullptr;
     QCheckBox *m_terminalBlink = nullptr;
     QSlider *m_terminalTransparency = nullptr;
+    QComboBox *m_terminalScheme = nullptr;
+    QComboBox *m_terminalCursorShape = nullptr;
+    QComboBox *m_terminalHistory = nullptr;
+    QComboBox *m_terminalScrollbar = nullptr;
     QLabel *m_terminalTransparencyLabel = nullptr;
 
     // Linguagens (com o servidor de linguagem de cada uma)

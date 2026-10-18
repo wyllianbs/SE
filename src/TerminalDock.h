@@ -36,6 +36,14 @@ public:
     void restartShell();
     /** 0 = opaco … 90 = quase invisível. */
     void setTransparency(int percent);
+    /**
+     * Esquema de cores (vazio = cores do tema), forma do cursor (0 bloco,
+     * 1 sublinhado, 2 barra), histórico em linhas (-1 = ilimitado) e barra de
+     * rolagem (0 oculta, 1 esquerda, 2 direita) de todas as abas.
+     */
+    void setAppearance(const QString &colorScheme, int cursorShape, int historyLines, int scrollbar);
+    /** Esquemas de cores disponíveis (do QTermWidget/Konsole). */
+    static QStringList colorSchemes();
 
     /** Abre uma aba de terminal nova e a torna a atual. */
     QTermWidget *newTerminal();
@@ -55,6 +63,10 @@ public:
 
 Q_SIGNALS:
     void areaChangeRequested(Qt::DockWidgetArea area);
+    /** Mudança feita pelo submenu Configurar: deve ir para as configurações. */
+    void appearanceChangeRequested(const QString &colorScheme, int cursorShape, int historyLines, int scrollbar);
+    /** "Configurações do terminal…" no menu do botão direito. */
+    void settingsRequested();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -88,6 +100,13 @@ private:
     QString m_shell;
     QString m_workingDir;
     bool m_cursorBlink = true;
+    QString m_userScheme;  //< escolhido pelo usuário; vazio = m_schemeName (tema)
+    int m_cursorShape = 0;
+    int m_historyLines = 10000;
+    int m_scrollbar = 2;
+    QString effectiveScheme() const { return m_userScheme.isEmpty() ? m_schemeName : m_userScheme; }
+    void applyAppearance(QTermWidget *term) const;
+    void markTabActivity(QTermWidget *term, const QString &reason);
     int m_transparency = 0;
     QColor m_background;
     QString m_scrollbarStyle; //< QSS do scrollbar do terminal, nas cores do tema

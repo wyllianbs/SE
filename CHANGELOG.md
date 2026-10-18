@@ -24,6 +24,10 @@ All notable changes are also published on the
   than 50,000 lines, more than 5 MB or a line longer than 10,000 characters
   (all configurable), or always. Opening large files gets 2–4× faster and
   switching themes becomes instant; a "Performance" label shows in the status bar.
+- Terminal right-click menu, like Konsole: open/copy link, select all, find,
+  clear, save output, zoom, open the file manager here, rename tab and monitor
+  for activity/silence; Configure sets the color scheme (Konsole schemes or the
+  theme), cursor shape, history size and scrollbar, also in Settings ▸ Terminal.
 - bench_editor: a benchmark tool (not part of ctest) to time the editor with large files.
 - Settings ▸ Editor ▸ Project: hidden files and folders (.gitignore-style
   patterns); Quick Open and Find in Project also honor the project's .gitignore.

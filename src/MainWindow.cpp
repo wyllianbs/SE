@@ -118,6 +118,22 @@ MainWindow::MainWindow(QWidget *parent)
     m_rootSplitter->addWidget(m_activeSpace);
 
     addDockWidget(Qt::BottomDockWidgetArea, m_terminal);
+    // Submenu Configurar do terminal: grava nas configurações (e aplica).
+    connect(m_terminal, &TerminalDock::appearanceChangeRequested, this,
+            [this](const QString &scheme, int cursor, int history, int bar) {
+                AppSettings s = m_settings;
+                s.terminalColorScheme = scheme;
+                s.terminalCursorShape = cursor;
+                s.terminalHistory = history;
+                s.terminalScrollbar = bar;
+                applySettings(s);
+            });
+    connect(m_terminal, &TerminalDock::settingsRequested, this, [this]() {
+        showSettings();
+        if (auto *dialog = findChild<SettingsDialog *>())
+            if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
+                nav->setCurrentRow(3); // Terminal
+    });
 
     m_projectPanel = new ProjectPanel(this);
     addDockWidget(Qt::LeftDockWidgetArea, m_projectPanel);
@@ -2655,6 +2671,11 @@ void MainWindow::applySettings(const AppSettings &settings)
         m_terminal->configure(m_settings.shell, m_settings.terminalCursorBlink);
     if (old.terminalTransparency != m_settings.terminalTransparency)
         m_terminal->setTransparency(m_settings.terminalTransparency);
+    if (styleSheet().isEmpty() || old.terminalColorScheme != m_settings.terminalColorScheme
+        || old.terminalCursorShape != m_settings.terminalCursorShape || old.terminalHistory != m_settings.terminalHistory
+        || old.terminalScrollbar != m_settings.terminalScrollbar || old.theme != m_settings.theme)
+        m_terminal->setAppearance(m_settings.terminalColorScheme, m_settings.terminalCursorShape,
+                                  m_settings.terminalHistory, m_settings.terminalScrollbar);
 
     updateStatus();
 }

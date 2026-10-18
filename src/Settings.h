@@ -107,6 +107,10 @@ struct AppSettings
     QString shell;               //< vazio = $SHELL
     bool terminalCursorBlink = true;
     int terminalTransparency = 0; //< % (0 = opaco, máx. 90)
+    QString terminalColorScheme;  //< esquema do QTermWidget; vazio = cores do tema
+    int terminalCursorShape = 0;  //< 0 = bloco, 1 = sublinhado, 2 = barra
+    int terminalHistory = 10000;  //< linhas de histórico; -1 = ilimitado
+    int terminalScrollbar = 2;    //< 0 = oculta, 1 = esquerda, 2 = direita
     int runFocus = 2;             //< foco ao executar: 0 = terminal, 1 = editor, 2 = terminal só se pedir entrada (padrão)
 
     // Pré-visualização de HTML/CSS/JS (Run abre no navegador)
