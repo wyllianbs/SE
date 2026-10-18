@@ -11,6 +11,13 @@ class TestLanguages : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
+    void specialFileNames()
+    {
+        QCOMPARE(Language::forFileName(QStringLiteral("/x/CMakeLists.txt")).id, QStringLiteral("cmake"));
+        QCOMPARE(Language::forFileName(QStringLiteral("Makefile")).id, QStringLiteral("makefile"));
+        QCOMPARE(Language::forFileName(QStringLiteral("rules.mk")).id, QStringLiteral("makefile"));
+        QCOMPARE(Language::forFileName(QStringLiteral("notes.txt")).id, QStringLiteral("text"));
+    }
     void everyRunnableLanguageHasTemplate()
     {
         for (const Language &lang : Language::all()) {

@@ -139,6 +139,11 @@ void SyntaxHighlighter::rebuildRules(bool rehighlightNow)
         m_rules.append({QRegularExpression(QStringLiteral("^\\s*@[\\w.]+")), fmt(m_theme, Role::Preprocessor)});
     if (m_language.id == QLatin1String("css"))
         m_rules.append({QRegularExpression(QStringLiteral("@[\\w-]+")), fmt(m_theme, Role::Preprocessor)}); // @media, @import…
+    if (m_language.id == QLatin1String("cmake") || m_language.id == QLatin1String("makefile"))
+        m_rules.append({QRegularExpression(QStringLiteral("\\$[({][A-Za-z_@<^*%?][\\w.-]*[)}]|\\$[@<^*%?]")),
+                        fmt(m_theme, Role::Preprocessor)});
+    if (m_language.id == QLatin1String("makefile")) // alvos: "nome:" no início da linha
+        m_rules.append({QRegularExpression(QStringLiteral("^[\\w./%-]+(?=\\s*::?(?!=))")), fmt(m_theme, Role::Function)});
     if (m_language.id == QLatin1String("bash"))
         m_rules.append({QRegularExpression(QStringLiteral("\\$\\{?[A-Za-z_]\\w*\\}?")),
                         fmt(m_theme, Role::Preprocessor)});

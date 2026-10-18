@@ -12,6 +12,11 @@ All notable changes are also published on the
 - Find in Project (Ctrl+Shift+F): results grouped by file, with match case,
   whole word and regular expression options.
 - Language servers use the open folder as their root.
+- Build Project (Ctrl+Shift+B) and Run Project (F4), detected from the project
+  root (CMake, Make, Cargo, Go, npm, Meson, Python) or set in Run ▸ Configure
+  Project Commands…; F5 on a C/C++ file of such a project offers to run the
+  whole project. New terminals open in the project folder.
+- Syntax highlighting for CMake (CMakeLists.txt, *.cmake) and Makefiles.
 - Settings ▸ Editor ▸ Project: hidden files and folders (.gitignore-style
   patterns); Quick Open and Find in Project also honor the project's .gitignore.
 

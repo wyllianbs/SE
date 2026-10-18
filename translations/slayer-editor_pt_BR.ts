@@ -737,6 +737,18 @@ sudo apt install gdb</translation>
         <translation>Salvar e executar o arquivo atual (F5)</translation>
     </message>
     <message>
+        <source>&amp;Build Project</source>
+        <translation>&amp;Compilar Projeto</translation>
+    </message>
+    <message>
+        <source>Run &amp;Project</source>
+        <translation>Executar &amp;Projeto</translation>
+    </message>
+    <message>
+        <source>Configure Project &amp;Commands…</source>
+        <translation>Configurar &amp;Comandos do Projeto…</translation>
+    </message>
+    <message>
         <source>&amp;Help</source>
         <translation>Aj&amp;uda</translation>
     </message>
@@ -889,6 +901,18 @@ sudo apt install gdb</translation>
         <translation>Sem comando de execução para arquivos %1 — defina um em Configurações → Linguagens.</translation>
     </message>
     <message>
+        <source>“%1” is part of a %2 project. Run the whole project or only this file?</source>
+        <translation>“%1” faz parte de um projeto %2. Executar o projeto inteiro ou só este arquivo?</translation>
+    </message>
+    <message>
+        <source>Run Project (F4)</source>
+        <translation>Executar Projeto (F4)</translation>
+    </message>
+    <message>
+        <source>Only This File</source>
+        <translation>Só Este Arquivo</translation>
+    </message>
+    <message>
         <source>Open Folder</source>
         <translation>Abrir Pasta</translation>
     </message>
@@ -899,6 +923,46 @@ sudo apt install gdb</translation>
     <message>
         <source>Find in Project needs an open folder (File ▸ Open Folder…)</source>
         <translation>Buscar no Projeto precisa de uma pasta aberta (Arquivo ▸ Abrir Pasta…)</translation>
+    </message>
+    <message>
+        <source>custom</source>
+        <translation>personalizado</translation>
+    </message>
+    <message>
+        <source>Open a folder first (File ▸ Open Folder…)</source>
+        <translation>Abra uma pasta antes (Arquivo ▸ Abrir Pasta…)</translation>
+    </message>
+    <message>
+        <source>No run command for this project — set one in Run ▸ Configure Project Commands…</source>
+        <translation>Sem comando de execução para este projeto — defina um em Executar ▸ Configurar Comandos do Projeto…</translation>
+    </message>
+    <message>
+        <source>Project Commands — %1</source>
+        <translation>Comandos do Projeto — %1</translation>
+    </message>
+    <message>
+        <source>e.g. make</source>
+        <translation>ex.: make</translation>
+    </message>
+    <message>
+        <source>e.g. ./build/app</source>
+        <translation>ex.: ./build/app</translation>
+    </message>
+    <message>
+        <source>No build system detected in the project folder.</source>
+        <translation>Nenhum sistema de build detectado na pasta do projeto.</translation>
+    </message>
+    <message>
+        <source>Detected: %1. Leave a field as detected or edit it.</source>
+        <translation>Detectado: %1. Deixe o campo como detectado ou edite-o.</translation>
+    </message>
+    <message>
+        <source>Build</source>
+        <translation>Compilar</translation>
+    </message>
+    <message>
+        <source>Both run in the terminal from the project folder (%1).</source>
+        <translation>Ambos rodam no terminal, a partir da pasta do projeto (%1).</translation>
     </message>
     <message>
         <source>No Recent Projects</source>
