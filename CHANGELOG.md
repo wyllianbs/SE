@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.5.1 — 2026-10-18
 
 - Fix HTML syntax highlighting: tag names (`a`, `b`, `p`, …) are now colored
   only when they appear inside a tag (`<a href=…>`, `</p>`), not when used as

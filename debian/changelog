@@ -1,4 +1,4 @@
-slayer-editor (0.5.1-1) UNRELEASED; urgency=medium
+slayer-editor (0.5.1-1) unstable; urgency=medium
 
   * Fix HTML/XML syntax highlighting: tag names colored only inside
     tags.
