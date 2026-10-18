@@ -41,7 +41,8 @@ int main(int argc, char **argv)
                 editor.setWordWrap(wrap);
                 doc.setLargeFileLimits(perf, 50000, 5 * 1024 * 1024);
                 editor.show();
-                QTest::qWaitForWindowExposed(&editor);
+                if (!QTest::qWaitForWindowExposed(&editor))
+                    return 1;
                 const qint64 open = timed([&]() {
                     doc.setLanguage(qEnvironmentVariableIsSet("BENCH_PLAIN") ? Language::plainText()
                                                                              : Language::forFileName(QString::fromLocal8Bit(argv[i])));
