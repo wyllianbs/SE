@@ -46,6 +46,15 @@ public:
     void markClean();
     bool isUntitledAndEmpty() const;
 
+    /**
+     * Modo desempenho: 0 = desligado, 1 = automático (arquivo com mais de `lines`
+     * linhas, `bytes` bytes ou uma linha de mais de 10 000 caracteres ao abrir), 2 = sempre. Em vigor, desliga o realce e
+     * o dobramento (e os editores, os recursos visuais caros). Como no VS Code,
+     * a decisão vale até o arquivo ser reaberto.
+     */
+    void setLargeFileLimits(int mode, int lines, qint64 bytes);
+    bool isLargeFile() const { return m_largeFile; }
+
     const Language &language() const { return m_language; }
     void setLanguage(const Language &language);
     void setTheme(const Theme &theme);
@@ -102,6 +111,7 @@ public:
     bool save(const QString &path, QString *error = nullptr);
 
 Q_SIGNALS:
+    void largeFileChanged(bool large);
     /** Nome, caminho, linguagem ou estado de modificação mudaram. */
     void changed();
     void foldingChanged();
@@ -114,6 +124,12 @@ Q_SIGNALS:
     void reloaded();
 
 private:
+    void setLargeFile(bool large);
+    bool exceedsLimits(qint64 bytes, int lines, int longestLine) const;
+    int m_perfMode = 0;
+    int m_perfLines = 50000;
+    qint64 m_perfBytes = 5 * 1024 * 1024;
+    bool m_largeFile = false;
     QTextDocument *m_text;
     SyntaxHighlighter *m_highlighter;
     Language m_language;

@@ -17,6 +17,13 @@ All notable changes are also published on the
   Project Commands…; F5 on a C/C++ file of such a project offers to run the
   whole project. New terminals open in the project folder.
 - Syntax highlighting for CMake (CMakeLists.txt, *.cmake) and Makefiles.
+- Performance mode (Settings ▸ Editor ▸ Performance; off by default): turns
+  off syntax highlighting, folding, the minimap, indent guides and occurrence
+  highlighting for large files — automatically when a file is opened with more
+  than 50,000 lines, more than 5 MB or a line longer than 10,000 characters
+  (all configurable), or always. Opening large files gets 2–4× faster and
+  switching themes becomes instant; a "Performance" label shows in the status bar.
+- bench_editor: a benchmark tool (not part of ctest) to time the editor with large files.
 - Settings ▸ Editor ▸ Project: hidden files and folders (.gitignore-style
   patterns); Quick Open and Find in Project also honor the project's .gitignore.
 

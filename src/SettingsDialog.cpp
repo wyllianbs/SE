@@ -326,6 +326,35 @@ QWidget *SettingsDialog::buildEditorPage()
     auto *project = new QVBoxLayout;
     project->addWidget(new QLabel(tr("Hidden files and folders (one pattern per line, .gitignore style)")));
     project->addWidget(m_projectExclude);
+    // Modo desempenho: desliga os recursos caros (padrão desligado).
+    m_performanceMode = new QComboBox;
+    m_performanceMode->addItem(tr("Off"), 0);
+    m_performanceMode->addItem(tr("Automatic (large files)"), 1);
+    m_performanceMode->addItem(tr("Always"), 2);
+    m_performanceMode->setToolTip(tr("Turns off syntax highlighting, code folding, the minimap, wrapped-line "
+                                     "indent, indent guides and occurrence highlighting. Automatic decides when "
+                                     "a file is opened, like VS Code; reopen the file to re-evaluate."));
+    m_performanceLines = new QSpinBox;
+    m_performanceLines->setRange(1000, 10000000);
+    m_performanceLines->setSingleStep(5000);
+    m_performanceLines->setSuffix(tr(" lines"));
+    m_performanceLines->setToolTip(tr("Automatic mode turns on for files with more lines than this…"));
+    m_performanceSize = new QSpinBox;
+    m_performanceSize->setRange(1, 2048);
+    m_performanceSize->setSuffix(tr(" MB"));
+    m_performanceSize->setToolTip(tr("…or larger than this. Files with a line longer than 10,000 characters "
+                                     "(minified code) also count as large."));
+    auto *performance = new QFormLayout;
+    performance->setLabelAlignment(Qt::AlignLeft);
+    performance->setHorizontalSpacing(24);
+    performance->addRow(tr("Performance mode"), m_performanceMode);
+    performance->addRow(tr("Large file from"), m_performanceLines);
+    performance->addRow(tr("or from"), m_performanceSize);
+    connect(m_performanceMode, &QComboBox::currentIndexChanged, this, [this]() {
+        const bool automatic = m_performanceMode->currentData().toInt() == 1;
+        m_performanceLines->setEnabled(automatic);
+        m_performanceSize->setEnabled(automatic);
+    });
 
     auto *layout = new QVBoxLayout;
     layout->setSpacing(14);
@@ -333,6 +362,7 @@ QWidget *SettingsDialog::buildEditorPage()
     layout->addWidget(card(tr("Display"), display));
     layout->addWidget(card(tr("Features"), typing));
     layout->addWidget(card(tr("Project"), project));
+    layout->addWidget(card(tr("Performance"), performance));
     return makePage(tr("Editor"), QString(), layout);
 }
 
@@ -1039,6 +1069,11 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_highlightLine->setChecked(s.highlightCurrentLine);
     m_minimap->setChecked(s.minimap);
     m_projectExclude->setPlainText(s.projectExclude.join(QLatin1Char('\n')));
+    m_performanceMode->setCurrentIndex(qMax(0, m_performanceMode->findData(s.performanceMode)));
+    m_performanceLines->setValue(s.performanceLines);
+    m_performanceLines->setEnabled(s.performanceMode == 1);
+    m_performanceSize->setValue(s.performanceSizeMB);
+    m_performanceSize->setEnabled(s.performanceMode == 1);
     m_autoPairs->setChecked(s.autoClosePairs);
     m_completion->setChecked(s.codeCompletion);
     m_folding->setChecked(s.codeFolding);
@@ -1129,6 +1164,9 @@ AppSettings SettingsDialog::settings() const
     for (const QString &line : m_projectExclude->toPlainText().split(QLatin1Char('\n')))
         if (!line.trimmed().isEmpty())
             s.projectExclude << line.trimmed();
+    s.performanceMode = m_performanceMode->currentData().toInt();
+    s.performanceLines = m_performanceLines->value();
+    s.performanceSizeMB = m_performanceSize->value();
     s.autoClosePairs = m_autoPairs->isChecked();
     s.codeCompletion = m_completion->isChecked();
     s.codeFolding = m_folding->isChecked();

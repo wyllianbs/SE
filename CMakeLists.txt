@@ -111,6 +111,10 @@ if(BUILD_TESTING)
                    resources/resources.qrc)
     target_link_libraries(tst_viewspace PRIVATE Qt6::Widgets Qt6::Test)
     add_test(NAME viewspace COMMAND tst_viewspace)
+    # Benchmark (não é teste do ctest): bench_editor arquivo... — calibra o modo desempenho.
+    add_executable(bench_editor tests/bench_editor.cpp src/CodeEditor.cpp src/Document.cpp src/Folding.cpp
+                   src/SyntaxHighlighter.cpp src/Language.cpp src/Theme.cpp src/Icons.cpp resources/resources.qrc)
+    target_link_libraries(bench_editor PRIVATE Qt6::Widgets Qt6::Test)
     add_executable(tst_debug tests/tst_debug.cpp src/DebugSession.cpp src/DapClient.cpp src/LspClient.cpp
                    src/TerminalDock.cpp src/Theme.cpp src/Icons.cpp src/Settings.cpp src/LspManager.cpp
                    src/Document.cpp src/Folding.cpp src/SyntaxHighlighter.cpp src/Language.cpp

@@ -82,6 +82,11 @@ struct AppSettings
     QStringList projectExclude;  //< padrões no estilo .gitignore escondidos na árvore e na busca; vazio = padrão
     QStringList effectiveProjectExclude() const;
     static QStringList defaultProjectExclude();
+    /** Modo desempenho: 0 = desligado (padrão), 1 = automático (arquivos grandes), 2 = sempre.
+     *  Desliga realce, dobramento, minimap, recuo do wrap, guias e destaque de ocorrências. */
+    int performanceMode = 0;
+    int performanceLines = 50000; //< modo automático: arquivos com mais linhas que isto…
+    int performanceSizeMB = 5;    //< …ou maiores que isto (MB), ao abrir
     QList<SymbolRule> symbols;   //< regras de exibição; vazio = conjunto padrão
 
     // Aparência

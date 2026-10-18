@@ -162,6 +162,7 @@ private:
     QLabel *m_cursorLabel;
     QLabel *m_branchLabel = nullptr;
     QLabel *m_modeLabel = nullptr;
+    QLabel *m_perfLabel = nullptr; //< "Performance" quando o modo desempenho está em vigor
     QToolButton *m_tabsButton = nullptr;
     QToolButton *m_encodingButton = nullptr;
     QToolButton *m_lspLabel = nullptr;

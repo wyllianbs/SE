@@ -161,6 +161,9 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("minimap")] = minimap;
     o[QStringLiteral("minimapWidth")] = minimapWidth;
     o[QStringLiteral("projectExclude")] = QJsonArray::fromStringList(projectExclude);
+    o[QStringLiteral("performanceMode")] = performanceMode;
+    o[QStringLiteral("performanceLines")] = performanceLines;
+    o[QStringLiteral("performanceSizeMB")] = performanceSizeMB;
     o[QStringLiteral("autoClosePairs")] = autoClosePairs;
     o[QStringLiteral("codeCompletion")] = codeCompletion;
     o[QStringLiteral("codeFolding")] = codeFolding;
@@ -238,6 +241,9 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     for (const QJsonValue &v : o.value(QLatin1String("projectExclude")).toArray())
         if (!v.toString().trimmed().isEmpty())
             s.projectExclude << v.toString().trimmed();
+    s.performanceMode = qBound(0, num("performanceMode", s.performanceMode), 2);
+    s.performanceLines = qBound(1000, num("performanceLines", s.performanceLines), 10000000);
+    s.performanceSizeMB = qBound(1, num("performanceSizeMB", s.performanceSizeMB), 2048);
     s.autoClosePairs = flag("autoClosePairs", s.autoClosePairs);
     s.codeCompletion = flag("codeCompletion", s.codeCompletion);
     s.codeFolding = flag("codeFolding", s.codeFolding);
