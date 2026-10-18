@@ -68,6 +68,11 @@ private:
     void quickOpen();
     void findInProject();
     void openAt(const QString &path, int line, int column, int length);
+    // Compilar/executar o projeto (detectado pela raiz, ou configurado).
+    struct ProjectCommands { QString system, build, run; };
+    ProjectCommands projectCommands() const;
+    void runProject(bool build, bool run);
+    void configureProjectCommands();
     void addRecentProject(const QString &root);
     void rebuildRecentProjectsMenu();
 

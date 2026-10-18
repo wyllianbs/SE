@@ -198,6 +198,26 @@ QList<Language> buildLanguages()
     list.append({QStringLiteral("yaml"), QStringLiteral("YAML"), {"yml", "yaml"},
         {"true", "false", "null", "yes", "no", "on", "off"}, {},
         QStringLiteral("#"), QString(), QString()});
+    list.append({QStringLiteral("cmake"), QStringLiteral("CMake"), {"cmake"},
+        {"cmake_minimum_required", "project", "add_executable", "add_library", "add_subdirectory",
+         "add_test", "add_custom_command", "add_custom_target", "add_compile_definitions",
+         "add_compile_options", "add_dependencies", "target_link_libraries", "target_include_directories",
+         "target_compile_definitions", "target_compile_options", "target_compile_features",
+         "target_sources", "find_package", "find_library", "find_path", "find_program", "include",
+         "include_directories", "link_directories", "install", "set", "unset", "option", "message",
+         "if", "elseif", "else", "endif", "foreach", "endforeach", "while", "endwhile", "function",
+         "endfunction", "macro", "endmacro", "return", "list", "string", "file", "configure_file",
+         "enable_testing", "execute_process", "get_filename_component", "set_target_properties",
+         "set_property", "get_property"},
+        {"PRIVATE", "PUBLIC", "INTERFACE", "REQUIRED", "COMPONENTS", "STATIC", "SHARED", "MODULE",
+         "VERSION", "LANGUAGES", "DESTINATION", "TARGETS", "FILES", "GLOB", "GLOB_RECURSE",
+         "CONFIGURE_DEPENDS", "STATUS", "WARNING", "FATAL_ERROR", "ON", "OFF", "TRUE", "FALSE",
+         "AND", "OR", "NOT", "DEFINED", "EQUAL", "STREQUAL", "MATCHES", "EXISTS", "CACHE", "PARENT_SCOPE"},
+        QStringLiteral("#"), QString(), QString()});
+    list.append({QStringLiteral("makefile"), QStringLiteral("Makefile"), {"mk", "mak"},
+        {"ifeq", "ifneq", "ifdef", "ifndef", "else", "endif", "include", "-include", "define", "endef",
+         "export", "unexport", "override", "vpath", ".PHONY", ".DEFAULT", ".SUFFIXES"},
+        {}, QStringLiteral("#"), QString(), QString()});
     list.append({QStringLiteral("toml"), QStringLiteral("TOML"), {"toml"},
         {"true", "false"}, {}, QStringLiteral("#"), QString(), QString()});
     list.append({QStringLiteral("ini"), QStringLiteral("INI"), {"ini", "cfg", "conf", "desktop"},
@@ -285,8 +305,23 @@ const Language &Language::plainText()
     return text;
 }
 
+QString Language::idForSpecialFileName(const QString &fileName)
+{
+    const QString name = QFileInfo(fileName).fileName();
+    if (name == QLatin1String("CMakeLists.txt"))
+        return QStringLiteral("cmake");
+    if (name == QLatin1String("Makefile") || name == QLatin1String("makefile")
+        || name == QLatin1String("GNUmakefile"))
+        return QStringLiteral("makefile");
+    return QString();
+}
+
 const Language &Language::forFileName(const QString &fileName)
 {
+    if (const QString special = idForSpecialFileName(fileName); !special.isEmpty())
+        for (const Language &lang : all())
+            if (lang.id == special)
+                return lang;
     const QString ext = QFileInfo(fileName).suffix().toLower();
     for (const Language &lang : all()) {
         if (lang.extensions.contains(ext))

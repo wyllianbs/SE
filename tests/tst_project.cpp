@@ -110,6 +110,33 @@ private Q_SLOTS:
         QVERIFY(truncated);
     }
 
+    void detectBuild()
+    {
+        QTemporaryDir tmp;
+        QCOMPARE(Project::detectBuild(tmp.path()).system, QString());
+        QFile cm(tmp.path() + "/CMakeLists.txt");
+        QVERIFY(cm.open(QIODevice::WriteOnly));
+        cm.write("project(x C)\n# add_executable(old a.c)\nadd_executable( app app/main.c)\n");
+        cm.close();
+        auto c = Project::detectBuild(tmp.path());
+        QCOMPARE(c.system, QStringLiteral("CMake"));
+        QVERIFY(c.build.startsWith("cmake -S . -B build"));
+        QCOMPARE(c.run, QStringLiteral("./build/app"));
+        QFile::remove(tmp.path() + "/CMakeLists.txt");
+
+        QFile mk(tmp.path() + "/Makefile");
+        QVERIFY(mk.open(QIODevice::WriteOnly));
+        mk.write("all:\n\tcc a.c\nrun: all\n\t./a.out\n");
+        mk.close();
+        c = Project::detectBuild(tmp.path());
+        QCOMPARE(c.system, QStringLiteral("Make"));
+        QCOMPARE(c.run, QStringLiteral("make run"));
+        QFile::remove(tmp.path() + "/Makefile");
+
+        touch(tmp.path() + "/Cargo.toml");
+        QCOMPARE(Project::detectBuild(tmp.path()).run, QStringLiteral("cargo run"));
+    }
+
     void listingIsTruncated()
     {
         QTemporaryDir tmp;

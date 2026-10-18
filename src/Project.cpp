@@ -296,3 +296,53 @@ QList<Project::Match> Project::search(const QString &root, const QStringList &fi
     }
     return out;
 }
+
+Project::BuildCommands Project::detectBuild(const QString &root)
+{
+    const QDir dir(root);
+    auto read = [&dir](const QString &name) {
+        QFile f(dir.filePath(name));
+        return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.read(256 * 1024)) : QString();
+    };
+    if (dir.exists(QStringLiteral("CMakeLists.txt"))) {
+        BuildCommands c{QStringLiteral("CMake"),
+                        QStringLiteral("cmake -S . -B build && cmake --build build -j$(nproc)"), QString()};
+        // Primeiro executável declarado (fora de comentários): ./build/<nome>.
+        static const QRegularExpression exe(QStringLiteral("^\\s*add_executable\\s*\\(\\s*([\\w.+-]+)"),
+                                            QRegularExpression::MultilineOption
+                                                | QRegularExpression::CaseInsensitiveOption);
+        const QRegularExpressionMatch m = exe.match(read(QStringLiteral("CMakeLists.txt")));
+        if (m.hasMatch() && !m.captured(1).contains(QLatin1Char('$')))
+            c.run = QStringLiteral("./build/") + m.captured(1);
+        return c;
+    }
+    for (const QString &name : {QStringLiteral("GNUmakefile"), QStringLiteral("makefile"), QStringLiteral("Makefile")}) {
+        if (!dir.exists(name))
+            continue;
+        BuildCommands c{QStringLiteral("Make"), QStringLiteral("make -j$(nproc)"), QString()};
+        static const QRegularExpression runTarget(QStringLiteral("^run\\s*:"), QRegularExpression::MultilineOption);
+        if (runTarget.match(read(name)).hasMatch())
+            c.run = QStringLiteral("make run");
+        return c;
+    }
+    if (dir.exists(QStringLiteral("Cargo.toml")))
+        return {QStringLiteral("Cargo"), QStringLiteral("cargo build"), QStringLiteral("cargo run")};
+    if (dir.exists(QStringLiteral("go.mod")))
+        return {QStringLiteral("Go"), QStringLiteral("go build ./..."), QStringLiteral("go run .")};
+    if (dir.exists(QStringLiteral("package.json"))) {
+        const QString pkg = read(QStringLiteral("package.json"));
+        BuildCommands c{QStringLiteral("npm"), QString(), QString()};
+        if (pkg.contains(QLatin1String("\"build\"")))
+            c.build = QStringLiteral("npm run build");
+        if (pkg.contains(QLatin1String("\"start\"")))
+            c.run = QStringLiteral("npm start");
+        return c;
+    }
+    if (dir.exists(QStringLiteral("meson.build")))
+        return {QStringLiteral("Meson"),
+                QStringLiteral("(test -d build || meson setup build) && meson compile -C build"), QString()};
+    for (const QString &main : {QStringLiteral("main.py"), QStringLiteral("__main__.py"), QStringLiteral("app.py")})
+        if (dir.exists(main))
+            return {QStringLiteral("Python"), QString(), QStringLiteral("python3 ") + main};
+    return {};
+}

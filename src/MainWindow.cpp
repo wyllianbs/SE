@@ -40,6 +40,7 @@
 #include <QDialogButtonBox>
 #include <QCryptographicHash>
 #include <QDir>
+#include <QFormLayout>
 #include <QPlainTextEdit>
 #include <QTextEdit>
 #include <QTemporaryFile>
@@ -602,6 +603,15 @@ void MainWindow::createActions()
     m_livePreviewAction->setEnabled(false);
     m_livePreviewAction->setToolTip(tr("Preview HTML in the browser with live reload (Shift+F5)"));
     connect(m_livePreviewAction, &QAction::toggled, this, [this]() { refreshIcons(); });
+    run->addSeparator();
+    m_projectActions << reg(QStringLiteral("buildProject"),
+                            add(run, tr("&Build Project"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_B),
+                                [this]() { runProject(true, false); }));
+    m_projectActions << reg(QStringLiteral("runProject"),
+                            add(run, tr("Run &Project"), QKeySequence(Qt::Key_F4),
+                                [this]() { runProject(true, true); }, Icons::Run));
+    m_projectActions << add(run, tr("Configure Project &Commands…"), QKeySequence(),
+                            [this]() { configureProjectCommands(); });
     run->addSeparator();
     // Atalho para a chave geral de Settings → Editor → Features.
     m_lspAction = run->addAction(tr("Language Servers (&LSP)"));
@@ -1905,6 +1915,28 @@ void MainWindow::runCurrent(bool interactive)
     }
     const QFileInfo info(editor->filePath());
     const Language &lang = editor->language();
+    // C/C++ dentro de um projeto CMake/Make: compilar só o arquivo costuma falhar
+    // no linker (as funções estão nos outros arquivos). Pergunta o que fazer.
+    if (!interactive && m_project && m_project->contains(info.absoluteFilePath())
+        && (lang.id == QLatin1String("c") || lang.id == QLatin1String("cpp"))) {
+        const ProjectCommands pc = projectCommands();
+        if (!pc.build.isEmpty()) {
+            QMessageBox box(QMessageBox::Question, tr("Run"),
+                            tr("“%1” is part of a %2 project. Run the whole project or only this file?")
+                                .arg(info.fileName(), pc.system),
+                            QMessageBox::Cancel, this);
+            QPushButton *projectButton = box.addButton(tr("Run Project (F4)"), QMessageBox::AcceptRole);
+            QPushButton *fileButton = box.addButton(tr("Only This File"), QMessageBox::ActionRole);
+            box.setDefaultButton(projectButton);
+            box.exec();
+            if (box.clickedButton() == projectButton) {
+                runProject(true, true);
+                return;
+            }
+            if (box.clickedButton() != fileButton)
+                return;
+        }
+    }
     QString tool, flags;
     if (lang.isCustom()) {
         for (const CustomLanguage &c : std::as_const(m_settings.customLanguages)) {
@@ -2651,6 +2683,8 @@ Language MainWindow::languageById(const QString &id) const
 /** Extensões configuradas em Settings → Languages; personalizadas têm prioridade. */
 Language MainWindow::languageForPath(const QString &path) const
 {
+    if (const QString special = Language::idForSpecialFileName(path); !special.isEmpty())
+        return languageById(special);
     const QString ext = QFileInfo(path).suffix().toLower();
     if (ext.isEmpty())
         return Language::plainText();
@@ -2990,6 +3024,7 @@ bool MainWindow::openProject(const QString &root, bool restore)
     m_projectPanel->raise();
     m_projectSearch->setProject(m_project);
     m_lsp->setProjectRoot(abs);
+    m_terminal->setWorkingDirectory(abs); // terminais novos abrem na raiz do projeto
     m_lastDir = abs;
     for (QAction *a : std::as_const(m_projectActions))
         a->setEnabled(true);
@@ -3013,6 +3048,7 @@ void MainWindow::closeProject()
     m_projectSearch->setProject(nullptr);
     m_projectSearch->hide();
     m_lsp->setProjectRoot(QString());
+    m_terminal->setWorkingDirectory(QString());
     for (QAction *a : std::as_const(m_projectActions))
         a->setEnabled(false);
     restoreTabs(QStringLiteral("session"));
@@ -3060,6 +3096,98 @@ void MainWindow::openAt(const QString &path, int line, int column, int length)
     e->setTextCursor(c);
     e->centerCursor();
     e->setFocus();
+}
+
+MainWindow::ProjectCommands MainWindow::projectCommands() const
+{
+    ProjectCommands pc;
+    if (!m_project)
+        return pc;
+    const Project::BuildCommands detected = Project::detectBuild(m_project->root());
+    QSettings s;
+    const QString key = sessionKey();
+    pc.system = detected.system.isEmpty() ? tr("custom") : detected.system;
+    pc.build = s.value(key + QStringLiteral("/buildCommand"), detected.build).toString();
+    pc.run = s.value(key + QStringLiteral("/runCommand"), detected.run).toString();
+    return pc;
+}
+
+/** Compila e/ou executa o projeto no terminal, a partir da raiz (salva tudo antes). */
+void MainWindow::runProject(bool build, bool run)
+{
+    if (!m_project) {
+        statusBar()->showMessage(tr("Open a folder first (File ▸ Open Folder…)"), 4000);
+        return;
+    }
+    const ProjectCommands pc = projectCommands();
+    if ((build && !run && pc.build.isEmpty()) || (run && pc.run.isEmpty() && pc.build.isEmpty())) {
+        configureProjectCommands();
+        return;
+    }
+    saveAll();
+    QStringList steps;
+    if (build && !pc.build.isEmpty())
+        steps << pc.build;
+    if (run) {
+        if (pc.run.isEmpty()) {
+            statusBar()->showMessage(tr("No run command for this project — set one in Run ▸ Configure Project "
+                                        "Commands…"), 5000);
+        } else {
+            steps << pc.run;
+        }
+    }
+    TerminalDock::RunFocus focus = TerminalDock::RunFocus::Terminal;
+    if (m_settings.runFocus == 1)
+        focus = TerminalDock::RunFocus::None;
+    else if (m_settings.runFocus == 2)
+        focus = TerminalDock::RunFocus::OnInput;
+    m_terminal->runCommand(steps.join(QStringLiteral(" && ")), m_project->root(), focus);
+}
+
+void MainWindow::configureProjectCommands()
+{
+    if (!m_project)
+        return;
+    const Project::BuildCommands detected = Project::detectBuild(m_project->root());
+    const ProjectCommands pc = projectCommands();
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Project Commands — %1").arg(m_project->name()));
+    auto *buildEdit = new QLineEdit(pc.build);
+    auto *runEdit = new QLineEdit(pc.run);
+    buildEdit->setPlaceholderText(detected.build.isEmpty() ? tr("e.g. make") : detected.build);
+    runEdit->setPlaceholderText(detected.run.isEmpty() ? tr("e.g. ./build/app") : detected.run);
+    buildEdit->setMinimumWidth(460);
+    auto *form = new QFormLayout;
+    form->addRow(new QLabel(detected.system.isEmpty()
+                                ? tr("No build system detected in the project folder.")
+                                : tr("Detected: %1. Leave a field as detected or edit it.").arg(detected.system)));
+    form->addRow(tr("Build"), buildEdit);
+    form->addRow(tr("Run"), runEdit);
+    form->addRow(new QLabel(tr("Both run in the terminal from the project folder (%1).").arg(m_project->root())));
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel
+                                         | QDialogButtonBox::RestoreDefaults);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(buttons->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, &dialog,
+            [&]() {
+                buildEdit->setText(detected.build);
+                runEdit->setText(detected.run);
+            });
+    form->addRow(buttons);
+    dialog.setLayout(form);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    // Igual ao detectado = sem personalização (acompanha mudanças no CMakeLists etc.).
+    QSettings s;
+    const QString key = sessionKey();
+    const auto store = [&s](const QString &k, const QString &value, const QString &detectedValue) {
+        if (value.trimmed() == detectedValue)
+            s.remove(k);
+        else
+            s.setValue(k, value.trimmed());
+    };
+    store(key + QStringLiteral("/buildCommand"), buildEdit->text(), detected.build);
+    store(key + QStringLiteral("/runCommand"), runEdit->text(), detected.run);
 }
 
 void MainWindow::addRecentProject(const QString &root)

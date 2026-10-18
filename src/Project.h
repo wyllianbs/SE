@@ -94,6 +94,15 @@ public:
                                SearchOptions options, int limit, bool *truncated = nullptr);
     static constexpr qint64 kMaxSearchFileSize = 4 * 1024 * 1024;
 
+    /** Comandos de compilar/executar detectados pelo arquivo na raiz (CMake, Make, Cargo…). */
+    struct BuildCommands
+    {
+        QString system; //< "CMake", "Make", "Cargo"…; vazio = nenhum detectado
+        QString build;  //< vazio = não há passo de compilação
+        QString run;    //< vazio = não se sabe o que executar
+    };
+    static BuildCommands detectBuild(const QString &root);
+
 Q_SIGNALS:
     void filesListed();
 

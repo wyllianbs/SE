@@ -35,6 +35,8 @@ struct Language
     /** O depurador embutido suporta esta linguagem (Python, C, C++)? */
     static bool debuggable(const QString &id);
 
+    /** Arquivos reconhecidos pelo nome (CMakeLists.txt, Makefile…): id da linguagem, ou vazio. */
+    static QString idForSpecialFileName(const QString &fileName);
     bool isCustom() const { return id.startsWith(QLatin1String("custom:")); }
 
     /** Monta o comando para um arquivo, já com aspas de shell. */
