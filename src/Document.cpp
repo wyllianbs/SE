@@ -57,13 +57,17 @@ Document::Document(QObject *parent)
     // QTextDocumentLayout (layout rico) usado pelo QTextEdit — que honra
     // margens/indentação de bloco (necessário para o wrap indentado).
     m_highlighter = new SyntaxHighlighter(m_text);
-    connect(m_text, &QTextDocument::modificationChanged, this, &Document::changed);
-    // Voltou a ser exatamente o texto salvo (apagou o que digitou, digitou de
-    // novo o mesmo…): deixa de estar alterado. O Desfazer o Qt já trata.
+    // Rastreamos o estado modificado sem chamar QTextDocument::setModified(false),
+    // pois setModified(false) apaga o histórico de desfazer/refazer do Qt.
     connect(m_text, &QTextDocument::contentsChanged, this, [this]() {
-        if (m_text->isModified() && m_text->characterCount() == m_cleanText.size() + 1
-            && m_text->toPlainText() == m_cleanText)
-            m_text->setModified(false);
+        // Verificação rápida de tamanho evita toPlainText() caro na maioria
+        // dos casos; só compara o texto completo quando os tamanhos batem.
+        const bool couldMatch = (m_text->characterCount() == m_cleanText.size() + 1);
+        const bool nowModified = !couldMatch || (m_text->toPlainText() != m_cleanText);
+        if (nowModified != m_modified) {
+            m_modified = nowModified;
+            Q_EMIT changed();
+        }
     });
 }
 
@@ -83,13 +87,17 @@ QString Document::displayName() const
 
 bool Document::isModified() const
 {
-    return m_text->isModified();
+    return m_modified;
 }
 
 void Document::markClean()
 {
     m_cleanText = m_text->toPlainText();
-    m_text->setModified(false);
+    // Não chama setModified(false): isso limparia o histórico de desfazer.
+    if (m_modified) {
+        m_modified = false;
+        Q_EMIT changed();
+    }
 }
 
 bool Document::isUntitledAndEmpty() const
