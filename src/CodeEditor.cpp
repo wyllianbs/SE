@@ -1368,8 +1368,17 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
             }
             c.endEditBlock();
         } else {
-            const int col = c.positionInBlock();
-            c.insertText(m_insertSpaces ? QString(m_indentSpaces - col % m_indentSpaces, QLatin1Char(' '))
+            // Coluna visual: tabs contam como (tabW - col%tabW) colunas.
+            const int tabW = qMax(1, m_indentSpaces);
+            int col = 0;
+            const QString lineText = c.block().text();
+            for (int i = 0; i < c.positionInBlock() && i < lineText.size(); ++i) {
+                if (lineText.at(i) == QLatin1Char('\t'))
+                    col = (col / tabW + 1) * tabW;
+                else
+                    ++col;
+            }
+            c.insertText(m_insertSpaces ? QString(tabW - col % tabW, QLatin1Char(' '))
                                         : QStringLiteral("\t"));
         }
         return;
@@ -1413,6 +1422,33 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
 
     if (!(event->modifiers() & (Qt::ControlModifier | Qt::AltModifier)) && handleAutoPair(event))
         return;
+
+    // Auto-dedent ao fechar bloco: } ] ) no início da linha recua um nível.
+    if (!c.hasSelection() && event->modifiers() == Qt::NoModifier) {
+        const QString ch = event->text();
+        if (ch == QLatin1String("}") || ch == QLatin1String("]") || ch == QLatin1String(")")) {
+            const QString lineText = c.block().text();
+            const QString before = lineText.left(c.positionInBlock());
+            if (!before.isEmpty() && before.trimmed().isEmpty()) {
+                // A linha só tem espaço em branco antes do cursor: dedenta.
+                const QString step = indentUnit();
+                const int stepLen = step.length();
+                if (before.endsWith(step)) {
+                    QTextCursor bc(c.block());
+                    bc.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+                    // Remove o último step do recuo e insere o fechador.
+                    const QString newLine = before.left(before.length() - stepLen) + ch
+                                           + lineText.mid(c.positionInBlock());
+                    bc.insertText(newLine);
+                    QTextCursor nc(c.block());
+                    nc.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor,
+                                    before.length() - stepLen + 1);
+                    setTextCursor(nc);
+                    return;
+                }
+            }
+        }
+    }
 
     const bool manual = (event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Space;
     if (!manual)
