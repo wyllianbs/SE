@@ -7,16 +7,26 @@ a Kate-style split view and a choice of themes.
 
 This is the Linux port of the Android Slayer Editor.
 
-![Code and run in one place](screenshots/meta-01-run.png)
+![Run the current file with F5](screenshots/run-file.png)
 
 ## Features
 
 - **Tabbed editor** with syntax highlighting, auto-indentation, auto-closing
-  pairs, find/replace and code folding.
-- **Embedded terminal** (QTermWidget) dockable on any edge of the window, or
-  detached.
+  pairs, find/replace with history, code folding and a minimap.
+- **Embedded terminal** (QTermWidget) with tabs, dockable on any edge of the
+  window or detached, with a Konsole-like context menu (color scheme, cursor,
+  history, scrollbar) and search.
 - **Run with <kbd>F5</kbd>** — C, C++, Python, Rust, Go, JavaScript, Java and
-  shell scripts, straight into the built-in terminal.
+  shell scripts, straight into the built-in terminal. <kbd>Alt</kbd>+<kbd>F5</kbd>
+  runs and stays in the interpreter (Python, JavaScript, shell).
+- **Projects** — open a folder (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>)
+  to get a file tree, Quick Open (<kbd>Ctrl</kbd>+<kbd>P</kbd>), Find in
+  Project (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) and per-project
+  sessions. Build (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>) and run
+  (<kbd>F4</kbd>) the whole project, with CMake, Make, Cargo, Go, npm, Meson
+  and Python detected automatically.
+- **Live HTML preview** (<kbd>Shift</kbd>+<kbd>F5</kbd>) — the page reloads in
+  the browser as you type, with a built-in or external server.
 - **Language Server Protocol** — diagnostics and completion (clangd, pylsp,
   rust-analyzer, gopls, typescript-language-server, and more), configurable per
   language.
@@ -24,8 +34,25 @@ This is the Linux port of the Android Slayer Editor.
   variables and the call stack (`gdb` for C/C++, `debugpy` for Python).
 - **Kate-style split view** — one document across several panes — and a status
   bar with git branch, cursor position, encoding and more.
+- **Large files** — a performance mode (automatic or always on) that turns off
+  the expensive features for huge or minified files.
 - **Themes** — dozens of light and dark color schemes that can follow the
   system, plus an optional symbol display.
+- **Built-in help** (<kbd>F1</kbd>) with search and a shortcut table, and an
+  English / Brazilian Portuguese interface.
+
+## Screenshots
+
+The code in every screenshot describes the editor itself.
+
+| | |
+|---|---|
+| ![Run and stay in the interpreter](screenshots/run-interactive.png) <br> **Interactive run** (<kbd>Alt</kbd>+<kbd>F5</kbd>) | ![Visual debugger](screenshots/debugger.png) <br> **Debugger** — breakpoints, variables, call stack |
+| ![Live HTML preview](screenshots/live-preview.png) <br> **Live HTML preview** (<kbd>Shift</kbd>+<kbd>F5</kbd>) | ![Build and run the project](screenshots/project-build-run.png) <br> **Project** — build and run (<kbd>F4</kbd>) |
+| ![Quick Open](screenshots/quick-open.png) <br> **Quick Open** (<kbd>Ctrl</kbd>+<kbd>P</kbd>) | ![Find in Project](screenshots/find-in-project.png) <br> **Find in Project** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) |
+| ![Find and replace](screenshots/find-replace.png) <br> **Find and replace** (<kbd>Ctrl</kbd>+<kbd>H</kbd>) | ![Light theme](screenshots/light-theme.png) <br> **Light theme** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>) |
+| ![Editor settings](screenshots/settings-editor.png) <br> **Settings — Editor** (<kbd>Ctrl</kbd>+<kbd>,</kbd>) | ![Terminal settings](screenshots/settings-terminal.png) <br> **Settings — Terminal** |
+| ![Built-in help](screenshots/help.png) <br> **Built-in help** (<kbd>F1</kbd>) | |
 
 ## Install
 
