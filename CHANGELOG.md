@@ -16,7 +16,8 @@ All notable changes are also published on the
   root (CMake, Make, Cargo, Go, npm, Meson, Python) or set in Run ▸ Configure
   Project Commands…; F5 on a C/C++ file of such a project offers to run the
   whole project. New terminals open in the project folder.
-- Syntax highlighting for CMake (CMakeLists.txt, *.cmake) and Makefiles.
+- Syntax highlighting for CMake (CMakeLists.txt, *.cmake) and Makefiles; tab and
+  language icons for CMake, Makefile, Markdown, JSON, HTML, CSS, XML, TOML and SQL.
 - Performance mode (Settings ▸ Editor ▸ Performance; off by default): turns
   off syntax highlighting, folding, the minimap, indent guides and occurrence
   highlighting for large files — automatically when a file is opened with more
