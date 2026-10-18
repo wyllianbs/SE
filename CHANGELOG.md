@@ -9,6 +9,9 @@ All notable changes are also published on the
   only when they appear inside a tag (`<a href=…>`, `</p>`), not when used as
   plain words in text content. Attribute names are colored only when followed
   by `=`. The same context-aware rule applies to XML.
+- Fix auto-save clearing undo/redo history: the document's modified state is
+  now tracked without calling `QTextDocument::setModified(false)` (which
+  cleared the undo stack on every auto-save).
 
 ## 0.5.0 — 2026-10-18
 

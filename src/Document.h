@@ -139,7 +139,8 @@ private:
     Language m_language;
     QString m_filePath;
     QString m_suggestedName;
-    QString m_cleanText; //< texto do último salvamento/carregamento
+    QString m_cleanText;  //< texto do último salvamento/carregamento
+    bool m_modified = false; //< rastreado sem usar QTextDocument::setModified
     QString m_encoding = QStringLiteral("UTF-8");
     bool m_bom = false;
     bool m_crlf = false;
