@@ -17,27 +17,35 @@
   <screenshots>
     <screenshot type="default">
       <caption>Code and run in one place, with a built-in terminal</caption>
-      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-01-run.png</image>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/run-file.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Run a script and stay in the interpreter</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/run-interactive.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Open a folder as a project, then build and run it</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/project-build-run.png</image>
     </screenshot>
     <screenshot>
       <caption>A visual debugger: breakpoints, variables and call stack</caption>
-      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-02-debug.png</image>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/debugger.png</image>
     </screenshot>
     <screenshot>
-      <caption>Split the view like Kate across several panes</caption>
-      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-03-split.png</image>
+      <caption>Live HTML preview that reloads as you type</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/live-preview.png</image>
     </screenshot>
     <screenshot>
-      <caption>Real-time diagnostics and completion from language servers</caption>
-      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-04-lsp.png</image>
+      <caption>Quick Open and Find in Project</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/find-in-project.png</image>
     </screenshot>
     <screenshot>
-      <caption>Dozens of light and dark themes that can follow the system</caption>
-      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/meta-05-themes.png</image>
+      <caption>Configurable editor, terminal, languages and themes</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/settings-editor.png</image>
     </screenshot>
     <screenshot>
-      <caption>Editing C with the embedded terminal</caption>
-      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/editor.png</image>
+      <caption>Light and dark themes that can follow the system</caption>
+      <image>https://raw.githubusercontent.com/wyllianbs/SE/main/screenshots/light-theme.png</image>
     </screenshot>
   </screenshots>
   <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
