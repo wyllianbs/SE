@@ -33,6 +33,14 @@ QString keys(const QString &k)
     return QStringLiteral("<code>%1</code>").arg(k.toHtmlEscaped());
 }
 
+/** Preenche %1, %2… da tabela de atalhos (QString::arg aceita até 9 por chamada). */
+QString shortcutTable(QString html, const QStringList &keyList)
+{
+    for (const QString &k : keyList)
+        html = html.arg(keys(k));
+    return html;
+}
+
 } // namespace
 
 QList<HelpTopic> HelpDialog::topics()
@@ -51,21 +59,25 @@ QList<HelpTopic> HelpDialog::topics()
         {tr("Running code"), tr("run execute compile build f5 gcc g++ python flags tool"),
          tr("<p>%1 saves the file and runs it in the terminal. C, C++ and Rust are compiled to "
             "<code>/tmp/slayer_out</code> and then executed; interpreted languages run directly.</p>"
+            "<p>%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds "
+            "and runs the whole project (see <b>Projects</b>).</p>"
             "<p>Change the tool, flags and extensions of each language in <b>Settings → Languages</b>, or add your "
             "own language (Ruby, Lua, Perl…) with <b>Add Language…</b>.</p>")
-             .arg(keys("F5"))},
+             .arg(keys("F5"), keys("Alt+F5"), keys("F4"))},
         {tr("Terminal"), tr("terminal shell bash console dock position left right top bottom float exit"),
-         tr("<p>%1 shows or hides the terminal and moves the focus to it. The ▥ button on its title bar moves it "
-            "to the left, top, right or bottom; you can also drag it by the title or detach it as a window.</p>"
-            "<p>Typing <code>exit</code> starts a new shell. Font, size, shell and cursor are in "
-            "<b>Settings → Terminal</b>.</p>")
-             .arg(keys("Ctrl+'"))},
+         tr("<p>%1 shows or hides the terminal and moves the focus to it; %2 opens a new terminal tab. The ▥ "
+            "button on its title bar moves it to the left, top, right or bottom; you can also drag it by the title "
+            "or detach it as a window. %3 / %4 copy and paste in the terminal.</p>"
+            "<p>Typing <code>exit</code> starts a new shell. With a folder open, new terminals start in it. "
+            "Font, size, shell and cursor are in <b>Settings → Terminal</b>.</p>")
+             .arg(keys("Ctrl+`"), keys("Ctrl+Shift+`"), keys("Ctrl+Shift+C"), keys("Ctrl+Shift+V"))},
         {tr("Split view"), tr("split view vertical horizontal side by side pane window divide"),
          tr("<p>The button at the right end of the tab bar splits the view, like Kate: %1 side by side, %2 stacked. "
             "The same document can be shown in several views; edits appear in all of them.</p>"
             "<p>“Move Document to New Split” moves the tab instead of duplicating it. %3 closes the current view, "
             "%4 / %5 switch between views.</p>")
-             .arg(keys("Ctrl+Shift+L"), keys("Ctrl+Shift+T"), keys("Ctrl+Shift+R"), keys("F8"), keys("Shift+F8"))},
+             .arg(keys("Ctrl+Shift+L"), keys("Ctrl+Shift+T"), keys("Ctrl+Shift+R"), keys("Ctrl+Alt+→"),
+                  keys("Ctrl+Alt+←"))},
         {tr("Find and replace"), tr("find search replace next previous case word"),
          tr("<p>%1 opens the find bar and %2 the replace bar. %3 / %4 jump to the next or previous match; "
             "<b>Aa</b> matches case and <b>Word</b> whole words.</p>")
@@ -99,33 +111,101 @@ QList<HelpTopic> HelpDialog::topics()
             "is reloaded in that encoding, otherwise it applies when saving. Files with a BOM keep it; files that "
             "are not valid UTF-8 open as Windows-1252.</p>")},
         {tr("Status bar"), tr("status bar footer branch git line column insert overwrite"),
-         tr("<p>From left to right: git branch, message of the cursor line, language server, line:column, "
-            "INSERT/OVERWRITE (%1 toggles), tabs, encoding and language (click to change the highlighting).</p>")
+         tr("<p>From left to right: git branch, message of the cursor line, language server, “Performance” (when "
+            "performance mode is on), line:column, INSERT/OVERWRITE (%1 toggles), tabs, encoding and language "
+            "(click to change the highlighting).</p>")
              .arg(keys("Insert"))},
         {tr("Themes and appearance"), tr("theme dark light color appearance scale font size zoom toolbar icons text configure"),
          tr("<p>Pick a theme in <b>View → Theme</b> or <b>Settings → Appearance</b>; it also colors the terminal. "
+            "%4 switches the theme to its dark or light variant. "
             "%1 / %2 / %3 zoom the editor. Right-click the toolbar for text position, icon size, lock and "
             "<b>Configure Toolbars…</b> (choose and order its buttons).</p>")
-             .arg(keys("Ctrl++"), keys("Ctrl+-"), keys("Ctrl+0"))},
+             .arg(keys("Ctrl++"), keys("Ctrl+-"), keys("Ctrl+0"), keys("Ctrl+Shift+D"))},
+        {tr("Projects"), tr("project folder open folder workspace tree quick open find in project build run cmake make"),
+         tr("<p><b>File → Open Folder…</b> (%1) opens a folder as a project: its files appear in the side panel "
+            "(%2 shows or hides it; right-click for new file, new folder, rename, move to trash and copy path). "
+            "Each project remembers its open tabs; <b>Open Recent Project</b> and <b>Close Folder</b> are in the "
+            "File menu.</p>"
+            "<p>%3 (Quick Open) finds a file by name, typing just some of its letters. %4 searches all the files, "
+            "with match case, whole word and regular expression options. Patterns hidden from the tree, Quick Open "
+            "and the search are in <b>Settings → Editor → Project</b>; the project's <code>.gitignore</code> is also "
+            "honored by Quick Open and the search.</p>"
+            "<p>%5 builds and %6 builds and runs the project, from its folder, in the terminal. The commands are "
+            "detected from the project root (CMake, Make, Cargo, Go, npm, Meson, Python) and can be changed in "
+            "<b>Run → Configure Project Commands…</b>.</p>")
+             .arg(keys("Ctrl+Shift+O"), keys("Ctrl+Alt+B"), keys("Ctrl+P"), keys("Ctrl+Shift+F"), keys("Ctrl+Shift+B"),
+                  keys("F4"))},
+        {tr("Debugging"), tr("debug debugger breakpoint step gdb debugpy variables call stack continue"),
+         tr("<p>%1 debugs the current file (Python with debugpy, C and C++ with gdb). %2 toggles a breakpoint, "
+            "or click next to the line number. While paused: %3 step over, %4 step into, %5 step out, %6 continue, "
+            "%7 stop.</p>"
+            "<p>The <b>Debugger</b> panel shows the variables and the call stack; the program reads and writes in "
+            "the terminal.</p>")
+             .arg(keys("Ctrl+F5"), keys("F9"), keys("F6"), keys("F7"), keys("Shift+F7"), keys("F8"), keys("Shift+F5"))},
+        {tr("HTML live preview"), tr("html preview browser live reload css javascript server php"),
+         tr("<p>For HTML files, %1 opens the page in the browser and reloads it as you edit. The server (built-in "
+            "or an external one such as <code>php -S</code>), host, port, browser and reload mode are in "
+            "<b>Settings → Preview</b>.</p>")
+             .arg(keys("Shift+F5"))},
+        {tr("Performance mode"), tr("performance large big file slow highlighting minified fast"),
+         tr("<p><b>Settings → Editor → Performance</b> (off by default) turns off syntax highlighting, code folding, "
+            "the minimap, indent guides and occurrence highlighting. <b>Automatic</b> decides when a file is opened: "
+            "more lines or MB than the limits set there, or a line longer than 10,000 characters (minified code). "
+            "<b>Always</b> applies to every file. The status bar shows “Performance” while it is on.</p>")},
         {tr("Profiles"), tr("profile profiles save load settings setup preset"),
          tr("<p><b>Settings → Profiles</b> stores every setting under a name, so you can switch setups (class, "
             "presentation, home) in one click. Loading a profile applies it immediately.</p>")},
         {tr("Keyboard shortcuts"), tr("shortcuts keys keyboard hotkeys"),
-         tr("<table cellpadding='3'>"
-            "<tr><td>%1</td><td>New / open / save</td></tr>"
-            "<tr><td>%2</td><td>Save as / save all</td></tr>"
-            "<tr><td>%3</td><td>Close tab</td></tr>"
-            "<tr><td>%4</td><td>Run</td></tr>"
-            "<tr><td>%5</td><td>Terminal</td></tr>"
-            "<tr><td>%6</td><td>Find / replace</td></tr>"
-            "<tr><td>%7</td><td>Go to line</td></tr>"
-            "<tr><td>%8</td><td>Toggle comment</td></tr>"
-            "<tr><td>%9</td><td>Split vertical / horizontal</td></tr>"
-            "<tr><td>%10</td><td>Settings</td></tr>"
-            "<tr><td>%11</td><td>Help</td></tr></table>")
-             .arg(keys("Ctrl+N / Ctrl+O / Ctrl+S"), keys("Ctrl+Shift+S / Ctrl+L"), keys("Ctrl+W"), keys("F5"),
-                  keys("Ctrl+'"), keys("Ctrl+F / Ctrl+H"), keys("Ctrl+G"), keys("Ctrl+/"),
-                  keys("Ctrl+Shift+L / Ctrl+Shift+T"), keys("Ctrl+,"), keys("F1"))},
+         shortcutTable(tr(
+            "<table cellpadding='3'>"
+            "<tr><td colspan='2'><b>Files</b></td></tr>"
+            "<tr><td>%1</td><td>New file (from a template)</td></tr>"
+            "<tr><td>%2</td><td>New empty file</td></tr>"
+            "<tr><td>%3</td><td>Open file</td></tr>"
+            "<tr><td>%4</td><td>Open folder</td></tr>"
+            "<tr><td>%5</td><td>Quick Open (find a file of the project)</td></tr>"
+            "<tr><td>%6</td><td>Save</td></tr>"
+            "<tr><td>%7</td><td>Save as</td></tr>"
+            "<tr><td>%8</td><td>Save all</td></tr>"
+            "<tr><td>%9</td><td>Close tab</td></tr>"
+            "<tr><td>%10</td><td>Reload document</td></tr>"
+            "<tr><td>%11</td><td>Quit</td></tr>"
+            "<tr><td colspan='2'><b>Editing</b></td></tr>"
+            "<tr><td>%12</td><td>Undo / redo</td></tr>"
+            "<tr><td>%13</td><td>Toggle comment</td></tr>"
+            "<tr><td>%14</td><td>Indent / unindent</td></tr>"
+            "<tr><td>%15</td><td>Code completion</td></tr>"
+            "<tr><td>%16</td><td>Insert / overwrite</td></tr>"
+            "<tr><td>%17</td><td>Find / replace</td></tr>"
+            "<tr><td>%18</td><td>Next / previous match</td></tr>"
+            "<tr><td>%19</td><td>Find in project</td></tr>"
+            "<tr><td>%20</td><td>Go to line</td></tr>"
+            "<tr><td colspan='2'><b>View</b></td></tr>"
+            "<tr><td>%21</td><td>Show/hide terminal</td></tr>"
+            "<tr><td>%22</td><td>New terminal tab</td></tr>"
+            "<tr><td>%23</td><td>Copy / paste in the terminal</td></tr>"
+            "<tr><td>%24</td><td>Project panel</td></tr>"
+            "<tr><td>%25</td><td>Split vertical / horizontal</td></tr>"
+            "<tr><td>%26</td><td>Close current view</td></tr>"
+            "<tr><td>%27</td><td>Next / previous view</td></tr>"
+            "<tr><td>%28</td><td>Fold current / contained nodes</td></tr>"
+            "<tr><td>%29</td><td>Fold / unfold toplevel nodes</td></tr>"
+            "<tr><td>%30</td><td>Zoom in / out / reset</td></tr>"
+            "<tr><td>%31</td><td>Dark/light mode</td></tr>"
+            "<tr><td colspan='2'><b>Run and debug</b></td></tr>"
+            "<tr><td>%32</td><td>Run file</td></tr>"
+            "<tr><td>%33</td><td>Run interactive</td></tr>"
+            "<tr><td>%34</td><td>Live preview (HTML) / stop debugging</td></tr>"
+            "<tr><td>%35</td><td>Build project</td></tr>"
+            "<tr><td>%36</td><td>Run project</td></tr>"
+            "<tr><td>%37</td><td>Debug current file</td></tr>"
+            "<tr><td>%38</td><td>Toggle breakpoint</td></tr>"
+            "<tr><td>%39</td><td>Step over / into / out</td></tr>"
+            "<tr><td>%40</td><td>Continue</td></tr>"
+            "<tr><td colspan='2'><b>Other</b></td></tr>"
+            "<tr><td>%41</td><td>Settings</td></tr>"
+            "<tr><td>%42</td><td>Help</td></tr></table>"),
+                       {QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1")})},
     };
 }
 
