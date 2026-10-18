@@ -71,6 +71,26 @@ private Q_SLOTS:
         m_window.show();
     }
 
+    void ctrlShiftFFindsInTerminal()
+    {
+        // Ctrl+Shift+F com o foco no terminal abre a busca dele (e não chega ao shell).
+        QTermWidget *t = m_terminal->current();
+        QVERIFY(t);
+        QWidget *display = nullptr;
+        for (QWidget *w : t->findChildren<QWidget *>())
+            if (QString::fromLatin1(w->metaObject()->className()).endsWith(QLatin1String("TerminalDisplay")))
+                display = w;
+        QVERIFY(display);
+        QWidget *searchBar = nullptr;
+        for (QWidget *w : t->findChildren<QWidget *>())
+            if (QString::fromLatin1(w->metaObject()->className()) == QLatin1String("SearchBar"))
+                searchBar = w;
+        QVERIFY(searchBar);
+        QVERIFY(!searchBar->isVisible());
+        QTest::keyClick(display, Qt::Key_F, Qt::ControlModifier | Qt::ShiftModifier);
+        QTRY_VERIFY(searchBar->isVisible());
+    }
+
     void python()
     {
         QProcess probe;

@@ -11,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMainWindow>
+#include <QKeyEvent>
 #include <QMenu>
 #include <QLineEdit>
 #include <QUrl>
@@ -312,6 +313,10 @@ void TerminalDock::installContextMenu(QTermWidget *term)
     hook(term);
     for (QWidget *w : term->findChildren<QWidget *>())
         hook(w);
+    // Ctrl+Shift+F no terminal busca nele (como no Konsole); fora dele é "Buscar no projeto".
+    term->installEventFilter(this);
+    for (QWidget *w : term->findChildren<QWidget *>())
+        w->installEventFilter(this);
 }
 
 void TerminalDock::showTerminalMenu(QTermWidget *term, const QPoint &globalPos)
@@ -334,7 +339,8 @@ void TerminalDock::showTerminalMenu(QTermWidget *term, const QPoint &globalPos)
         term->setSelectionEnd(term->screenLinesCount(), term->screenColumnsCount());
     });
     menu.addSeparator();
-    menu.addAction(tr("Find…"), term, &QTermWidget::toggleShowSearchBar);
+    menu.addAction(tr("Find…"), term, &QTermWidget::toggleShowSearchBar)
+        ->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F));
     menu.addAction(tr("Clear Terminal and History"), term, &QTermWidget::clear);
     menu.addAction(tr("Save Output As…"), this, [this, term]() {
         const QString path = QFileDialog::getSaveFileName(this, tr("Save Output As"),
@@ -573,6 +579,19 @@ static Qt::CursorShape cursorFor(Qt::Edges e)
 
 bool TerminalDock::eventFilter(QObject *watched, QEvent *event)
 {
+    if (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress) {
+        const auto *ke = static_cast<QKeyEvent *>(event);
+        if (ke->key() == Qt::Key_F && ke->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier)) {
+            for (QObject *o = watched; o; o = o->parent()) {
+                if (auto *term = qobject_cast<QTermWidget *>(o)) {
+                    if (event->type() == QEvent::KeyPress)
+                        term->toggleShowSearchBar();
+                    event->accept(); // o atalho da janela não dispara; a tecla não vai ao shell
+                    return true;
+                }
+            }
+        }
+    }
     if ((watched == m_container || watched == titleBarWidget()) && isFloating()) {
         auto *w = static_cast<QWidget *>(watched);
         if (event->type() == QEvent::MouseMove || event->type() == QEvent::MouseButtonPress) {

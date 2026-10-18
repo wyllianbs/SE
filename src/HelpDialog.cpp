@@ -67,13 +67,14 @@ QList<HelpTopic> HelpDialog::topics()
         {tr("Terminal"), tr("terminal shell bash console dock position left right top bottom float exit"),
          tr("<p>%1 shows or hides the terminal and moves the focus to it; %2 opens a new terminal tab. The ▥ "
             "button on its title bar moves it to the left, top, right or bottom; you can also drag it by the title "
-            "or detach it as a window. %3 / %4 copy and paste in the terminal.</p>"
+            "or detach it as a window. %3 / %4 copy and paste in the terminal, and %5 finds text in it (outside the terminal it is Find in Project).</p>"
             "<p>Right-click the terminal for copy and paste, select all, find, clear, save the output, zoom, open "
             "the file manager there, rename the tab and monitor activity or silence; <b>Configure</b> sets the "
             "color scheme, cursor shape, history and scrollbar (also in <b>Settings → Terminal</b>).</p>"
             "<p>Typing <code>exit</code> starts a new shell. With a folder open, new terminals start in it. "
             "Font, size, shell and cursor are in <b>Settings → Terminal</b>.</p>")
-             .arg(keys("Ctrl+`"), keys("Ctrl+Shift+`"), keys("Ctrl+Shift+C"), keys("Ctrl+Shift+V"))},
+             .arg(keys("Ctrl+`"), keys("Ctrl+Shift+`"), keys("Ctrl+Shift+C"), keys("Ctrl+Shift+V"),
+                  keys("Ctrl+Shift+F"))},
         {tr("Split view"), tr("split view vertical horizontal side by side pane window divide"),
          tr("<p>The button at the right end of the tab bar splits the view, like Kate: %1 side by side, %2 stacked. "
             "The same document can be shown in several views; edits appear in all of them.</p>"
@@ -187,6 +188,7 @@ QList<HelpTopic> HelpDialog::topics()
             "<tr><td>%21</td><td>Show/hide terminal</td></tr>"
             "<tr><td>%22</td><td>New terminal tab</td></tr>"
             "<tr><td>%23</td><td>Copy / paste in the terminal</td></tr>"
+            "<tr><td>%43</td><td>Find in the terminal (focus in the terminal)</td></tr>"
             "<tr><td>%24</td><td>Project panel</td></tr>"
             "<tr><td>%25</td><td>Split vertical / horizontal</td></tr>"
             "<tr><td>%26</td><td>Close current view</td></tr>"
@@ -208,7 +210,7 @@ QList<HelpTopic> HelpDialog::topics()
             "<tr><td colspan='2'><b>Other</b></td></tr>"
             "<tr><td>%41</td><td>Settings</td></tr>"
             "<tr><td>%42</td><td>Help</td></tr></table>"),
-                       {QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1")})},
+                       {QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1"), QStringLiteral("Ctrl+Shift+F")})},
     };
 }
 
