@@ -95,6 +95,10 @@ public:
     /** Nome da codificação ("UTF-8", "ISO-8859-15"…) e se o arquivo leva BOM. */
     QString encoding() const { return m_encoding; }
     bool hasBom() const { return m_bom; }
+    /** O arquivo usa CRLF (Windows)? O editor trabalha com LF; ao salvar, volta a CRLF. */
+    bool usesCrlf() const { return m_crlf; }
+    /** Texto como vai para o disco (com o final de linha original). */
+    QString diskText() const;
     void setEncoding(const QString &encoding, bool bom);
     QString encodingLabel() const;
 
@@ -138,6 +142,7 @@ private:
     QString m_cleanText; //< texto do último salvamento/carregamento
     QString m_encoding = QStringLiteral("UTF-8");
     bool m_bom = false;
+    bool m_crlf = false;
     QList<Diagnostic> m_diagnostics;
     QSet<int> m_breakpoints;
     int m_executionLine = -1;

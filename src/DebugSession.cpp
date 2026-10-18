@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
+#include <QPointer>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QTimer>
@@ -73,17 +74,23 @@ void DebugSession::compileAsync(const QString &filePath, const QString &id, cons
     m_compiler = cc;
     cc->setWorkingDirectory(QFileInfo(filePath).absolutePath());
     cc->setProcessChannelMode(QProcess::MergedChannels);
+    // Só a compilação atual conta: uma interrompida (parar, iniciar de novo)
+    // termina depois e não pode encerrar a sessão nova.
     connect(cc, &QProcess::errorOccurred, this, [this, cc, tool = cfg.tool](QProcess::ProcessError e) {
         if (e != QProcess::FailedToStart)
             return;
         cc->deleteLater();
+        if (m_compiler != cc)
+            return;
+        m_compiler = nullptr;
         setState(State::Idle);
         Q_EMIT error(tr("Could not start the compiler “%1”.").arg(tool));
     });
     connect(cc, &QProcess::finished, this, [this, cc, binary, done](int code, QProcess::ExitStatus status) {
         cc->deleteLater();
-        if (m_state != State::Starting)
-            return; // parado durante a compilação
+        if (m_compiler != cc || m_state != State::Starting)
+            return; // parado (ou reiniciado) durante a compilação
+        m_compiler = nullptr;
         if (status != QProcess::NormalExit || code != 0) {
             setState(State::Idle);
             Q_EMIT error(tr("Compilation failed:\n\n%1").arg(QString::fromLocal8Bit(cc->readAll()).trimmed()));
@@ -170,14 +177,21 @@ void DebugSession::launchAdapter(const QString &program, const QStringList &args
                            {"adapterID", launch.value("type").toString("gdb")}, {"linesStartAt1", true},
                            {"columnsStartAt1", true}, {"pathFormat", "path"},
                            {"supportsRunInTerminalRequest", true}, {"supportsVariableType", true}};
-    m_dap->request("initialize", init, [this, launch](bool ok, const QJsonObject &, const QString &msg) {
+    // As respostas podem chegar depois de a sessão parar (o adaptador vive mais
+    // 2 s): só valem para o adaptador ainda atual.
+    const QPointer<DapClient> dap = m_dap;
+    m_dap->request("initialize", init, [this, dap, launch](bool ok, const QJsonObject &, const QString &msg) {
+        if (!dap || dap != m_dap)
+            return;
         if (!ok) {
             Q_EMIT error(tr("The debugger refused to start: %1").arg(msg));
             stop();
             return;
         }
         // A resposta do launch só chega depois do configurationDone.
-        m_dap->request("launch", launch, [this](bool ok, const QJsonObject &, const QString &msg) {
+        m_dap->request("launch", launch, [this, dap](bool ok, const QJsonObject &, const QString &msg) {
+            if (!dap || dap != m_dap)
+                return;
             if (!ok) {
                 Q_EMIT error(tr("Could not launch the program: %1").arg(msg));
                 stop();
@@ -217,8 +231,11 @@ void DebugSession::onEvent(const QString &name, const QJsonObject &body)
         if (detail.isEmpty())
             detail = body.value("description").toString();
         setState(State::Stopped);
+        const QPointer<DapClient> dap = m_dap;
         m_dap->request("stackTrace", QJsonObject{{"threadId", m_threadId}, {"levels", 50}},
-                       [this, reason, detail](bool ok, const QJsonObject &b, const QString &) {
+                       [this, dap, reason, detail](bool ok, const QJsonObject &b, const QString &) {
+                           if (!dap || dap != m_dap)
+                               return; // sessão encerrada enquanto a pilha vinha
                            QList<DebugFrame> frames;
                            if (ok) {
                                for (const QJsonValue &v : b.value("stackFrames").toArray()) {
@@ -246,7 +263,10 @@ void DebugSession::selectFrame(int frameId)
 {
     if (!m_dap)
         return;
-    m_dap->request("scopes", QJsonObject{{"frameId", frameId}}, [this](bool ok, const QJsonObject &b, const QString &) {
+    const QPointer<DapClient> dap = m_dap;
+    m_dap->request("scopes", QJsonObject{{"frameId", frameId}}, [this, dap](bool ok, const QJsonObject &b, const QString &) {
+        if (!dap || dap != m_dap)
+            return;
         QList<QPair<QString, int>> scopes;
         if (ok) {
             for (const QJsonValue &v : b.value("scopes").toArray()) {

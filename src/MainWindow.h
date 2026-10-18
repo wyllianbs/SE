@@ -63,7 +63,7 @@ private:
 
     // Projeto (pasta aberta), como no VS Code / Kate.
     void openFolder();
-    bool openProject(const QString &root, bool restore = true);
+    bool openProject(const QString &root, bool restore = true, bool saveCurrent = true);
     void closeProject();
     void quickOpen();
     void findInProject();

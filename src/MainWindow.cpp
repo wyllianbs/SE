@@ -1254,8 +1254,12 @@ CodeEditor *MainWindow::currentEditor() const
 
 void MainWindow::openFiles(const QStringList &paths)
 {
-    for (const QString &p : paths)
-        openFile(p);
+    for (const QString &p : paths) {
+        if (QFileInfo(p).isDir())
+            openProject(p); // "slayer-editor pasta/" ou pasta arrastada: abre como projeto
+        else
+            openFile(p);
+    }
 }
 
 void MainWindow::addRecentFile(const QString &path)
@@ -1786,7 +1790,7 @@ void MainWindow::showDiskDifference(Document *doc)
     QTemporaryFile mine(QDir::tempPath() + QStringLiteral("/slayer-XXXXXX"));
     if (!mine.open())
         return;
-    mine.write(doc->text()->toPlainText().toUtf8());
+    mine.write(doc->diskText().toUtf8());
     mine.flush();
     QProcess diff;
     diff.start(QStringLiteral("diff"), {"-u", "--label", tr("in the editor"), "--label", tr("on disk"),
@@ -2193,10 +2197,20 @@ void MainWindow::autoSavePending()
     const QList<CodeEditor *> alive = allEditors();
     bool saved = false;
     for (CodeEditor *e : pending) {
-        if (alive.contains(e) && !e->filePath().isEmpty() && e->doc()->isModified()) {
-            save(e);
-            saved = true;
+        if (!alive.contains(e) || e->filePath().isEmpty() || !e->doc()->isModified())
+            continue;
+        // Mudou no disco (git pull, outro editor): não sobrescreve em silêncio;
+        // a faixa do arquivo pede a decisão (recarregar ou sobrescrever).
+        if (m_diskChanged.contains(e->doc()))
+            continue;
+        // Sem janela de erro: ela voltaria a cada pausa na digitação.
+        QString error;
+        if (!e->saveFile(e->filePath(), &error)) {
+            statusBar()->showMessage(tr("Auto-save of %1 failed: %2").arg(e->displayName(), error), 8000);
+            continue;
         }
+        m_lsp->documentSaved(e->doc());
+        saved = true;
     }
     // Com o preview por proxy (servidor externo), o conteúdo vem do disco: ao
     // salvar, recarrega para o navegador mostrar a alteração.
@@ -2942,7 +2956,7 @@ void MainWindow::restoreSession()
 
     // Projeto aberto ao sair: reabre com as abas dele; senão, as abas soltas.
     const QString project = s.value(QStringLiteral("session/project")).toString();
-    if (project.isEmpty() || !QFileInfo(project).isDir() || !openProject(project))
+    if (project.isEmpty() || !QFileInfo(project).isDir() || !openProject(project, true, false))
         restoreTabs(QStringLiteral("session"));
     else
         m_projectPanel->setVisible(s.value(QStringLiteral("session/projectPanel"), true).toBool());
@@ -3047,7 +3061,7 @@ void MainWindow::openFolder()
 }
 
 /** Abre a pasta como projeto: troca as abas pelas da sessão dele (como no VS Code). */
-bool MainWindow::openProject(const QString &root, bool restore)
+bool MainWindow::openProject(const QString &root, bool restore, bool saveCurrent)
 {
     const QString abs = QDir(root).absolutePath();
     if (!QFileInfo(abs).isDir())
@@ -3056,7 +3070,9 @@ bool MainWindow::openProject(const QString &root, bool restore)
         m_projectPanel->show();
         return true;
     }
-    saveTabs(sessionKey());
+    // Na inicialização ainda não há abas: gravar agora apagaria a sessão salva.
+    if (saveCurrent)
+        saveTabs(sessionKey());
     if (!closeAllTabs())
         return false;
     delete m_project;

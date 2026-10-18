@@ -12,8 +12,8 @@ include(GNUInstallDirs)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Network LinguistTools)
 find_package(qtermwidget6 REQUIRED)
 
-add_executable(slayer-editor
-    src/main.cpp
+# Fontes do app (sem o main.cpp): o executável e o tst_mainwindow.
+set(APP_SOURCES
     src/MainWindow.cpp src/MainWindow.h
     src/CodeEditor.cpp src/CodeEditor.h
     src/SyntaxHighlighter.cpp src/SyntaxHighlighter.h
@@ -41,8 +41,9 @@ add_executable(slayer-editor
     src/ProjectPanel.cpp src/ProjectPanel.h
     src/ProjectSearch.cpp src/ProjectSearch.h
     src/QuickOpen.cpp src/QuickOpen.h
-    resources/resources.qrc
 )
+
+add_executable(slayer-editor src/main.cpp ${APP_SOURCES} resources/resources.qrc)
 
 target_compile_definitions(slayer-editor PRIVATE
     SLAYER_VERSION="${PROJECT_VERSION}"
@@ -80,6 +81,14 @@ if(BUILD_TESTING)
     add_executable(tst_project tests/tst_project.cpp src/Project.cpp)
     target_link_libraries(tst_project PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME project COMMAND tst_project)
+    find_package(Qt6 REQUIRED COMPONENTS Network)
+    add_executable(tst_preview tests/tst_preview.cpp src/PreviewServer.cpp)
+    target_link_libraries(tst_preview PRIVATE Qt6::Network Qt6::Test)
+    add_test(NAME preview COMMAND tst_preview)
+    add_executable(tst_mainwindow tests/tst_mainwindow.cpp ${APP_SOURCES} resources/resources.qrc)
+    target_compile_definitions(tst_mainwindow PRIVATE SLAYER_VERSION="${PROJECT_VERSION}")
+    target_link_libraries(tst_mainwindow PRIVATE Qt6::Widgets Qt6::Network Qt6::Test qtermwidget6)
+    add_test(NAME mainwindow COMMAND tst_mainwindow)
     add_executable(tst_document tests/tst_document.cpp src/Document.cpp src/Folding.cpp
                    src/SyntaxHighlighter.cpp src/Language.cpp src/Theme.cpp)
     target_link_libraries(tst_document PRIVATE Qt6::Widgets Qt6::Test)

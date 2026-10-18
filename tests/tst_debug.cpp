@@ -71,6 +71,64 @@ private Q_SLOTS:
         m_window.show();
     }
 
+    void stopBeforeAdapterAnswers()
+    {
+        // Parar antes de o adaptador responder ao "initialize" derrubava o app
+        // (a resposta atrasada usava a sessão já encerrada).
+        if (QStandardPaths::findExecutable(QStringLiteral("python3")).isEmpty())
+            QSKIP("python3 not installed");
+        QTemporaryDir tmp;
+        // "python" falso: -c → ok; -m debugpy.adapter → adaptador DAP que responde em 0,8 s.
+        const QString fake = tmp.filePath(QStringLiteral("python"));
+        QFile script(fake);
+        QVERIFY(script.open(QIODevice::WriteOnly));
+        script.write(R"SH(#!/bin/sh
+if [ "$1" = "-c" ]; then exit 0; fi
+exec python3 -u -c '
+import sys, json, time
+def read():
+    h = b""
+    while not h.endswith(b"\r\n\r\n"):
+        c = sys.stdin.buffer.read(1)
+        if not c:
+            sys.exit(0)
+        h += c
+    n = int([l for l in h.split(b"\r\n") if l.lower().startswith(b"content-length")][0].split(b":")[1])
+    return json.loads(sys.stdin.buffer.read(n))
+def send(o):
+    b = json.dumps(o).encode()
+    sys.stdout.buffer.write(b"Content-Length: %d\r\n\r\n" % len(b) + b)
+    sys.stdout.buffer.flush()
+first = True
+while True:
+    m = read()
+    if first:
+        time.sleep(0.8)
+        first = False
+    send({"type": "response", "request_seq": m["seq"], "success": True, "command": m.get("command"), "body": {}})
+'
+)SH");
+        script.close();
+        QFile::setPermissions(fake, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+
+        AppSettings settings = AppSettings::defaults();
+        LanguageConfig py = settings.languageConfig(QStringLiteral("python"));
+        py.tool = fake;
+        settings.languages.insert(QStringLiteral("python"), py);
+        const QString file = tmp.filePath(QStringLiteral("a.py"));
+        QFile src(file);
+        QVERIFY(src.open(QIODevice::WriteOnly));
+        src.write("print(1)\n");
+        src.close();
+
+        DebugSession session(m_terminal);
+        session.start(file, QStringLiteral("python"), settings, {});
+        QCOMPARE(session.state(), DebugSession::State::Starting);
+        session.stop();
+        QTest::qWait(1500); // a resposta atrasada chega aqui: não pode derrubar o teste
+        QCOMPARE(session.state(), DebugSession::State::Idle);
+    }
+
     void ctrlShiftFFindsInTerminal()
     {
         // Ctrl+Shift+F com o foco no terminal abre a busca dele (e não chega ao shell).

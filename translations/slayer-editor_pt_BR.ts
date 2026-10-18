@@ -202,10 +202,6 @@ sudo apt install gdb</translation>
         <translation>start begin welcome overview new open file tab início começar boas-vindas visão geral novo abrir arquivo aba</translation>
     </message>
     <message>
-        <source>&lt;p&gt;Slayer Editor is a code editor with an embedded terminal. Create a file with %1, open one with %2 or drop file names on the command line: &lt;code&gt;slayer-editor main.c&lt;/code&gt;.&lt;/p&gt;&lt;p&gt;Closing the last tab shows the welcome screen. Open files, window layout and terminal position are restored on the next start.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;O Slayer Editor é um editor de código com terminal embutido. Crie um arquivo com %1, abra um com %2 ou passe nomes de arquivo na linha de comando: &lt;code&gt;slayer-editor main.c&lt;/code&gt;.&lt;/p&gt;&lt;p&gt;Fechar a última aba mostra a tela de boas-vindas. Arquivos abertos, disposição da janela e posição do terminal são restaurados na próxima vez.&lt;/p&gt;</translation>
-    </message>
-    <message>
         <source>Saving files</source>
         <translation>Salvando arquivos</translation>
     </message>
@@ -404,6 +400,10 @@ sudo apt install gdb</translation>
     <message>
         <source>&lt;p&gt;With a language server installed, errors and warnings are underlined (red, yellow, blue) and the line number takes their color. Hover the underline for the message; the message of the cursor line is also shown in the status bar.&lt;/p&gt;&lt;p&gt;Choose the server of each language in &lt;b&gt;Settings → Languages&lt;/b&gt;; its status tells whether it is installed and how to install it. For C and C++, clangd uses &lt;code&gt;compile_commands.json&lt;/code&gt; when present, otherwise the flags from Settings → Languages.&lt;/p&gt;</source>
         <translation>&lt;p&gt;Com um servidor de linguagem instalado, erros e avisos ficam sublinhados (vermelho, amarelo, azul) e o número da linha assume a cor deles. Passe o mouse sobre o sublinhado para ver a mensagem; a mensagem da linha do cursor também aparece na barra de status.&lt;/p&gt;&lt;p&gt;Escolha o servidor de cada linguagem em &lt;b&gt;Configurações → Linguagens&lt;/b&gt;; o estado informa se ele está instalado e como instalá-lo. Para C e C++, o clangd usa o &lt;code&gt;compile_commands.json&lt;/code&gt; quando existe, senão as flags de Configurações → Linguagens.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Slayer Editor is a code editor with an embedded terminal. Create a file with %1, open one with %2 or drop file names on the command line: &lt;code&gt;slayer-editor main.c&lt;/code&gt;. A folder (&lt;code&gt;slayer-editor project/&lt;/code&gt;, or dropped on the window) opens as a project.&lt;/p&gt;&lt;p&gt;Closing the last tab shows the welcome screen. Open files, window layout and terminal position are restored on the next start.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;O Slayer Editor é um editor de código com terminal embutido. Crie um arquivo com %1, abra um com %2 ou passe nomes de arquivo na linha de comando: &lt;code&gt;slayer-editor main.c&lt;/code&gt;. Uma pasta (&lt;code&gt;slayer-editor projeto/&lt;/code&gt;, ou arrastada para a janela) abre como projeto.&lt;/p&gt;&lt;p&gt;Fechar a última aba mostra a tela de boas-vindas. Arquivos abertos, disposição da janela e posição do terminal são restaurados na próxima vez.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;%1 saves the file and runs it in the terminal. C, C++ and Rust are compiled to &lt;code&gt;/tmp/slayer_out&lt;/code&gt; and then executed; interpreted languages run directly.&lt;/p&gt;&lt;p&gt;%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds and runs the whole project (see &lt;b&gt;Projects&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Change the tool, flags and extensions of each language in &lt;b&gt;Settings → Languages&lt;/b&gt;, or add your own language (Ruby, Lua, Perl…) with &lt;b&gt;Add Language…&lt;/b&gt;.&lt;/p&gt;</source>
@@ -971,6 +971,10 @@ sudo apt install gdb</translation>
     <message>
         <source>Only This File</source>
         <translation>Só Este Arquivo</translation>
+    </message>
+    <message>
+        <source>Auto-save of %1 failed: %2</source>
+        <translation>O salvamento automático de %1 falhou: %2</translation>
     </message>
     <message>
         <source>Open Folder</source>

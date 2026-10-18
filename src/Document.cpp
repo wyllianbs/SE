@@ -466,10 +466,15 @@ bool Document::load(const QString &path, QString *error, const QString &encoding
     }
     if (text.startsWith(QChar(0xFEFF)))
         text.remove(0, 1);
+    // Final de linha: o editor usa LF; o salvar devolve CRLF se ele predominar,
+    // para não reescrever o arquivo inteiro (diff de todas as linhas no git).
+    const qsizetype crlf = text.count(QLatin1String("\r\n"));
+    const qsizetype lf = text.count(QLatin1Char('\n'));
     text.replace(QLatin1String("\r\n"), QLatin1String("\n"));
 
     m_encoding = name;
     m_bom = bom;
+    m_crlf = crlf > 0 && crlf * 2 >= lf;
     // Antes do setPlainText: sem realce, o arquivo grande não é colorido inteiro ao abrir.
     int lines = 1, longest = 0;
     for (qsizetype i = 0, start = 0; i <= text.size(); ++i) {
@@ -488,6 +493,14 @@ bool Document::load(const QString &path, QString *error, const QString &encoding
     return true;
 }
 
+QString Document::diskText() const
+{
+    QString text = m_text->toPlainText();
+    if (m_crlf)
+        text.replace(QLatin1Char('\n'), QLatin1String("\r\n"));
+    return text;
+}
+
 bool Document::save(const QString &path, QString *error)
 {
     QStringEncoder encoder(m_encoding.toLatin1().constData(),
@@ -497,7 +510,7 @@ bool Document::save(const QString &path, QString *error)
             *error = tr("Unknown encoding: %1").arg(m_encoding);
         return false;
     }
-    const QByteArray data = encoder.encode(m_text->toPlainText());
+    const QByteArray data = encoder.encode(diskText());
     if (encoder.hasError()) {
         if (error)
             *error = tr("Some characters cannot be represented in %1.").arg(m_encoding);
