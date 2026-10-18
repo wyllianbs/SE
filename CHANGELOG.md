@@ -3,6 +3,18 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Project mode: File ▸ Open Folder… (Ctrl+Shift+O) opens a folder as a project,
+  with a file tree panel (new file/folder, rename, move to trash, copy path),
+  Open Recent Project and Close Folder. Each project keeps its own open tabs.
+- Quick Open (Ctrl+P): find a project file by name with fuzzy matching.
+- Find in Project (Ctrl+Shift+F): results grouped by file, with match case,
+  whole word and regular expression options.
+- Language servers use the open folder as their root.
+- Settings ▸ Editor ▸ Project: hidden files and folders (.gitignore-style
+  patterns); Quick Open and Find in Project also honor the project's .gitignore.
+
 ## 0.4.6 — 2026-10-17
 
 - Much faster theme switching and file opening on large files (no more

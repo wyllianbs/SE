@@ -25,6 +25,7 @@
 #include <QSlider>
 #include <QSet>
 #include <QRegularExpression>
+#include <QPlainTextEdit>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QStandardPaths>
@@ -315,11 +316,23 @@ QWidget *SettingsDialog::buildEditorPage()
     typing->addWidget(m_lspEnabled);
     typing->addWidget(m_autoSave);
 
+    // Projeto: padrões escondidos na árvore, no Quick Open e na busca.
+    m_projectExclude = new QPlainTextEdit;
+    m_projectExclude->setPlaceholderText(AppSettings::defaultProjectExclude().join(QLatin1Char('\n')));
+    m_projectExclude->setToolTip(tr("One pattern per line, like .gitignore (\"build/\", \"*.o\", \"/dist\"). "
+                                    "Empty = the defaults shown. The project's .gitignore is also honored "
+                                    "by Quick Open and Find in Project."));
+    m_projectExclude->setFixedHeight(110);
+    auto *project = new QVBoxLayout;
+    project->addWidget(new QLabel(tr("Hidden files and folders (one pattern per line, .gitignore style)")));
+    project->addWidget(m_projectExclude);
+
     auto *layout = new QVBoxLayout;
     layout->setSpacing(14);
     layout->addWidget(card(tr("Font"), font));
     layout->addWidget(card(tr("Display"), display));
     layout->addWidget(card(tr("Features"), typing));
+    layout->addWidget(card(tr("Project"), project));
     return makePage(tr("Editor"), QString(), layout);
 }
 
@@ -1025,6 +1038,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_wrapIndentExtra->setValue(s.wrapIndentExtra);
     m_highlightLine->setChecked(s.highlightCurrentLine);
     m_minimap->setChecked(s.minimap);
+    m_projectExclude->setPlainText(s.projectExclude.join(QLatin1Char('\n')));
     m_autoPairs->setChecked(s.autoClosePairs);
     m_completion->setChecked(s.codeCompletion);
     m_folding->setChecked(s.codeFolding);
@@ -1111,6 +1125,10 @@ AppSettings SettingsDialog::settings() const
     s.wrapIndentExtra = m_wrapIndentExtra->value();
     s.highlightCurrentLine = m_highlightLine->isChecked();
     s.minimap = m_minimap->isChecked();
+    s.projectExclude.clear();
+    for (const QString &line : m_projectExclude->toPlainText().split(QLatin1Char('\n')))
+        if (!line.trimmed().isEmpty())
+            s.projectExclude << line.trimmed();
     s.autoClosePairs = m_autoPairs->isChecked();
     s.codeCompletion = m_completion->isChecked();
     s.codeFolding = m_folding->isChecked();

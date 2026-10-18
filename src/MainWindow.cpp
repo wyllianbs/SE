@@ -4,6 +4,10 @@
 #include "Language.h"
 #include "DebugPanel.h"
 #include "DebugSession.h"
+#include "Project.h"
+#include "ProjectPanel.h"
+#include "ProjectSearch.h"
+#include "QuickOpen.h"
 #include "HelpDialog.h"
 #include "LspManager.h"
 #include "NewFileDialog.h"
@@ -34,6 +38,7 @@
 #include <QContextMenuEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QPlainTextEdit>
 #include <QTextEdit>
@@ -113,6 +118,34 @@ MainWindow::MainWindow(QWidget *parent)
 
     addDockWidget(Qt::BottomDockWidgetArea, m_terminal);
 
+    m_projectPanel = new ProjectPanel(this);
+    addDockWidget(Qt::LeftDockWidgetArea, m_projectPanel);
+    m_projectPanel->hide();
+    connect(m_projectPanel, &ProjectPanel::fileActivated, this, [this](const QString &path) { openFile(path); });
+    connect(m_projectPanel, &ProjectPanel::filesChanged, this, [this]() {
+        if (m_project)
+            m_project->refreshFiles();
+    });
+    connect(m_projectPanel, &ProjectPanel::fileRenamed, this, [this](const QString &from, const QString &to) {
+        for (CodeEditor *e : allEditors()) {
+            const QString p = e->filePath();
+            if (p == from || p.startsWith(from + QLatin1Char('/')))
+                e->setFilePath(to + p.mid(from.size()));
+        }
+        updateStatus();
+    });
+    connect(m_projectPanel, &ProjectPanel::fileRemoved, this, [this](const QString &path) {
+        // Abas de arquivos apagados ficam abertas (como no VS Code): viram "apagado no disco".
+        Q_UNUSED(path);
+        updateStatus();
+    });
+    m_projectSearch = new ProjectSearch(this);
+    addDockWidget(Qt::LeftDockWidgetArea, m_projectSearch);
+    tabifyDockWidget(m_projectPanel, m_projectSearch);
+    m_projectSearch->hide();
+    m_projectSearch->setProject(nullptr);
+    connect(m_projectSearch, &ProjectSearch::matchActivated, this, &MainWindow::openAt);
+
     m_debug = new DebugSession(m_terminal, this);
     m_debugPanel = new DebugPanel(m_debug, this);
     addDockWidget(Qt::RightDockWidgetArea, m_debugPanel);
@@ -166,6 +199,8 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     createActions();
+    for (QAction *a : std::as_const(m_projectActions))
+        a->setEnabled(false);
     updateDebugActions();
     // Rede de segurança: encerra o preview (proxy + servidor externo) ao sair,
     // mesmo por caminhos que não passam por closeEvent.
@@ -342,6 +377,18 @@ void MainWindow::createActions()
     m_recentMenu->setToolTipsVisible(true);
     rebuildRecentMenu();
     file->addSeparator();
+    reg(QStringLiteral("openFolder"),
+        add(file, tr("Open &Folder…"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_O), [this]() { openFolder(); },
+            Icons::Folder));
+    m_recentProjectsMenu = file->addMenu(tr("Open Recent &Project"));
+    m_recentProjectsMenu->setToolTipsVisible(true);
+    m_recentProjects = QSettings().value(QStringLiteral("projects/recent")).toStringList();
+    rebuildRecentProjectsMenu();
+    m_projectActions << reg(QStringLiteral("quickOpen"),
+                            add(file, tr("&Quick Open…"), QKeySequence(Qt::CTRL | Qt::Key_P), [this]() { quickOpen(); },
+                                Icons::Search));
+    m_projectActions << add(file, tr("Close F&older"), QKeySequence(), [this]() { closeProject(); });
+    file->addSeparator();
     QAction *saveA = add(file, tr("&Save"), QKeySequence::Save, [this]() { save(currentEditor()); }, Icons::Save);
     QAction *saveAsA = add(file, tr("Save &As…"), QKeySequence::SaveAs, [this]() { saveAs(currentEditor()); }, Icons::SaveAs);
     QAction *saveAllA = add(file, tr("Save A&ll"), QKeySequence(Qt::CTRL | Qt::Key_L), [this]() { saveAll(); }, Icons::SaveAll);
@@ -362,6 +409,9 @@ void MainWindow::createActions()
     }, Icons::Redo);
     edit->addSeparator();
     QAction *findA = add(edit, tr("&Find…"), QKeySequence::Find, [this]() { m_findBar->activate(false); }, Icons::Search);
+    m_projectActions << reg(QStringLiteral("findInProject"),
+                            add(edit, tr("Find in &Project…"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F),
+                                [this]() { findInProject(); }));
     reg(QStringLiteral("replace"), add(edit, tr("&Replace…"), QKeySequence(Qt::CTRL | Qt::Key_H), [this]() { m_findBar->activate(true); }));
     add(edit, tr("Find &Next"), QKeySequence::FindNext, [this]() { m_findBar->findNext(); });
     add(edit, tr("Find &Previous"), QKeySequence::FindPrevious, [this]() { m_findBar->findPrevious(); });
@@ -416,6 +466,17 @@ void MainWindow::createActions()
                 [this, k]() { m_terminal->moveToArea(TerminalDock::areaFromKey(k)); });
     }
     view->addSeparator();
+    {
+        QAction *panel = m_projectPanel->toggleViewAction();
+        panel->setText(tr("&Project Panel"));
+        panel->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_B));
+        view->addAction(panel);
+        addAction(panel);
+        QAction *search = m_projectSearch->toggleViewAction();
+        search->setText(tr("Project &Search Panel"));
+        view->addAction(search);
+        view->addSeparator();
+    }
     QMenu *split = view->addMenu(tr("&Split View"));
     reg(QStringLiteral("splitVertical"), add(split, tr("Split &Vertical"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_L),
         [this]() { splitSpace(m_activeSpace, Qt::Horizontal, false); }, Icons::SplitSideBySide));
@@ -787,11 +848,13 @@ QWidget *MainWindow::buildEmptyState()
     };
     auto *newButton = makeButton(Icons::NewFile, tr("New File"), QStringLiteral("Ctrl+N"));
     auto *openButton = makeButton(Icons::Open, tr("Open File…"), QStringLiteral("Ctrl+O"));
+    auto *folderButton = makeButton(Icons::Folder, tr("Open Folder…"), QStringLiteral("Ctrl+Shift+O"));
     connect(newButton, &QPushButton::clicked, this, [this]() { newFileFromTemplate(); });
     connect(openButton, &QPushButton::clicked, this, [this]() {
         openFiles(QFileDialog::getOpenFileNames(this, tr("Open File"), m_lastDir));
     });
-    for (QPushButton *b : {newButton, openButton}) {
+    connect(folderButton, &QPushButton::clicked, this, [this]() { openFolder(); });
+    for (QPushButton *b : {newButton, openButton, folderButton}) {
         auto *row = new QHBoxLayout;
         row->addStretch(1);
         row->addWidget(b);
@@ -1816,7 +1879,8 @@ void MainWindow::updateStatus()
     if (m_livePreviewAction)
         m_livePreviewAction->setEnabled(editor->language().id == QLatin1String("html"));
     const QString title = editor->displayName() + (editor->doc()->isModified() ? QStringLiteral(" ●") : QString());
-    setWindowTitle(title + QStringLiteral(" — Slayer Editor"));
+    const QString project = m_project ? QStringLiteral(" — ") + m_project->name() : QString();
+    setWindowTitle(title + project + QStringLiteral(" — Slayer Editor"));
 }
 
 // ----------------------------------------------------------- executar
@@ -2473,6 +2537,15 @@ void MainWindow::applySettings(const AppSettings &settings)
         const QSignalBlocker blocker(m_lspAction);
         m_lspAction->setChecked(m_settings.lspEnabled);
     }
+    // Exclusões do projeto mudaram: recria o projeto com as regras novas.
+    if (m_project && old.effectiveProjectExclude() != m_settings.effectiveProjectExclude()) {
+        auto *project = new Project(m_project->root(), m_settings.effectiveProjectExclude(), this);
+        project->refreshFiles();
+        m_projectPanel->setProject(project);
+        m_projectSearch->setProject(project);
+        delete m_project;
+        m_project = project;
+    }
     for (const auto &[action, field] : std::as_const(m_settingToggles)) {
         const QSignalBlocker blocker(action);
         action->setChecked(m_settings.*field);
@@ -2790,8 +2863,27 @@ void MainWindow::restoreSession()
         resizeDocks({m_terminal}, {260}, Qt::Vertical);
     }
 
-    const QStringList files = s.value(QStringLiteral("session/files")).toStringList();
-    const QStringList cursors = s.value(QStringLiteral("session/cursors")).toStringList();
+    // Projeto aberto ao sair: reabre com as abas dele; senão, as abas soltas.
+    const QString project = s.value(QStringLiteral("session/project")).toString();
+    if (project.isEmpty() || !QFileInfo(project).isDir() || !openProject(project))
+        restoreTabs(QStringLiteral("session"));
+    else
+        m_projectPanel->setVisible(s.value(QStringLiteral("session/projectPanel"), true).toBool());
+}
+
+QString MainWindow::sessionKey() const
+{
+    if (!m_project)
+        return QStringLiteral("session");
+    const QByteArray hash = QCryptographicHash::hash(m_project->root().toUtf8(), QCryptographicHash::Sha1);
+    return QStringLiteral("projects/") + QString::fromLatin1(hash.toHex().left(16));
+}
+
+void MainWindow::restoreTabs(const QString &key)
+{
+    QSettings s;
+    const QStringList files = s.value(key + QStringLiteral("/files")).toStringList();
+    const QStringList cursors = s.value(key + QStringLiteral("/cursors")).toStringList();
     for (int i = 0; i < files.size(); ++i) {
         const QString &f = files.at(i);
         if (!QFileInfo::exists(f))
@@ -2808,7 +2900,7 @@ void MainWindow::restoreSession()
             }
         }
     }
-    const int current = s.value(QStringLiteral("session/current"), 0).toInt();
+    const int current = s.value(key + QStringLiteral("/current"), 0).toInt();
     if (current >= 0 && current < m_activeSpace->count())
         m_activeSpace->setCurrentIndex(current);
 
@@ -2827,6 +2919,15 @@ void MainWindow::saveSession()
     s.setValue(QStringLiteral("ui/lastDir"), m_lastDir);
     s.setValue(QStringLiteral("ui/geometry"), saveGeometry());
     s.setValue(QStringLiteral("ui/state"), saveState());
+    s.setValue(QStringLiteral("session/project"), m_project ? m_project->root() : QString());
+    if (m_project)
+        s.setValue(QStringLiteral("session/projectPanel"), m_projectPanel->isVisible());
+    saveTabs(sessionKey());
+}
+
+void MainWindow::saveTabs(const QString &key)
+{
+    QSettings s;
     QStringList files, cursors;
     for (CodeEditor *e : allEditors()) {
         if (!e->filePath().isEmpty() && !files.contains(e->filePath())) {
@@ -2834,9 +2935,171 @@ void MainWindow::saveSession()
             cursors << QString::number(e->textCursor().position());
         }
     }
-    s.setValue(QStringLiteral("session/files"), files);
-    s.setValue(QStringLiteral("session/cursors"), cursors);
-    s.setValue(QStringLiteral("session/current"), m_activeSpace ? m_activeSpace->currentIndex() : 0);
+    s.setValue(key + QStringLiteral("/files"), files);
+    s.setValue(key + QStringLiteral("/cursors"), cursors);
+    s.setValue(key + QStringLiteral("/current"), m_activeSpace ? m_activeSpace->currentIndex() : 0);
+}
+
+/** Fecha todas as abas (perguntando sobre as alteradas); false = o usuário cancelou. */
+bool MainWindow::closeAllTabs()
+{
+    for (CodeEditor *e : allEditors()) {
+        if (e->doc()->isModified() && !maybeSave(e))
+            return false;
+    }
+    for (ViewSpace *space : viewSpaces()) {
+        while (space->count() > 0) {
+            CodeEditor *e = space->editorAt(0);
+            e->doc()->markClean(); // já perguntado acima
+            releaseView(e);
+        }
+        if (viewSpaces().size() > 1)
+            removeSpace(space);
+    }
+    updateEmptyState();
+    return true;
+}
+
+// ----------------------------------------------------------- projeto
+void MainWindow::openFolder()
+{
+    const QString dir = QFileDialog::getExistingDirectory(this, tr("Open Folder"),
+                                                          m_project ? m_project->root() : m_lastDir);
+    if (!dir.isEmpty())
+        openProject(dir);
+}
+
+/** Abre a pasta como projeto: troca as abas pelas da sessão dele (como no VS Code). */
+bool MainWindow::openProject(const QString &root, bool restore)
+{
+    const QString abs = QDir(root).absolutePath();
+    if (!QFileInfo(abs).isDir())
+        return false;
+    if (m_project && m_project->root() == abs) {
+        m_projectPanel->show();
+        return true;
+    }
+    saveTabs(sessionKey());
+    if (!closeAllTabs())
+        return false;
+    delete m_project;
+    m_project = new Project(abs, m_settings.effectiveProjectExclude(), this);
+    m_project->refreshFiles();
+    m_projectPanel->setProject(m_project);
+    m_projectPanel->show();
+    m_projectPanel->raise();
+    m_projectSearch->setProject(m_project);
+    m_lsp->setProjectRoot(abs);
+    m_lastDir = abs;
+    for (QAction *a : std::as_const(m_projectActions))
+        a->setEnabled(true);
+    addRecentProject(abs);
+    if (restore)
+        restoreTabs(sessionKey());
+    updateStatus();
+    return true;
+}
+
+void MainWindow::closeProject()
+{
+    if (!m_project)
+        return;
+    saveTabs(sessionKey());
+    if (!closeAllTabs())
+        return;
+    delete m_project;
+    m_project = nullptr;
+    m_projectPanel->setProject(nullptr);
+    m_projectSearch->setProject(nullptr);
+    m_projectSearch->hide();
+    m_lsp->setProjectRoot(QString());
+    for (QAction *a : std::as_const(m_projectActions))
+        a->setEnabled(false);
+    restoreTabs(QStringLiteral("session"));
+    updateStatus();
+}
+
+void MainWindow::quickOpen()
+{
+    if (!m_project) {
+        statusBar()->showMessage(tr("Quick Open needs an open folder (File ▸ Open Folder…)"), 4000);
+        return;
+    }
+    auto *dialog = new QuickOpen(m_project, this);
+    connect(dialog, &QuickOpen::fileChosen, this, [this](const QString &path) { openFile(path); });
+    dialog->show();
+}
+
+void MainWindow::findInProject()
+{
+    if (!m_project) {
+        statusBar()->showMessage(tr("Find in Project needs an open folder (File ▸ Open Folder…)"), 4000);
+        return;
+    }
+    QString text;
+    if (CodeEditor *e = currentEditor()) {
+        const QString sel = e->textCursor().selectedText();
+        if (!sel.contains(QChar::ParagraphSeparator))
+            text = sel;
+    }
+    m_projectSearch->activate(text);
+}
+
+void MainWindow::openAt(const QString &path, int line, int column, int length)
+{
+    openFile(path);
+    CodeEditor *e = currentEditor();
+    if (!e || e->filePath() != QFileInfo(path).absoluteFilePath())
+        return;
+    const QTextBlock b = e->document()->findBlockByNumber(line);
+    if (!b.isValid())
+        return;
+    QTextCursor c(b);
+    c.setPosition(b.position() + qMin(column, b.length() - 1));
+    c.setPosition(qMin(c.position() + length, b.position() + b.length() - 1), QTextCursor::KeepAnchor);
+    e->setTextCursor(c);
+    e->centerCursor();
+    e->setFocus();
+}
+
+void MainWindow::addRecentProject(const QString &root)
+{
+    m_recentProjects.removeAll(root);
+    m_recentProjects.prepend(root);
+    while (m_recentProjects.size() > 10)
+        m_recentProjects.removeLast();
+    QSettings().setValue(QStringLiteral("projects/recent"), m_recentProjects);
+    rebuildRecentProjectsMenu();
+}
+
+void MainWindow::rebuildRecentProjectsMenu()
+{
+    if (!m_recentProjectsMenu)
+        return;
+    m_recentProjectsMenu->clear();
+    if (m_recentProjects.isEmpty()) {
+        m_recentProjectsMenu->addAction(tr("No Recent Projects"))->setEnabled(false);
+        return;
+    }
+    for (const QString &root : std::as_const(m_recentProjects)) {
+        QAction *a = m_recentProjectsMenu->addAction(QFileInfo(root).fileName());
+        a->setToolTip(root);
+        a->setStatusTip(root);
+        connect(a, &QAction::triggered, this, [this, root]() {
+            if (!openProject(root) && !QFileInfo(root).isDir()) {
+                m_recentProjects.removeAll(root);
+                QSettings().setValue(QStringLiteral("projects/recent"), m_recentProjects);
+                rebuildRecentProjectsMenu();
+                statusBar()->showMessage(tr("Folder not found: %1").arg(root), 4000);
+            }
+        });
+    }
+    m_recentProjectsMenu->addSeparator();
+    connect(m_recentProjectsMenu->addAction(tr("Clear List")), &QAction::triggered, this, [this]() {
+        m_recentProjects.clear();
+        QSettings().remove(QStringLiteral("projects/recent"));
+        rebuildRecentProjectsMenu();
+    });
 }
 
 static QStringList droppedLocalFiles(const QMimeData *mime)

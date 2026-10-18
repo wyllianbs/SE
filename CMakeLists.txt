@@ -37,6 +37,10 @@ add_executable(slayer-editor
     src/Settings.cpp src/Settings.h
     src/SettingsDialog.cpp src/SettingsDialog.h
     src/PreviewServer.cpp src/PreviewServer.h
+    src/Project.cpp src/Project.h
+    src/ProjectPanel.cpp src/ProjectPanel.h
+    src/ProjectSearch.cpp src/ProjectSearch.h
+    src/QuickOpen.cpp src/QuickOpen.h
     resources/resources.qrc
 )
 
@@ -73,6 +77,9 @@ if(BUILD_TESTING)
     add_executable(tst_folding tests/tst_folding.cpp src/Folding.cpp)
     target_link_libraries(tst_folding PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME folding COMMAND tst_folding)
+    add_executable(tst_project tests/tst_project.cpp src/Project.cpp)
+    target_link_libraries(tst_project PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME project COMMAND tst_project)
     add_executable(tst_document tests/tst_document.cpp src/Document.cpp src/Folding.cpp
                    src/SyntaxHighlighter.cpp src/Language.cpp src/Theme.cpp)
     target_link_libraries(tst_document PRIVATE Qt6::Widgets Qt6::Test)

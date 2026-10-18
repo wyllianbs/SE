@@ -47,6 +47,8 @@ public:
     static QStringList languages();
 
     void setSettings(const AppSettings &settings);
+    /** Pasta do projeto aberto (vazio = nenhum): vira a raiz dos servidores para os arquivos dela. */
+    void setProjectRoot(const QString &root);
 
     /** (Re)associa o documento ao servidor da sua linguagem, ou o solta. */
     void attach(Document *doc);
@@ -75,10 +77,12 @@ private:
     };
 
     LspClient *clientFor(const QString &languageId, const QString &rootPath);
+    void restartClients();
+    QString m_projectRoot;
     void sendChange(Document *doc);
     QString commandFor(const QString &languageId) const;
     static QString lspLanguageId(const QString &languageId);
-    static QString rootFor(const QString &filePath);
+    QString rootFor(const QString &filePath) const;
     void onDiagnostics(const QString &uri, const QJsonArray &list);
 
     AppSettings m_settings;
