@@ -188,11 +188,15 @@ void PreviewServer::serve(QTcpSocket *sock, const QByteArray &request)
         return;
     }
 
+    if (!path.startsWith(QLatin1Char('/')))
+        path.prepend(QLatin1Char('/'));
     if (path.endsWith(QLatin1Char('/')))
         path += QStringLiteral("index.html");
-    // Resolve dentro do root (sem permitir sair dele).
+    // Resolve dentro do root (sem permitir sair dele). O "/" final evita que
+    // "/../site-x/…" passe por "/…/site" (prefixo igual, outra pasta).
     const QString abs = QDir::cleanPath(m_root + path);
-    if (!abs.startsWith(m_root)) {
+    const QString rootSlash = m_root.endsWith(QLatin1Char('/')) ? m_root : m_root + QLatin1Char('/');
+    if (!abs.startsWith(rootSlash)) {
         writeResponse(sock, 403, "Forbidden", "text/plain", "Forbidden\n");
         return;
     }

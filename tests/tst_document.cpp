@@ -29,6 +29,36 @@ class TestDocument : public QObject
     }
 
 private Q_SLOTS:
+    void keepsLineEndings()
+    {
+        // CRLF (Windows) volta como CRLF ao salvar; LF continua LF.
+        QTemporaryDir tmp;
+        const QString crlf = tmp.filePath("win.c");
+        const QString lf = tmp.filePath("unix.c");
+        auto write = [](const QString &path, const QByteArray &data) {
+            QFile f(path);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(data);
+        };
+        write(crlf, "int a;\r\nint b;\r\n");
+        write(lf, "int a;\nint b;\n");
+        auto read = [](const QString &path) {
+            QFile f(path);
+            return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
+        };
+        Document d1;
+        QVERIFY(d1.load(crlf));
+        QVERIFY(d1.usesCrlf());
+        QCOMPARE(d1.text()->toPlainText(), QStringLiteral("int a;\nint b;\n")); // o editor vê LF
+        QTextCursor(d1.text()).insertText(QStringLiteral("// x\n"));
+        QVERIFY(d1.save(crlf));
+        QCOMPARE(read(crlf), QByteArray("// x\r\nint a;\r\nint b;\r\n"));
+        Document d2;
+        QVERIFY(d2.load(lf));
+        QVERIFY(!d2.usesCrlf());
+        QVERIFY(d2.save(lf));
+        QCOMPARE(read(lf), QByteArray("int a;\nint b;\n"));
+    }
     void largeFileMode()
     {
         QTemporaryDir tmp;

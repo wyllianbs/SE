@@ -48,7 +48,8 @@ QList<HelpTopic> HelpDialog::topics()
     return {
         {tr("Getting started"), tr("start begin welcome overview new open file tab"),
          tr("<p>Slayer Editor is a code editor with an embedded terminal. Create a file with %1, open one with %2 "
-            "or drop file names on the command line: <code>slayer-editor main.c</code>.</p>"
+            "or drop file names on the command line: <code>slayer-editor main.c</code>. A folder "
+            "(<code>slayer-editor project/</code>, or dropped on the window) opens as a project.</p>"
             "<p>Closing the last tab shows the welcome screen. Open files, window layout and terminal position are "
             "restored on the next start.</p>")
              .arg(keys("Ctrl+N"), keys("Ctrl+O"))},

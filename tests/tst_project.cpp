@@ -6,6 +6,8 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <sys/stat.h>
+
 class TestProject : public QObject
 {
     Q_OBJECT
@@ -135,6 +137,16 @@ private Q_SLOTS:
 
         touch(tmp.path() + "/Cargo.toml");
         QCOMPARE(Project::detectBuild(tmp.path()).run, QStringLiteral("cargo run"));
+    }
+
+    void skipsSpecialFiles()
+    {
+        // Um FIFO no projeto travava a busca para sempre (open() espera um escritor).
+        QTemporaryDir tmp;
+        touch(tmp.path() + "/a.c");
+        QVERIFY(::mkfifo(QFile::encodeName(tmp.path() + "/pipe").constData(), 0600) == 0);
+        const QStringList files = Project::listFiles(tmp.path(), IgnoreRules(), IgnoreRules(), 100);
+        QCOMPARE(files, QStringList{"a.c"});
     }
 
     void listingIsTruncated()

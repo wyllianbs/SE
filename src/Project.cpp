@@ -183,7 +183,7 @@ QStringList Project::listFiles(const QString &root, const IgnoreRules &hidden, c
             if (isDir) {
                 if (!fi.isSymLink()) // links de pasta podem formar ciclos
                     pending.append(childRel);
-            } else {
+            } else if (fi.isFile()) { // FIFOs, sockets e dispositivos: abrir travaria a busca
                 if (out.size() >= limit) {
                     if (truncated)
                         *truncated = true;

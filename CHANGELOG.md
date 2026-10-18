@@ -28,6 +28,20 @@ All notable changes are also published on the
   clear, save output, zoom, open the file manager here, rename tab and monitor
   for activity/silence; Configure sets the color scheme (Konsole schemes or the
   theme), cursor shape, history size and scrollbar, also in Settings ▸ Terminal.
+- A folder given on the command line (or dropped on the window) opens as a project.
+- Files with Windows line endings (CRLF) keep them when saved, instead of being
+  converted to LF.
+- Fixes:
+  - Crash when stopping the debugger right after starting it.
+  - Auto-save no longer overwrites a file that another program changed (git pull,
+    another editor); the "modified by another program" bar asks first.
+  - Auto-save failures show a status bar message instead of a dialog after every
+    pause in typing.
+  - The HTML preview server refused paths outside the site root only partly:
+    sibling folders with the same name prefix were reachable.
+  - Reopening the app with a folder open no longer erases the list of loose tabs.
+  - Restarting a C/C++ debug session while compiling no longer aborts the new one.
+  - Find in Project no longer hangs on FIFOs and other special files.
 - bench_editor: a benchmark tool (not part of ctest) to time the editor with large files.
 - Settings ▸ Editor ▸ Project: hidden files and folders (.gitignore-style
   patterns); Quick Open and Find in Project also honor the project's .gitignore.
