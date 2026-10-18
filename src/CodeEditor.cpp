@@ -1230,7 +1230,11 @@ void CodeEditor::insertNewlineWithIndent()
         indent += ch;
     }
     const QString trimmed = before.trimmed();
-    const bool opens = opensBlock(language().id, before);
+    // Usa increaseIndentPattern da linguagem quando disponível; fallback para opensBlock().
+    const QRegularExpression &incPat = language().increaseIndentPattern;
+    const bool opens = (incPat.isValid() && !incPat.pattern().isEmpty())
+                           ? incPat.match(before).hasMatch()
+                           : opensBlock(language().id, before);
     const QString step = indentUnit();
 
     c.beginEditBlock();
@@ -1423,28 +1427,36 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
     if (!(event->modifiers() & (Qt::ControlModifier | Qt::AltModifier)) && handleAutoPair(event))
         return;
 
-    // Auto-dedent ao fechar bloco: } ] ) no início da linha recua um nível.
+    // Auto-dedent ao fechar bloco: verifica decreaseIndentPattern ou } ] ) no início da linha.
     if (!c.hasSelection() && event->modifiers() == Qt::NoModifier) {
         const QString ch = event->text();
-        if (ch == QLatin1String("}") || ch == QLatin1String("]") || ch == QLatin1String(")")) {
+        if (!ch.isEmpty()) {
             const QString lineText = c.block().text();
             const QString before = lineText.left(c.positionInBlock());
             if (!before.isEmpty() && before.trimmed().isEmpty()) {
-                // A linha só tem espaço em branco antes do cursor: dedenta.
-                const QString step = indentUnit();
-                const int stepLen = step.length();
-                if (before.endsWith(step)) {
-                    QTextCursor bc(c.block());
-                    bc.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
-                    // Remove o último step do recuo e insere o fechador.
-                    const QString newLine = before.left(before.length() - stepLen) + ch
-                                           + lineText.mid(c.positionInBlock());
-                    bc.insertText(newLine);
-                    QTextCursor nc(c.block());
-                    nc.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor,
-                                    before.length() - stepLen + 1);
-                    setTextCursor(nc);
-                    return;
+                // Hipótese: linha ficaria "recuo_atual + ch + resto".
+                const QString hypothetical = before + ch + lineText.mid(c.positionInBlock());
+                const QRegularExpression &decPat = language().decreaseIndentPattern;
+                const bool shouldDedent =
+                    (decPat.isValid() && !decPat.pattern().isEmpty())
+                        ? decPat.match(hypothetical).hasMatch()
+                        : (ch == QLatin1String("}") || ch == QLatin1String("]")
+                           || ch == QLatin1String(")"));
+                if (shouldDedent) {
+                    const QString step = indentUnit();
+                    const int stepLen = step.length();
+                    if (before.endsWith(step)) {
+                        QTextCursor bc(c.block());
+                        bc.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+                        const QString newLine = before.left(before.length() - stepLen) + ch
+                                               + lineText.mid(c.positionInBlock());
+                        bc.insertText(newLine);
+                        QTextCursor nc(c.block());
+                        nc.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor,
+                                        before.length() - stepLen + 1);
+                        setTextCursor(nc);
+                        return;
+                    }
                 }
             }
         }

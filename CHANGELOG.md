@@ -18,6 +18,11 @@ All notable changes are also published on the
 - Auto-dedent closing delimiters (`}`, `]`, `)`) when typed at the start of
   an otherwise-blank line: the line is unindented by one step automatically,
   matching the behaviour of Kate and VS Code.
+- Data-driven indentation rules (VSCode-style `increaseIndentPattern` /
+  `decreaseIndentPattern`) for C, C++, Java, JavaScript, TypeScript, Go,
+  Rust, Python, Ruby, Lua, Shell, HTML, CSS, JSON, YAML, PHP, Pascal,
+  Fortran, Haskell and CMake: auto-indent and auto-dedent now follow the
+  same language-aware patterns used by VSCodium.
 
 ## 0.5.0 — 2026-10-18
 
