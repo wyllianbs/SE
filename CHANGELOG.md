@@ -12,6 +12,12 @@ All notable changes are also published on the
 - Fix auto-save clearing undo/redo history: the document's modified state is
   now tracked without calling `QTextDocument::setModified(false)` (which
   cleared the undo stack on every auto-save).
+- Fix Tab inserting wrong number of spaces when the line contains tab
+  characters: column is now computed visually (each tab counts as the
+  configured tab width), so the cursor always jumps to the next tab stop.
+- Auto-dedent closing delimiters (`}`, `]`, `)`) when typed at the start of
+  an otherwise-blank line: the line is unindented by one step automatically,
+  matching the behaviour of Kate and VS Code.
 
 ## 0.5.0 — 2026-10-18
 
