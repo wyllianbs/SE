@@ -287,6 +287,101 @@ QList<Language> buildLanguages()
             lang.requires = e.requires;
         }
     }
+
+    // Padrões de recuo inspirados nas indentationRules do VSCode/VSCodium.
+    struct IndentPat { const char *id; const char *increase; const char *decrease; };
+    const QList<IndentPat> indentPats{
+        // C, C++: chaves/colchetes/parênteses abertos no fim da linha.
+        {"c",
+         R"re(^.*(\{[^}"']*|\([^)"']*|\[[^\]"']*)$)re",
+         R"re(^\s*[\}\]\)].*$)re"},
+        {"cpp",
+         R"re(^.*(\{[^}"']*|\([^)"']*|\[[^\]"']*)$)re",
+         R"re(^\s*[\}\]\)].*$)re"},
+        // Java — igual a C/C++.
+        {"java",
+         R"re(^.*(\{[^}"']*|\([^)"']*|\[[^\]"']*)$)re",
+         R"re(^\s*[\}\]\)].*$)re"},
+        // JavaScript / TypeScript — igual a C/C++.
+        {"javascript",
+         R"re(^.*(\{[^}"']*|\([^)"']*|\[[^\]"']*)$)re",
+         R"re(^\s*[\}\]\)].*$)re"},
+        {"typescript",
+         R"re(^.*(\{[^}"']*|\([^)"']*|\[[^\]"']*)$)re",
+         R"re(^\s*[\}\]\)].*$)re"},
+        // Go: case/default + chaves/parênteses (backtick excluído).
+        {"go",
+         R"re(^.*(\bcase\b.*:|\bdefault\b:|(\b(func|if|else|switch|select|for|struct)\b.*)?\{[^}"'`]*|\([^)"'`]*)$)re",
+         R"re(^\s*(\bcase\b.*:|\bdefault\b:|\}[)}]*[),]?|\)[,]?)$)re"},
+        // Rust: chaves ou parênteses abertos.
+        {"rust",
+         R"re(^.*\{[^}"']*$|^.*\([^)"']*$)re",
+         R"re(^\s*(\s*/\*.*\*/\s*)*[})])re"},
+        // Python: dois-pontos após palavra-chave de bloco.
+        {"python",
+         R"re(^\s*(def|class|if|elif|else|for|while|with|try|except|finally|async\s+def|async\s+for|async\s+with).*:\s*$)re",
+         nullptr},
+        // Ruby: keywords de abertura de bloco.
+        {"ruby",
+         R"re(^\s*(def|class|module|if|unless|while|until|for|begin|do|case|rescue|ensure|else|elsif|when)\b.*$)re",
+         R"re(^\s*(end|else|elsif|rescue|ensure|when)\b)re"},
+        // Lua: keywords de abertura.
+        {"lua",
+         R"re(^((?!(--)).)*(\b(else|function|then|do|repeat)\b((?!\b(end|until)\b).)*|(\{\s*))$)re",
+         R"re(^\s*((\b(elseif|else|end|until)\b)|(\})|(\))))re"},
+        // Bash/Shell: keywords de abertura.
+        {"bash",
+         R"re(^\s*(if|then|else|elif|for|while|do|case\b.*\)|\bfunction\b).*[^;\\]\s*$)re",
+         R"re(^\s*(fi|done|esac|else|elif)\b)re"},
+        // HTML: tags de bloco em linha única.
+        {"html",
+         R"re((<(?!(?:area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source|track|wbr))([a-zA-Z][^\s>]*)(?:[^>]*(?:(?!/).)>)[^<]*$))re",
+         R"re(^\s*(</(?!html)[a-zA-Z][^>]*>|-->|\}))re"},
+        // CSS: regra aberta.
+        {"css",
+         R"re(^.*\{[^}]*$)re",
+         R"re(^\s*\})re"},
+        // JSON: abre objeto ou array.
+        {"json",
+         R"re((\{+(?=((\\.|[^"\\])*"(\\.|[^"\\])*")*[^"}]*)$)|(\[+(?=((\\.|[^"\\])*"(\\.|[^"\\])*")*[^"\]]*)$))re",
+         R"re(^\s*[}\]],?\s*$)re"},
+        // YAML: bloco com dois-pontos/traço.
+        {"yaml",
+         R"re(^\s*.*(:|-) ?(&\w+)?(\{[^}"']*|\([^)"']*)?$)re",
+         R"re(^\s+\}$)re"},
+        // PHP: chaves/parênteses + keywords.
+        {"php",
+         R"re(^.*(\{[^}"']*|\([^)"']*|\[[^\]"']*)$)re",
+         R"re(^\s*[\}\]\)].*$)re"},
+        // Pascal: keywords de abertura.
+        {"pascal",
+         R"re(^\s*(begin|do|then|else|repeat)\b|(var|type|const)\s*$)re",
+         R"re(^\s*(end|until)\b)re"},
+        // Fortran: keywords de abertura.
+        {"fortran",
+         R"re(^\s*(program|subroutine|function|module|do|if.*then)\b)re",
+         R"re(^\s*end\b)re"},
+        // Haskell: where/do/of/let.
+        {"haskell",
+         R"re(\b(where|do|of|let)\s*$|=\s*$)re",
+         nullptr},
+        // CMake: if/foreach/while/function/macro.
+        {"cmake",
+         R"re(^\s*(if|foreach|while|function|macro)\s*\()re",
+         R"re(^\s*(endif|endforeach|endwhile|endfunction|endmacro)\s*\()re"},
+    };
+    const QRegularExpression::PatternOptions caseSensitive;
+    for (Language &lang : list) {
+        for (const IndentPat &p : indentPats) {
+            if (lang.id != QLatin1String(p.id))
+                continue;
+            if (p.increase)
+                lang.increaseIndentPattern = QRegularExpression(QString::fromUtf8(p.increase), caseSensitive);
+            if (p.decrease)
+                lang.decreaseIndentPattern = QRegularExpression(QString::fromUtf8(p.decrease), caseSensitive);
+        }
+    }
+
     return list;
 }
 
