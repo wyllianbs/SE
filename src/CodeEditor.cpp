@@ -20,6 +20,7 @@
 #include <QPainter>
 #include <QSaveFile>
 #include <QTextBlock>
+#include <QTimer>
 #include <QTextStream>
 
 namespace {
@@ -90,6 +91,9 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
         m_wrapDirtyFrom = m_wrapDirtyFrom < 0 ? pos : qMin(m_wrapDirtyFrom, pos);
         m_wrapDirtyTo = qMax(m_wrapDirtyTo, pos + added);
     });
+    // Modo desempenho: decidido pelo documento ao abrir o arquivo.
+    connect(document, &Document::largeFileChanged, this, &CodeEditor::updatePerformanceState);
+    QTimer::singleShot(0, this, &CodeEditor::updatePerformanceState); // nova visão de um arquivo já grande
     connect(document, &Document::foldingChanged, this, &CodeEditor::onFoldingChanged);
     connect(document, &Document::breakpointsChanged, m_lineNumberArea, qOverload<>(&QWidget::update));
     // Recarregar do disco não tira o cursor nem a rolagem do lugar.
@@ -570,6 +574,13 @@ void CodeEditor::setWordWrap(bool wrap)
 
 void CodeEditor::setWrapIndentEnabled(bool on)
 {
+    m_wrapIndentWanted = on;
+    applyWrapIndentEnabled();
+}
+
+void CodeEditor::applyWrapIndentEnabled()
+{
+    const bool on = m_wrapIndentWanted && !m_perfActive;
     if (m_wrapIndentEnabled == on)
         return;
     m_wrapIndentEnabled = on;
@@ -605,6 +616,13 @@ void CodeEditor::setMinimapWidth(int width)
 
 void CodeEditor::setMinimapVisible(bool visible)
 {
+    m_minimapWanted = visible;
+    applyMinimapVisible();
+}
+
+void CodeEditor::applyMinimapVisible()
+{
+    const bool visible = m_minimapWanted && !m_perfActive;
     if (m_minimapVisible == visible)
         return;
     m_minimapVisible = visible;
@@ -612,6 +630,19 @@ void CodeEditor::setMinimapVisible(bool visible)
     updateViewportMargins();
     resizeEvent(nullptr);
     m_minimap->update();
+}
+
+void CodeEditor::updatePerformanceState()
+{
+    const bool active = m_doc->isLargeFile();
+    if (m_perfActive == active)
+        return;
+    m_perfActive = active;
+    applyMinimapVisible();
+    applyWrapIndentEnabled();
+    updateExtraSelections(); // some/volta o destaque de ocorrências
+    viewport()->update();    // guias de indentação
+    Q_EMIT performanceActiveChanged(active);
 }
 
 /** Primeira linha do documento mostrada no topo do minimap. */
@@ -786,7 +817,7 @@ void CodeEditor::appendSelectionOccurrences(QList<QTextEdit::ExtraSelection> &ex
         if (needle.size() > 200 || needle.contains(QChar::ParagraphSeparator) || needle.trimmed().isEmpty())
             needle.clear();
     }
-    if (needle.isEmpty()) {
+    if (needle.isEmpty() || m_perfActive) {
         m_occNeedle.clear();
         m_occPositions.clear();
         return;
@@ -1680,7 +1711,8 @@ void CodeEditor::paintEvent(QPaintEvent *event)
     QTextEdit::paintEvent(event);
     QPainter p(viewport());
     p.setRenderHint(QPainter::Antialiasing);
-    paintIndentGuides(p);
+    if (!m_perfActive)
+        paintIndentGuides(p);
     if (m_prettySymbols && !m_symbols.isEmpty())
         paintPrettySymbols(p);
     paintGhostText(p);

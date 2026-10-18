@@ -111,6 +111,40 @@ void Document::setLanguage(const Language &language)
     Q_EMIT changed();
 }
 
+bool Document::exceedsLimits(qint64 bytes, int lines, int longestLine) const
+{
+    // Linha enorme (JS/JSON minificado): o layout dela custa como um arquivo grande.
+    constexpr int kLongLine = 10000; // mesmo limite do VS Code (editor.stopRenderingLineAfter)
+    return m_perfMode == 2
+           || (m_perfMode == 1 && (lines > m_perfLines || bytes > m_perfBytes || longestLine > kLongLine));
+}
+
+void Document::setLargeFileLimits(int mode, int lines, qint64 bytes)
+{
+    if (m_perfMode == mode && m_perfLines == lines && m_perfBytes == bytes)
+        return;
+    m_perfMode = mode;
+    m_perfLines = lines;
+    m_perfBytes = bytes;
+    // Já aberto: reavalia com o tamanho atual (aprox. em bytes = caracteres).
+    int longest = 0;
+    for (QTextBlock b = m_text->begin(); b.isValid(); b = b.next())
+        longest = qMax(longest, b.length());
+    setLargeFile(exceedsLimits(m_text->characterCount(), m_text->blockCount(), longest));
+}
+
+void Document::setLargeFile(bool large)
+{
+    if (m_largeFile == large)
+        return;
+    m_largeFile = large;
+    m_highlighter->setDocument(large ? nullptr : m_text);
+    if (large)
+        m_folded.clear();
+    recomputeFolds();
+    Q_EMIT largeFileChanged(large);
+}
+
 void Document::setFoldingEnabled(bool enabled)
 {
     if (m_foldingEnabled == enabled)
@@ -240,7 +274,7 @@ void Document::revealLine(int line)
 
 void Document::recomputeFolds()
 {
-    m_regions = m_foldingEnabled ? Folding::detect(m_text->toPlainText(), m_language.id) : QList<FoldRegion>();
+    m_regions = m_foldingEnabled && !m_largeFile ? Folding::detect(m_text->toPlainText(), m_language.id) : QList<FoldRegion>();
     // Mantém só as dobras cujo cabeçalho ainda abre um bloco.
     QSet<int> kept;
     for (int h : std::as_const(m_folded)) {
@@ -436,6 +470,17 @@ bool Document::load(const QString &path, QString *error, const QString &encoding
 
     m_encoding = name;
     m_bom = bom;
+    // Antes do setPlainText: sem realce, o arquivo grande não é colorido inteiro ao abrir.
+    int lines = 1, longest = 0;
+    for (qsizetype i = 0, start = 0; i <= text.size(); ++i) {
+        if (i == text.size() || text.at(i) == QLatin1Char('\n')) {
+            longest = qMax(longest, int(i - start));
+            start = i + 1;
+            if (i < text.size())
+                ++lines;
+        }
+    }
+    setLargeFile(exceedsLimits(data.size(), lines, longest));
     m_text->setPlainText(text);
     markClean();
     setFilePath(path);

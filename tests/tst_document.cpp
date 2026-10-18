@@ -4,6 +4,7 @@
 #include <QTemporaryDir>
 #include <QSignalSpy>
 #include <QTest>
+#include <QFile>
 #include <QTextCursor>
 #include <QTextDocument>
 
@@ -28,6 +29,33 @@ class TestDocument : public QObject
     }
 
 private Q_SLOTS:
+    void largeFileMode()
+    {
+        QTemporaryDir tmp;
+        auto write = [&](const QString &name, const QByteArray &data) {
+            QFile f(tmp.filePath(name));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(data);
+        };
+        write("small.c", "int main(void)\n{\n    return 0;\n}\n");
+        write("lines.c", QByteArray("x;\n").repeated(2000));
+        write("long.js", QByteArray("a;").repeated(6000));
+        Document doc;
+        doc.setLargeFileLimits(1, 1000, 1024 * 1024);
+        QVERIFY(doc.load(tmp.filePath("small.c")));
+        QVERIFY(!doc.isLargeFile());
+        QSignalSpy spy(&doc, &Document::largeFileChanged);
+        QVERIFY(doc.load(tmp.filePath("lines.c")));
+        QVERIFY(doc.isLargeFile());
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(doc.foldRegions().isEmpty());
+        QVERIFY(doc.load(tmp.filePath("long.js"))); // 1 linha de 12 000 caracteres
+        QVERIFY(doc.isLargeFile());
+        doc.setLargeFileLimits(0, 1000, 1024 * 1024); // desligado: volta ao normal na hora
+        QVERIFY(!doc.isLargeFile());
+        doc.setLargeFileLimits(2, 1000, 1024 * 1024); // sempre
+        QVERIFY(doc.isLargeFile());
+    }
     void detectsUtf8()
     {
         Document doc;

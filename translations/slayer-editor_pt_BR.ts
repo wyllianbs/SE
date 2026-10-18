@@ -793,6 +793,10 @@ sudo apt install gdb</translation>
         <translation>Fechar aba</translation>
     </message>
     <message>
+        <source>Large file: performance mode on (syntax highlighting, folding, minimap and indent guides off)</source>
+        <translation>Arquivo grande: modo desempenho ativo (realce de sintaxe, dobramento, minimap e guias desligados)</translation>
+    </message>
+    <message>
         <source>Could not open %1:
 %2</source>
         <translation>Não foi possível abrir %1:
@@ -823,6 +827,14 @@ sudo apt install gdb</translation>
     <message>
         <source>“%1” has unsaved changes. Save them?</source>
         <translation>“%1” tem alterações não salvas. Deseja salvá-las?</translation>
+    </message>
+    <message>
+        <source>Performance</source>
+        <translation>Desempenho</translation>
+    </message>
+    <message>
+        <source>Performance mode: syntax highlighting, folding, minimap, wrapped-line indent, indent guides and occurrence highlighting are off (Settings ▸ Editor)</source>
+        <translation>Modo desempenho: realce de sintaxe, dobramento, minimap, recuo das linhas quebradas, guias de indentação e destaque de ocorrências desligados (Configurações ▸ Editor)</translation>
     </message>
     <message>
         <source>Insert key toggles insert/overwrite</source>
@@ -1806,6 +1818,46 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
         <translation>Arquivos e pastas ocultos (um padrão por linha, estilo .gitignore)</translation>
     </message>
     <message>
+        <source>Automatic (large files)</source>
+        <translation>Automático (arquivos grandes)</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Sempre</translation>
+    </message>
+    <message>
+        <source>Turns off syntax highlighting, code folding, the minimap, wrapped-line indent, indent guides and occurrence highlighting. Automatic decides when a file is opened, like VS Code; reopen the file to re-evaluate.</source>
+        <translation>Desliga o realce de sintaxe, o dobramento, o minimap, o recuo das linhas quebradas, as guias de indentação e o destaque de ocorrências. O automático decide ao abrir o arquivo, como no VS Code; reabra o arquivo para reavaliar.</translation>
+    </message>
+    <message>
+        <source> lines</source>
+        <translation> linhas</translation>
+    </message>
+    <message>
+        <source>Automatic mode turns on for files with more lines than this…</source>
+        <translation>O modo automático liga em arquivos com mais linhas que isto…</translation>
+    </message>
+    <message>
+        <source> MB</source>
+        <translation> MB</translation>
+    </message>
+    <message>
+        <source>…or larger than this. Files with a line longer than 10,000 characters (minified code) also count as large.</source>
+        <translation>…ou maiores que isto. Arquivos com uma linha de mais de 10.000 caracteres (código minificado) também contam como grandes.</translation>
+    </message>
+    <message>
+        <source>Performance mode</source>
+        <translation>Modo desempenho</translation>
+    </message>
+    <message>
+        <source>Large file from</source>
+        <translation>Arquivo grande a partir de</translation>
+    </message>
+    <message>
+        <source>or from</source>
+        <translation>ou a partir de</translation>
+    </message>
+    <message>
         <source>Display</source>
         <translation>Exibição</translation>
     </message>
@@ -1816,6 +1868,10 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
     <message>
         <source>Project</source>
         <translation>Projeto</translation>
+    </message>
+    <message>
+        <source>Performance</source>
+        <translation>Desempenho</translation>
     </message>
     <message>
         <source>Theme</source>

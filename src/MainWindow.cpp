@@ -1147,6 +1147,14 @@ CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
             updateStatus();
     });
     connect(editor, &CodeEditor::overwriteModeToggled, this, [this]() { updateStatus(); });
+    connect(editor, &CodeEditor::performanceActiveChanged, this, [this, editor](bool active) {
+        if (editor != currentEditor())
+            return;
+        updateStatus();
+        if (active && m_settings.performanceMode == 1)
+            statusBar()->showMessage(tr("Large file: performance mode on (syntax highlighting, folding, "
+                                        "minimap and indent guides off)"), 6000);
+    });
     // Arrastar arquivos para o editor abre-os em novas abas (no espaço do editor).
     connect(editor, &CodeEditor::filesDropped, this, [this, space](const QStringList &paths) {
         setActiveSpace(space);
@@ -1529,6 +1537,13 @@ void MainWindow::buildStatusBar()
         });
     });
 
+    // Modo desempenho em vigor no editor atual.
+    m_perfLabel = new QLabel(tr("Performance"), this);
+    m_perfLabel->setToolTip(tr("Performance mode: syntax highlighting, folding, minimap, wrapped-line indent, "
+                               "indent guides and occurrence highlighting are off (Settings ▸ Editor)"));
+    m_perfLabel->hide();
+    statusBar()->addPermanentWidget(m_perfLabel);
+
     m_modeLabel = new QLabel(this);
     m_modeLabel->setToolTip(tr("Insert key toggles insert/overwrite"));
     m_encodingButton = new QToolButton(this);
@@ -1844,12 +1859,14 @@ void MainWindow::updateStatus()
         m_branchLabel->clear();
         m_diagLabel->clear();
         m_lspLabel->hide();
+        m_perfLabel->hide();
         setWindowTitle(QStringLiteral("Slayer Editor"));
         return;
     }
     const QTextCursor c = editor->textCursor();
     m_cursorLabel->setText(QStringLiteral("%1:%2").arg(c.blockNumber() + 1).arg(c.positionInBlock() + 1));
     m_modeLabel->setText(editor->overwriteMode() ? tr("OVERWRITE") : tr("INSERT"));
+    m_perfLabel->setVisible(editor->performanceActive());
     m_encodingButton->setText(editor->doc()->encodingLabel());
     // Visível para linguagens com servidor conhecido: mostra o servidor ativo,
     // ou "LSP off" para dar como religar dali mesmo.
@@ -2433,6 +2450,8 @@ void MainWindow::configureEditor(CodeEditor *editor) const
     editor->setHighlightCurrentLine(m_settings.highlightCurrentLine);
     editor->setMinimapWidth(m_settings.minimapWidth);
     editor->setMinimapVisible(m_settings.minimap);
+    editor->doc()->setLargeFileLimits(m_settings.performanceMode, m_settings.performanceLines,
+                                      qint64(m_settings.performanceSizeMB) * 1024 * 1024);
     editor->setAutoClosePairs(m_settings.autoClosePairs);
     editor->setCodeCompletion(m_settings.codeCompletion);
     editor->setInsertSpaces(m_settings.insertSpaces);
@@ -2593,6 +2612,9 @@ void MainWindow::applySettings(const AppSettings &settings)
         || old.highlightCurrentLine != m_settings.highlightCurrentLine
         || old.minimapWidth != m_settings.minimapWidth
         || old.minimap != m_settings.minimap
+        || old.performanceMode != m_settings.performanceMode
+        || old.performanceLines != m_settings.performanceLines
+        || old.performanceSizeMB != m_settings.performanceSizeMB
         || old.autoClosePairs != m_settings.autoClosePairs
         || old.codeCompletion != m_settings.codeCompletion
         || old.insertSpaces != m_settings.insertSpaces

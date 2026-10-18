@@ -80,11 +80,15 @@ public:
     void minimapMouseReleaseEvent(QMouseEvent *event);
     void minimapWheelEvent(QWheelEvent *event);
 
+    /** O modo desempenho (Document::isLargeFile) está em vigor neste editor? */
+    bool performanceActive() const { return m_perfActive; }
 
 Q_SIGNALS:
     void overwriteModeToggled(bool overwrite);
     /** Arquivos locais soltos sobre o editor: devem abrir em novas abas. */
     void filesDropped(const QStringList &paths);
+    /** O modo desempenho entrou ou saiu de vigor (ex.: o arquivo cruzou o limite de linhas). */
+    void performanceActiveChanged(bool active);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -108,6 +112,14 @@ private:
     // Indentação das linhas quebradas (wrap), como no VSCode: aplica um recuo
     // suspenso em cada bloco conforme a indentação da própria linha.
     void applyWrapIndent();
+    // Modo desempenho: os recursos caros seguem a escolha do usuário (m_*Wanted)
+    // só enquanto ele não estiver em vigor.
+    void updatePerformanceState();
+    void applyMinimapVisible();
+    void applyWrapIndentEnabled();
+    bool m_perfActive = false;
+    bool m_minimapWanted = true;
+    bool m_wrapIndentWanted = false;
     bool m_wordWrap = false;
     bool m_wrapIndentEnabled = false;  //< recuo das linhas quebradas (padrão desligado)
     int m_wrapIndentExtra = 0;         //< espaços extras no recuo do wrap (0 = VSCode)

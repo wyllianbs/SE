@@ -81,6 +81,9 @@ private:
     QCheckBox *m_highlightLine = nullptr;
     QCheckBox *m_minimap = nullptr;
     class QPlainTextEdit *m_projectExclude = nullptr;
+    QComboBox *m_performanceMode = nullptr;
+    QSpinBox *m_performanceLines = nullptr;
+    QSpinBox *m_performanceSize = nullptr;
     QSpinBox *m_minimapWidth = nullptr;
     QCheckBox *m_wrapIndent = nullptr;
     QSpinBox *m_wrapIndentExtra = nullptr;
