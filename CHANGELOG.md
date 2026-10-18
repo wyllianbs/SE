@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.5.0 — 2026-10-18
 
 - Project mode: File ▸ Open Folder… (Ctrl+Shift+O) opens a folder as a project,
   with a file tree panel (new file/folder, rename, move to trash, copy path),
