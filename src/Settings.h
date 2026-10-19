@@ -118,8 +118,9 @@ struct AppSettings
     QString previewHost = QStringLiteral("127.0.0.1");
     int previewPort = 8080;
     QString previewBrowser;      //< comando do navegador; vazio = padrão do sistema
-    int previewReload = 1;       //< 0 = nunca, 1 = a cada mudança, 2 = por intervalo
-    int previewReloadInterval = 2; //< segundos (modo intervalo)
+    int previewReload = 1;         //< 0 = nunca, 1 = a cada mudança, 2 = por intervalo
+    int previewReloadInterval = 3; //< segundos (modo intervalo)
+    int previewDebounceMs = 500;   //< antirrebote do live-reload no modo "a cada mudança"
     bool previewCrossOriginIsolation = true;  //< COOP/COEP (SharedArrayBuffer p/ WASM com threads)
 
     // Linguagens

@@ -1196,13 +1196,12 @@ CodeEditor *MainWindow::openView(Document *doc, ViewSpace *space)
         if (!m_previewReloadTimer) {
             m_previewReloadTimer = new QTimer(this);
             m_previewReloadTimer->setSingleShot(true);
-            m_previewReloadTimer->setInterval(250);
             connect(m_previewReloadTimer, &QTimer::timeout, this, [this]() {
                 if (m_preview)
                     m_preview->triggerReload();
             });
         }
-        m_previewReloadTimer->start();
+        m_previewReloadTimer->start(m_settings.previewDebounceMs);
     });
     updateDocumentTitles(doc);
     updateEmptyState();

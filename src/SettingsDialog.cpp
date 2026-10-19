@@ -668,8 +668,17 @@ QWidget *SettingsDialog::buildPreviewPage()
     m_previewInterval = new QSpinBox;
     m_previewInterval->setRange(1, 3600);
     m_previewInterval->setSuffix(tr(" s"));
+    m_previewDebounce = new QSpinBox;
+    m_previewDebounce->setRange(50, 5000);
+    m_previewDebounce->setSuffix(tr(" ms"));
+    m_previewDebounce->setToolTip(tr("How long to wait after the last keystroke before reloading (debounce)."));
+    auto updateReloadWidgets = [this]() {
+        const int mode = m_previewReload->currentData().toInt();
+        m_previewInterval->setEnabled(mode == 2);
+        m_previewDebounce->setEnabled(mode == 1);
+    };
     connect(m_previewReload, qOverload<int>(&QComboBox::currentIndexChanged), this,
-            [this]() { m_previewInterval->setEnabled(m_previewReload->currentData().toInt() == 2); });
+            [updateReloadWidgets]() { updateReloadWidgets(); });
 
     m_previewHint = new QLabel;
     m_previewHint->setWordWrap(true);
@@ -721,6 +730,7 @@ QWidget *SettingsDialog::buildPreviewPage()
     auto *reload = new QFormLayout;
     reload->setHorizontalSpacing(24);
     reload->addRow(tr("Live reload"), m_previewReload);
+    reload->addRow(tr("Debounce delay"), m_previewDebounce);
     reload->addRow(tr("Interval"), m_previewInterval);
 
     auto *layout = new QVBoxLayout;
@@ -1148,8 +1158,10 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_previewReload->setCurrentIndex(qMax(0, m_previewReload->findData(s.previewReload)));
     m_runFocus->setCurrentIndex(qMax(0, m_runFocus->findData(s.runFocus)));
     m_previewInterval->setValue(s.previewReloadInterval);
+    m_previewDebounce->setValue(s.previewDebounceMs);
     m_previewCoi->setChecked(s.previewCrossOriginIsolation);
     m_previewInterval->setEnabled(s.previewReload == 2);
+    m_previewDebounce->setEnabled(s.previewReload == 1);
     m_terminalTransparencyLabel->setText(s.terminalTransparency == 0 ? tr("Off")
                                                                       : QStringLiteral("%1%").arg(s.terminalTransparency));
 
@@ -1254,6 +1266,7 @@ AppSettings SettingsDialog::settings() const
     s.previewReload = m_previewReload->currentData().toInt();
     s.runFocus = m_runFocus->currentData().toInt();
     s.previewReloadInterval = m_previewInterval->value();
+    s.previewDebounceMs = m_previewDebounce->value();
     s.previewCrossOriginIsolation = m_previewCoi->isChecked();
     // Preserva opções fora deste formulário.
     s.autoReload = m_detect.autoReload;
