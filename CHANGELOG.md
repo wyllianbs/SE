@@ -8,6 +8,12 @@ All notable changes are also published on the
 - Language servers (LSP) are now disabled by default; enable them in
   Settings ▸ Editor ▸ Language servers (LSP) or per-language in
   Settings ▸ Languages.
+- Live preview now uses Server-Sent Events instead of polling: the browser
+  keeps one persistent connection and reloads only when the editor sends a
+  change, eliminating the constant stream of `/__slayer_live__` requests.
+- Live preview debounce delay is now configurable in Settings ▸ Preview
+  (default 500 ms, matching the VS Code Live Preview extension behaviour);
+  the "Every N seconds" default interval changed from 2 s to 3 s.
 
 ## 0.5.2 — 2026-10-18
 
