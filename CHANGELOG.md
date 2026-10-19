@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.5.4 — 2026-10-19
 
 - Language servers (LSP) are now disabled by default; enable them in
   Settings ▸ Editor ▸ Language servers (LSP) or per-language in
