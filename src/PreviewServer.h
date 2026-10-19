@@ -84,6 +84,7 @@ private:
     quint64 m_token = 1;
     QTimer *m_intervalTimer = nullptr;
     QHash<QTcpSocket *, QByteArray> m_buffers;
+    QList<QTcpSocket *> m_sseClients; //< conexões SSE abertas (uma por aba do browser)
     ContentProvider m_provider;
     QString m_backendHost;
     quint16 m_backendPort = 0; //< 0 = servir arquivos; >0 = proxy

@@ -92,6 +92,7 @@ void PreviewServer::stop()
     for (auto it = m_buffers.cbegin(); it != m_buffers.cend(); ++it)
         it.key()->deleteLater();
     m_buffers.clear();
+    m_sseClients.clear();
     if (m_server) {
         m_server->close();
         m_server->deleteLater();
@@ -128,7 +129,11 @@ void PreviewServer::setBackend(const QString &host, quint16 port)
 
 void PreviewServer::triggerReload()
 {
-    ++m_token; // a próxima sondagem dos clientes vê a mudança e recarrega
+    ++m_token;
+    // Notifica todos os clientes SSE conectados; sem polling, sem delay.
+    const QByteArray event = "data: reload\n\n";
+    for (QTcpSocket *s : std::as_const(m_sseClients))
+        s->write(event);
 }
 
 QUrl PreviewServer::urlForFile(const QString &filePath) const
@@ -158,6 +163,7 @@ void PreviewServer::onNewConnection()
         });
         connect(sock, &QTcpSocket::disconnected, this, [this, sock]() {
             m_buffers.remove(sock);
+            m_sseClients.removeOne(sock);
             sock->deleteLater();
         });
     }
@@ -178,8 +184,18 @@ void PreviewServer::serve(QTcpSocket *sock, const QByteArray &request)
         target = target.left(q);
     QString path = QUrl::fromPercentEncoding(target);
 
-    if (path == QLatin1String("/__slayer_live__")) {
-        writeResponse(sock, 200, "OK", "text/plain", QByteArray::number(m_token));
+    if (path == QLatin1String("/__slayer_live_sse__")) {
+        // Mantém a conexão aberta para Server-Sent Events; sem polling.
+        const QByteArray headers =
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/event-stream\r\n"
+            "Cache-Control: no-cache\r\n"
+            "Connection: keep-alive\r\n"
+            + (m_coi ? kCoiHeaders : QByteArray())
+            + "\r\n";
+        sock->write(headers);
+        sock->write("data: connected\n\n"); // confirma que o canal está aberto
+        m_sseClients.append(sock);
         return;
     }
 
@@ -356,11 +372,12 @@ void PreviewServer::finishProxyResponse(QTcpSocket *client, const QByteArray &re
 
 QByteArray PreviewServer::injectReload(const QByteArray &html) const
 {
-    // Cliente: sonda /__slayer_live__ e recarrega quando o token muda.
+    // SSE: o browser mantém uma conexão aberta; o servidor envia "data: reload"
+    // apenas quando o conteúdo muda — zero requisições periódicas.
     const QByteArray script =
-        "\n<script>(function(){var t=null;function p(){fetch('/__slayer_live__',{cache:'no-store'})"
-        ".then(function(r){return r.text();}).then(function(v){if(t===null){t=v;}else if(v!==t){"
-        "location.reload();}}).catch(function(){});}setInterval(p,600);p();})();</script>\n";
+        "\n<script>(function(){var es=new EventSource('/__slayer_live_sse__');"
+        "es.onmessage=function(e){if(e.data==='reload')location.reload();};"
+        "})();</script>\n";
     QByteArray out = html;
     const int pos = out.lastIndexOf("</body>");
     if (pos >= 0)
