@@ -42,7 +42,9 @@ private Q_SLOTS:
         if (!LspManager::isInstalled("clangd"))
             QSKIP("clangd not installed");
         LspManager lsp;
-        lsp.setSettings(AppSettings::defaults());
+        AppSettings s = AppSettings::defaults();
+        s.lspEnabled = true;
+        lsp.setSettings(s);
         Document *doc = openFile("main.c", "#include <stdio.h>\nint main(void) {\n    undefined_fn();\n    pri\n}\n", "c");
         lsp.attach(doc);
         QTRY_VERIFY_WITH_TIMEOUT(!doc->diagnostics().isEmpty(), 20000);
@@ -67,7 +69,9 @@ private Q_SLOTS:
             QSKIP("clangd not installed");
         // -std=c23 (padrão de Settings → Languages): nullptr/bool são válidos sem cabeçalhos.
         LspManager lsp;
-        lsp.setSettings(AppSettings::defaults());
+        AppSettings s = AppSettings::defaults();
+        s.lspEnabled = true;
+        lsp.setSettings(s);
         Document *doc = openFile("c23.c", "int main(void) { int *p = nullptr; bool b = true; return !p && b; }\nint x = ;\n", "c");
         lsp.attach(doc);
         QTRY_VERIFY_WITH_TIMEOUT(!doc->diagnostics().isEmpty(), 20000);
@@ -80,7 +84,9 @@ private Q_SLOTS:
         if (!LspManager::isInstalled("pylsp"))
             QSKIP("pylsp not installed");
         LspManager lsp;
-        lsp.setSettings(AppSettings::defaults());
+        AppSettings s = AppSettings::defaults();
+        s.lspEnabled = true;
+        lsp.setSettings(s);
         Document *doc = openFile("m.py", "import os\nprint(undefined_name)\n", "python");
         lsp.attach(doc);
         QTRY_VERIFY_WITH_TIMEOUT(!doc->diagnostics().isEmpty(), 20000);
