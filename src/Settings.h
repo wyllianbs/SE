@@ -73,7 +73,7 @@ struct AppSettings
     bool codeFolding = true;
     bool autoReload = false;     //< relê sozinho arquivos alterados por outros programas
     bool autoSave = true;        //< salva automaticamente os arquivos editados (com nome)
-    bool lspEnabled = true;      //< chave geral dos servidores de linguagem
+    bool lspEnabled = false;     //< chave geral dos servidores de linguagem
     bool insertSpaces = true;    //< Tab insere espaços (tabulações emuladas)
     bool editorCursorBlink = true;
     bool prettySymbols = false;  //< exibir sequências como símbolos (<= vira ≤); texto não muda

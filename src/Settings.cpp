@@ -258,7 +258,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     const QJsonObject lspObj = o.value(QStringLiteral("lsp")).toObject();
     for (auto it = lspObj.begin(); it != lspObj.end(); ++it) {
         const QJsonObject l = it.value().toObject();
-        s.lsp.insert(it.key(), {l.value("enabled").toBool(true), l.value("command").toString()});
+        s.lsp.insert(it.key(), {l.value("enabled").toBool(false), l.value("command").toString()});
     }
     s.insertSpaces = flag("insertSpaces", s.insertSpaces);
     s.editorCursorBlink = flag("editorCursorBlink", s.editorCursorBlink);

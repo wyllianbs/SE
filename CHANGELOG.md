@@ -3,6 +3,12 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Language servers (LSP) are now disabled by default; enable them in
+  Settings ▸ Editor ▸ Language servers (LSP) or per-language in
+  Settings ▸ Languages.
+
 ## 0.5.2 — 2026-10-18
 
 - Fix HTML syntax highlighting: tag names (`a`, `b`, `p`, …) are now colored
