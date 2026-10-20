@@ -22,6 +22,7 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPainter>
+#include <QPalette>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSlider>
@@ -325,6 +326,14 @@ QWidget *SettingsDialog::buildEditorPage()
                                     "Empty = the defaults shown. The project's .gitignore is also honored "
                                     "by Quick Open and Find in Project."));
     m_projectExclude->setFixedHeight(110);
+    // Placeholder em ~45% de opacidade para indicar visualmente que o campo é editável.
+    {
+        QPalette p = m_projectExclude->palette();
+        QColor ph = p.color(QPalette::Text);
+        ph.setAlphaF(0.45);
+        p.setColor(QPalette::PlaceholderText, ph);
+        m_projectExclude->setPalette(p);
+    }
     auto *project = new QVBoxLayout;
     project->addWidget(new QLabel(tr("Hidden files and folders (one pattern per line, .gitignore style)")));
     project->addWidget(m_projectExclude);
