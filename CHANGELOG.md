@@ -5,6 +5,12 @@ All notable changes are also published on the
 
 ## 0.5.4 — 2026-10-19
 
+## 0.5.8 — 2026-10-22
+
+- Edit menu: Cut (Ctrl+X), Copy (Ctrl+C), Paste (Ctrl+V) and Select All
+  (Ctrl+A) actions with icons (nf-cod-screen_cut, nf-cod-copy, nf-fa-paste,
+  nf-md-select_all).
+
 ## 0.5.7 — 2026-10-22
 
 - Edit menu: Cut (Ctrl+X), Copy (Ctrl+C), Paste (Ctrl+V) and Select All
