@@ -5,6 +5,10 @@ All notable changes are also published on the
 
 ## Unreleased
 
+## 0.5.7 — 2026-10-22
+
+- Edit menu: Cut (Ctrl+X), Copy (Ctrl+C), Paste (Ctrl+V) and Select All
+  (Ctrl+A) actions with icons.
 - Language servers (LSP) are now disabled by default; enable them in
   Settings ▸ Editor ▸ Language servers (LSP) or per-language in
   Settings ▸ Languages.
