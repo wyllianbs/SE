@@ -425,6 +425,19 @@ void MainWindow::createActions()
         if (auto *e = currentEditor()) e->redo();
     }, Icons::Redo);
     edit->addSeparator();
+    add(edit, tr("Cu&t"), QKeySequence::Cut, [this]() {
+        if (auto *e = currentEditor()) e->cut();
+    }, Icons::Cut);
+    add(edit, tr("&Copy"), QKeySequence::Copy, [this]() {
+        if (auto *e = currentEditor()) e->copy();
+    }, Icons::Copy);
+    add(edit, tr("&Paste"), QKeySequence::Paste, [this]() {
+        if (auto *e = currentEditor()) e->paste();
+    }, Icons::Paste);
+    add(edit, tr("Select &All"), QKeySequence::SelectAll, [this]() {
+        if (auto *e = currentEditor()) e->selectAll();
+    }, Icons::SelectAll);
+    edit->addSeparator();
     QAction *findA = add(edit, tr("&Find…"), QKeySequence::Find, [this]() { m_findBar->activate(false); }, Icons::Search);
     m_projectActions << reg(QStringLiteral("findInProject"),
                             add(edit, tr("Find in &Project…"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F),
