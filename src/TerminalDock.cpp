@@ -581,13 +581,24 @@ bool TerminalDock::eventFilter(QObject *watched, QEvent *event)
 {
     if (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress) {
         const auto *ke = static_cast<QKeyEvent *>(event);
+        // Ctrl+F no terminal abre a barra de busca; o atalho global não dispara.
         if (ke->key() == Qt::Key_F && ke->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier)) {
             for (QObject *o = watched; o; o = o->parent()) {
                 if (auto *term = qobject_cast<QTermWidget *>(o)) {
                     if (event->type() == QEvent::KeyPress)
                         term->toggleShowSearchBar();
-                    event->accept(); // o atalho da janela não dispara; a tecla não vai ao shell
+                    event->accept();
                     return true;
+                }
+            }
+        }
+        // Ctrl+C sem Shift dentro do terminal → SIGINT; impede que o atalho
+        // "Copy" do menu Edit consuma a tecla antes de ela chegar ao QTermWidget.
+        if (ke->key() == Qt::Key_C && ke->modifiers() == Qt::ControlModifier) {
+            for (QObject *o = watched; o; o = o->parent()) {
+                if (qobject_cast<QTermWidget *>(o)) {
+                    event->accept(); // ShortcutOverride: bloqueia o atalho global
+                    return false;    // KeyPress: deixa o QTermWidget processar normalmente
                 }
             }
         }
