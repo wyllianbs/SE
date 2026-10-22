@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.5.12 — 2026-10-22
 
 - Find: the Find action (magnifier icon / Ctrl+F) now toggles the search
   bar — triggering it again while the bar is open closes it, instead of
