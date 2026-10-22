@@ -1221,8 +1221,11 @@ bool CodeEditor::opensBlock(const QString &id, const QString &before)
             return false;
         if (endsWithWord(t, QStringLiteral("do")) || t.endsWith(QLatin1Char('|')))
             return true;
-        for (const QString &k : {"def", "class", "module", "if", "unless", "while", "until", "for", "begin",
-                                 "case", "else", "elsif", "when", "ensure", "rescue"}) {
+        for (const QLatin1String k : {QLatin1String("def"), QLatin1String("class"), QLatin1String("module"),
+                                      QLatin1String("if"), QLatin1String("unless"), QLatin1String("while"),
+                                      QLatin1String("until"), QLatin1String("for"), QLatin1String("begin"),
+                                      QLatin1String("case"), QLatin1String("else"), QLatin1String("elsif"),
+                                      QLatin1String("when"), QLatin1String("ensure"), QLatin1String("rescue")}) {
             if (startsWithWord(t, k))
                 return !t.contains(QLatin1Char(';')) && !endsWithWord(t, QStringLiteral("end"));
         }

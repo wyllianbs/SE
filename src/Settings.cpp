@@ -119,7 +119,7 @@ bool AppSettings::languageInstalled(const QString &id) const
         return true; // linguagem só de realce (HTML, CSS, JSON, Markdown…): sempre disponível
     if (QStandardPaths::findExecutable(tool.first()).isEmpty())
         return false;
-    for (const QString &r : lang.requires) {
+    for (const QString &r : lang.requiredTools) {
         if (QStandardPaths::findExecutable(r).isEmpty())
             return false;
     }

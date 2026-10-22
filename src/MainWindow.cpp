@@ -81,9 +81,9 @@ MainWindow::MainWindow(QWidget *parent)
     , m_terminal(new TerminalDock(this))
     , m_languageCombo(new QComboBox(this))
     , m_cursorLabel(new QLabel(this))
+    , m_lsp(new LspManager(this))
     , m_theme(Theme::all().first())
     , m_lastDir(QDir::homePath())
-    , m_lsp(new LspManager(this))
 {
     setAcceptDrops(true); // arquivos soltos fora dos editores (tela de abertura) abrem em abas
     connect(m_lsp, &LspManager::statusChanged, this, [this]() {

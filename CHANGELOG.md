@@ -3,6 +3,15 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Code-quality fixes from a source audit (no behaviour change): renamed the
+  `Language::requires` member (a C++20 keyword) to `requiredTools`, fixed a
+  `-Wrange-loop-construct` warning in the Ruby indentation check and a
+  `-Wreorder` warning in the `MainWindow` constructor.
+- Packaging: the AppStream metainfo now lists the 0.5.x releases (it had
+  stopped at 0.4.5), so software centers show the current version.
+
 ## 0.5.12 — 2026-10-22
 
 - Find: the Find action (magnifier icon / Ctrl+F) now toggles the search

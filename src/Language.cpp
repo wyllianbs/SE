@@ -245,7 +245,7 @@ QList<Language> buildLanguages()
          "void", "Array", "Promise", "Record", "Partial", "Readonly", "Map", "Set", "console"},
         "//", "/*", "*/"});
 
-    struct Extra { const char *id; const char *interactive; const char *file; const char *hello; QStringList requires; };
+    struct Extra { const char *id; const char *interactive; const char *file; const char *hello; QStringList requiredTools; };
     const QList<Extra> extras{
         {"c", nullptr, "untitled.c",
          "#include <stdio.h>\n\nint main(void)\n{\n    printf(\"Hello, World!\\n\");\n    return 0;\n}\n", {}},
@@ -284,7 +284,7 @@ QList<Language> buildLanguages()
                 lang.interactiveCommand = QString::fromUtf8(e.interactive);
             lang.newFileName = QString::fromUtf8(e.file);
             lang.helloWorld = QString::fromUtf8(e.hello);
-            lang.requires = e.requires;
+            lang.requiredTools = e.requiredTools;
         }
     }
 

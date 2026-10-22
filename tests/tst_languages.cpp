@@ -39,7 +39,7 @@ private Q_SLOTS:
             bool expected = true;
             if (!tool.isEmpty()) {
                 expected = !QStandardPaths::findExecutable(tool).isEmpty();
-                for (const QString &r : lang.requires)
+                for (const QString &r : lang.requiredTools)
                     expected = expected && !QStandardPaths::findExecutable(r).isEmpty();
             }
             QCOMPARE(s.languageInstalled(lang.id), expected);

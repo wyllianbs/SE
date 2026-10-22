@@ -50,6 +50,49 @@
   </screenshots>
   <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
   <releases>
+    <release version="0.5.12" date="2026-10-22">
+      <description>
+        <p>The Find action (magnifier icon / Ctrl+F) now toggles the search bar,
+        closing it when triggered again. The Brazilian Portuguese translation was
+        completed for the terminal, live-preview and find help topics, the
+        shortcut table and the Edit menu.</p>
+      </description>
+    </release>
+    <release version="0.5.11" date="2026-10-22">
+      <description>
+        <p>The minimap drag now matches VS Code/VSCodium: the visible-region
+        slider follows the cursor during a drag and clicking the minimap body
+        centers the slider on the cursor before dragging.</p>
+      </description>
+    </release>
+    <release version="0.5.8" date="2026-10-22">
+      <description>
+        <p>Added Cut, Copy, Paste and Select All actions to the Edit menu, with
+        icons.</p>
+      </description>
+    </release>
+    <release version="0.5.7" date="2026-10-22">
+      <description>
+        <p>Language servers (LSP) are now disabled by default. The live preview
+        uses Server-Sent Events instead of polling, and its debounce delay is
+        configurable in Settings.</p>
+      </description>
+    </release>
+    <release version="0.5.2" date="2026-10-18">
+      <description>
+        <p>Context-aware HTML/XML highlighting, data-driven VS Code-style
+        indentation rules for many languages, and fixes for auto-save clearing
+        the undo history and for Tab width on lines containing tabs.</p>
+      </description>
+    </release>
+    <release version="0.5.0" date="2026-10-18">
+      <description>
+        <p>Project mode: open a folder as a project with a file tree, Quick Open
+        (Ctrl+P), Find in Project (Ctrl+Shift+F), Build and Run Project, and a
+        performance mode for very large files. The terminal gained a Konsole-like
+        right-click menu.</p>
+      </description>
+    </release>
     <release version="0.4.5" date="2026-10-16">
       <description>
         <p>The find bar now keeps a search history and uses Kate-style arrows,

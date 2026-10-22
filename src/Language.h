@@ -27,7 +27,7 @@ struct Language
     /** Nome sugerido para um arquivo novo ("hello.c", "Hello.java"…). */
     QString newFileName;
     /** Ferramentas além da {tool} que precisam existir (ex.: javac para Java). */
-    QStringList requires;
+    QStringList requiredTools;
     /**
      * Padrões de recuo inspirados nas indentationRules do VSCode/VSCodium.
      * increaseIndentPattern: casado contra a linha atual → próxima linha recebe +1 nível.
