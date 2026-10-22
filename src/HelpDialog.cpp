@@ -65,17 +65,18 @@ QList<HelpTopic> HelpDialog::topics()
             "<p>Change the tool, flags and extensions of each language in <b>Settings → Languages</b>, or add your "
             "own language (Ruby, Lua, Perl…) with <b>Add Language…</b>.</p>")
              .arg(keys("F5"), keys("Alt+F5"), keys("F4"))},
-        {tr("Terminal"), tr("terminal shell bash console dock position left right top bottom float exit"),
+        {tr("Terminal"), tr("terminal shell bash console dock position left right top bottom float exit interrupt sigint ctrl+c"),
          tr("<p>%1 shows or hides the terminal and moves the focus to it; %2 opens a new terminal tab. The ▥ "
             "button on its title bar moves it to the left, top, right or bottom; you can also drag it by the title "
             "or detach it as a window. %3 / %4 copy and paste in the terminal, and %5 finds text in it (outside the terminal it is Find in Project).</p>"
-            "<p>Right-click the terminal for copy and paste, select all, find, clear, save the output, zoom, open "
+            "<p>%6 interrupts the running process (sends SIGINT, like a standard terminal). "
+            "Right-click the terminal for copy and paste, select all, find, clear, save the output, zoom, open "
             "the file manager there, rename the tab and monitor activity or silence; <b>Configure</b> sets the "
             "color scheme, cursor shape, history and scrollbar (also in <b>Settings → Terminal</b>).</p>"
             "<p>Typing <code>exit</code> starts a new shell. With a folder open, new terminals start in it. "
             "Font, size, shell and cursor are in <b>Settings → Terminal</b>.</p>")
              .arg(keys("Ctrl+`"), keys("Ctrl+Shift+`"), keys("Ctrl+Shift+C"), keys("Ctrl+Shift+V"),
-                  keys("Ctrl+Shift+F"))},
+                  keys("Ctrl+Shift+F"), keys("Ctrl+C"))},
         {tr("Split view"), tr("split view vertical horizontal side by side pane window divide"),
          tr("<p>The button at the right end of the tab bar splits the view, like Kate: %1 side by side, %2 stacked. "
             "The same document can be shown in several views; edits appear in all of them.</p>"
@@ -147,10 +148,13 @@ QList<HelpTopic> HelpDialog::topics()
             "<p>The <b>Debugger</b> panel shows the variables and the call stack; the program reads and writes in "
             "the terminal.</p>")
              .arg(keys("Ctrl+F5"), keys("F9"), keys("F6"), keys("F7"), keys("Shift+F7"), keys("F8"), keys("Shift+F5"))},
-        {tr("HTML live preview"), tr("html preview browser live reload css javascript server php"),
-         tr("<p>For HTML files, %1 opens the page in the browser and reloads it as you edit. The server (built-in "
-            "or an external one such as <code>php -S</code>), host, port, browser and reload mode are in "
-            "<b>Settings → Preview</b>.</p>")
+        {tr("HTML live preview"), tr("html preview browser live reload css javascript server php sse debounce"),
+         tr("<p>For HTML files, %1 opens the page in the browser and reloads it as you edit. The browser keeps a "
+            "persistent connection (Server-Sent Events) and reloads only when the editor sends a change — no "
+            "polling requests.</p>"
+            "<p>The server (built-in or an external one such as <code>php -S</code>), host, port, browser, reload "
+            "mode and debounce delay are in <b>Settings → Preview</b>. "
+            "In "On all changes" mode the debounce delay (default 500 ms) avoids a reload on every keystroke.</p>")
              .arg(keys("Shift+F5"))},
         {tr("Performance mode"), tr("performance large big file slow highlighting minified fast"),
          tr("<p><b>Settings → Editor → Performance</b> (off by default) turns off syntax highlighting, code folding, "
@@ -177,6 +181,8 @@ QList<HelpTopic> HelpDialog::topics()
             "<tr><td>%11</td><td>Quit</td></tr>"
             "<tr><td colspan='2'><b>Editing</b></td></tr>"
             "<tr><td>%12</td><td>Undo / redo</td></tr>"
+            "<tr><td>%44</td><td>Cut / copy / paste</td></tr>"
+            "<tr><td>%45</td><td>Select all</td></tr>"
             "<tr><td>%13</td><td>Toggle comment</td></tr>"
             "<tr><td>%14</td><td>Indent / unindent</td></tr>"
             "<tr><td>%15</td><td>Code completion</td></tr>"
@@ -211,7 +217,7 @@ QList<HelpTopic> HelpDialog::topics()
             "<tr><td colspan='2'><b>Other</b></td></tr>"
             "<tr><td>%41</td><td>Settings</td></tr>"
             "<tr><td>%42</td><td>Help</td></tr></table>"),
-                       {QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1"), QStringLiteral("Ctrl+Shift+F")})},
+                       {QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+X / Ctrl+C / Ctrl+V"), QStringLiteral("Ctrl+A")})},
     };
 }
 
