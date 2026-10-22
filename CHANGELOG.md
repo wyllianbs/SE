@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.5.11 — 2026-10-22
 
 - Minimap: dragging now matches VS Code/VSCodium. The visible-region
   indicator (slider) follows the cursor 1:1 during a drag (relative
