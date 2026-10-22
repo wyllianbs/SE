@@ -15,10 +15,10 @@ enum Glyph : char32_t {
     SaveAs = 0xEB4A,
     Undo = 0xF054D,
     Redo = 0xF044F,
-    Cut = 0xF190,
-    Copy = 0xF18F,
-    Paste = 0xF192,
-    SelectAll = 0xEA6C,
+    Cut = 0xEBE8,       //< nf-cod-screen_cut
+    Copy = 0xEAE0,      //< nf-cod-copy
+    Paste = 0xF0EA,     //< nf-fa-paste
+    SelectAll = 0xF0A2A, //< nf-md-select_all
     Search = 0xEA6D,
     Run = 0xEB2C,
     Terminal = 0xEA85,
