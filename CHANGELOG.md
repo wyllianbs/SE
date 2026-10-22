@@ -7,7 +7,11 @@ All notable changes are also published on the
 
 - Find: the Find action (magnifier icon / Ctrl+F) now toggles the search
   bar — triggering it again while the bar is open closes it, instead of
-  only the bar's own close button doing so.
+  only the bar's own close button doing so. The help entry documents this.
+- Translations: completed the Brazilian Portuguese translation — the
+  terminal, live-preview and find help topics, the shortcut table and the
+  Edit menu (Cut/Copy/Paste/Select All) that were still falling back to
+  English are now translated (`lupdate`, no `unfinished` entries left).
 
 ## 0.5.11 — 2026-10-22
 

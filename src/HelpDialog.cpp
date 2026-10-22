@@ -85,7 +85,8 @@ QList<HelpTopic> HelpDialog::topics()
              .arg(keys("Ctrl+Shift+L"), keys("Ctrl+Shift+T"), keys("Ctrl+Shift+R"), keys("Ctrl+Alt+→"),
                   keys("Ctrl+Alt+←"))},
         {tr("Find and replace"), tr("find search replace next previous case word"),
-         tr("<p>%1 opens the find bar and %2 the replace bar. %3 / %4 jump to the next or previous match; "
+         tr("<p>%1 toggles the find bar (press it again, or <b>Esc</b>, to close it) and %2 opens the replace bar. "
+            "%3 / %4 jump to the next or previous match; "
             "<b>Aa</b> matches case and <b>Word</b> whole words.</p>")
              .arg(keys("Ctrl+F"), keys("Ctrl+H"), keys("F3"), keys("Shift+F3"))},
         {tr("Code completion"), tr("completion autocomplete suggestion popup ctrl space intellisense"),
