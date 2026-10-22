@@ -50,6 +50,13 @@
   </screenshots>
   <developer id="io.github.wyllianbs"><name>Wyllian Bezerra da Silva</name></developer>
   <releases>
+    <release version="0.6.0" date="2026-10-22">
+      <description>
+        <p>Internal code-quality cleanups from a source and static-analysis
+        pass (no change in behavior), and the AppStream metadata now lists the
+        recent releases.</p>
+      </description>
+    </release>
     <release version="0.5.12" date="2026-10-22">
       <description>
         <p>The Find action (magnifier icon / Ctrl+F) now toggles the search bar,

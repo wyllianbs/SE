@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.0 — 2026-10-22
 
 - Code-quality fixes from a source audit (no behaviour change): renamed the
   `Language::requires` member (a C++20 keyword) to `requiredTools`, fixed a
