@@ -19,6 +19,17 @@ DapClient::~DapClient()
 
 bool DapClient::start(const QString &program, const QStringList &arguments, const QString &workingDir)
 {
+    // Encerra e descarta um processo anterior antes de criar outro (defensivo:
+    // hoje cada sessão usa um DapClient novo, mas evita herdar um processo vivo).
+    if (m_process) {
+        m_process->disconnect(this);
+        if (m_process->state() != QProcess::NotRunning) {
+            m_process->kill();
+            m_process->waitForFinished(500);
+        }
+        delete m_process;
+        m_process = nullptr;
+    }
     m_process = new QProcess(this);
     m_process->setStandardErrorFile(QProcess::nullDevice());
     m_process->setWorkingDirectory(workingDir);

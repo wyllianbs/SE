@@ -119,7 +119,7 @@ DebugPanel::DebugPanel(DebugSession *session, QWidget *parent)
         // A árvore é refeita a cada parada: resposta de uma geração antiga
         // apontaria para um item já destruído.
         const int generation = m_generation;
-        m_session->variables(item->data(0, kRefRole).toInt(), [this, generation, item](QList<DebugVariable> vars) {
+        m_session->variables(item->data(0, kRefRole).toInt(), [this, generation, item](const QList<DebugVariable> &vars) {
             if (generation != m_generation)
                 return;
             qDeleteAll(item->takeChildren());

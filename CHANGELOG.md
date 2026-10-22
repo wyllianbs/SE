@@ -11,6 +11,10 @@ All notable changes are also published on the
   `-Wreorder` warning in the `MainWindow` constructor.
 - Packaging: the AppStream metainfo now lists the 0.5.x releases (it had
   stopped at 0.4.5), so software centers show the current version.
+- Minor cleanups from a cppcheck pass (no behaviour change): several value
+  getters now return by `const &` and two callback parameters take their
+  list by `const &`, and `DapClient::start()` defensively disposes of any
+  previous process before creating a new one.
 
 ## 0.5.12 — 2026-10-22
 

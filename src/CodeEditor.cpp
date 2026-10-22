@@ -1592,7 +1592,7 @@ void CodeEditor::updateCompletion(bool fromTrigger)
     const int position = textCursor().position();
     const QTextCursor c = textCursor();
     QPointer<CodeEditor> self(this);
-    m_provider(c.blockNumber(), c.positionInBlock(), [self, request, position, words](QList<ServerItem> items) {
+    m_provider(c.blockNumber(), c.positionInBlock(), [self, request, position, words](const QList<ServerItem> &items) {
         // Descarta respostas antigas ou de outra posição do cursor.
         if (!self || request != self->m_completionRequest || self->textCursor().position() != position)
             return;

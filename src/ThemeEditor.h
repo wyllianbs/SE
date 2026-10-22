@@ -24,8 +24,8 @@ public:
     ThemeEditor(const QList<Theme> &userThemes, const QString &currentId, const Theme &uiTheme,
                 QWidget *parent = nullptr);
 
-    QList<Theme> userThemes() const { return m_user; }
-    QString selectedId() const { return m_current.id; }
+    const QList<Theme> &userThemes() const { return m_user; }
+    const QString &selectedId() const { return m_current.id; }
 
 private:
     void refreshList();

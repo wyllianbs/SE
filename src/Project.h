@@ -50,7 +50,7 @@ public:
     Project(const QString &root, const QStringList &excludes, QObject *parent = nullptr);
     ~Project() override;
 
-    QString root() const { return m_root; }
+    const QString &root() const { return m_root; }
     QString name() const;
     bool contains(const QString &absPath) const;
     QString relativePath(const QString &absPath) const;
@@ -66,7 +66,7 @@ public:
     bool filesReady() const { return m_filesReady; }
     bool filesTruncated() const { return m_truncated; }
     /** Arquivos (caminhos relativos, ordenados) da última listagem. */
-    QStringList files() const { return m_files; }
+    const QStringList &files() const { return m_files; }
 
     /** Varre a pasta (podando o que for ignorado). Usado na thread e nos testes. */
     static QStringList listFiles(const QString &root, const IgnoreRules &hidden, const IgnoreRules &ignored,

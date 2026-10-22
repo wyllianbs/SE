@@ -26,7 +26,7 @@ public:
               QObject *parent = nullptr);
     ~LspClient() override;
 
-    QString command() const { return m_command; }
+    const QString &command() const { return m_command; }
     bool start();
     void shutdown();
     bool isReady() const { return m_ready; }
@@ -35,7 +35,7 @@ public:
     void notify(const QString &method, const QJsonObject &params);
 
     bool hasCompletion() const { return m_completion; }
-    QStringList completionTriggers() const { return m_triggers; }
+    const QStringList &completionTriggers() const { return m_triggers; }
 
     /** Junta um cabeçalho LSP a um corpo JSON (exposto para os testes). */
     static QByteArray frame(const QJsonObject &message);

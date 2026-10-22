@@ -35,11 +35,11 @@ public:
     explicit Document(QObject *parent = nullptr);
 
     QTextDocument *text() const { return m_text; }
-    QString filePath() const { return m_filePath; }
+    const QString &filePath() const { return m_filePath; }
     void setFilePath(const QString &path);
     QString displayName() const;
     /** Nome proposto a um arquivo novo (ainda sem caminho), ex.: "hello.c". */
-    QString suggestedName() const { return m_suggestedName; }
+    const QString &suggestedName() const { return m_suggestedName; }
     void setSuggestedName(const QString &name) { m_suggestedName = name; Q_EMIT changed(); }
     bool isModified() const;
     /** O texto atual passa a ser o "salvo" (sem marca de alterado). */
@@ -93,7 +93,7 @@ public:
     QList<Diagnostic> diagnosticsAt(int line) const;
 
     /** Nome da codificação ("UTF-8", "ISO-8859-15"…) e se o arquivo leva BOM. */
-    QString encoding() const { return m_encoding; }
+    const QString &encoding() const { return m_encoding; }
     bool hasBom() const { return m_bom; }
     /** O arquivo usa CRLF (Windows)? O editor trabalha com LF; ao salvar, volta a CRLF. */
     bool usesCrlf() const { return m_crlf; }

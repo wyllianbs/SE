@@ -32,8 +32,8 @@ public:
     void stop();
     bool isRunning() const;
 
-    QString rootDir() const { return m_root; }
-    QString host() const { return m_host; }
+    const QString &rootDir() const { return m_root; }
+    const QString &host() const { return m_host; }
     quint16 port() const { return m_port; }
 
     /**
