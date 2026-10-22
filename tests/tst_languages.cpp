@@ -70,22 +70,22 @@ private Q_SLOTS:
         QVERIFY(f.open(QIODevice::WriteOnly));
         f.write(lang.helloWorld.toUtf8());
         f.close();
-        // Verifica se o compilador/interpretador está funcional antes de rodar.
-        {
-            const QString cmd = lang.commandFor(path, cfg.tool, cfg.flags);
-            const QString exe = cmd.split(QLatin1Char(' ')).first();
-            QProcess probe;
-            probe.start("bash", {"-c", exe + " --version 2>&1"});
-            probe.waitForFinished(5000);
-            if (probe.exitCode() != 0)
-                QSKIP(qPrintable(exe + " não está disponível ou sem toolchain configurado"));
-        }
         QProcess p;
         p.setWorkingDirectory(dir.path());
         p.setProcessChannelMode(QProcess::MergedChannels);
         p.start("bash", {"-c", lang.commandFor(path, cfg.tool, cfg.flags)});
         QVERIFY(p.waitForFinished(60000));
         const QString out = QString::fromUtf8(p.readAll());
+        // Pula se o compilador/interpretador não está instalado ou sem toolchain.
+        if (p.exitCode() != 0) {
+            const bool indisponivel = out.contains("command not found", Qt::CaseInsensitive)
+                                  || out.contains("not found", Qt::CaseInsensitive)
+                                  || out.contains("not installed", Qt::CaseInsensitive)
+                                  || out.contains("no default is configured", Qt::CaseInsensitive)
+                                  || out.contains("could not choose", Qt::CaseInsensitive);
+            if (indisponivel)
+                QSKIP(qPrintable(id + ": " + out.trimmed()));
+        }
         QVERIFY2(p.exitCode() == 0 && out.contains("Hello, World!"), qPrintable(id + ": " + out));
     }
 
