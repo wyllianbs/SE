@@ -3,6 +3,12 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Find: the Find action (magnifier icon / Ctrl+F) now toggles the search
+  bar — triggering it again while the bar is open closes it, instead of
+  only the bar's own close button doing so.
+
 ## 0.5.11 — 2026-10-22
 
 - Minimap: dragging now matches VS Code/VSCodium. The visible-region

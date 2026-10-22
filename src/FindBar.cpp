@@ -160,6 +160,15 @@ void FindBar::activate(bool replace)
     m_find->lineEdit()->selectAll();
 }
 
+void FindBar::toggle(bool replace)
+{
+    // Segundo acionamento da ação fecha a barra; caso contrário, abre.
+    if (isVisible())
+        hide();
+    else
+        activate(replace);
+}
+
 bool FindBar::find(bool backward)
 {
     m_status->clear();

@@ -438,7 +438,7 @@ void MainWindow::createActions()
         if (auto *e = currentEditor()) e->selectAll();
     }, Icons::SelectAll);
     edit->addSeparator();
-    QAction *findA = add(edit, tr("&Find…"), QKeySequence::Find, [this]() { m_findBar->activate(false); }, Icons::Search);
+    QAction *findA = add(edit, tr("&Find…"), QKeySequence::Find, [this]() { m_findBar->toggle(false); }, Icons::Search);
     m_projectActions << reg(QStringLiteral("findInProject"),
                             add(edit, tr("Find in &Project…"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F),
                                 [this]() { findInProject(); }));

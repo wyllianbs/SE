@@ -19,6 +19,9 @@ public:
 
     void setEditor(QTextEdit *editor) { m_editor = editor; }
     void activate(bool replace);
+    // Alterna a barra: fecha se já estiver visível, senão abre (como o ícone
+    // da lupa no VS Code). Usada pela ação Localizar.
+    void toggle(bool replace);
     /** Recolore os ícones das setas conforme o tema. */
     void setIconColor(const QColor &color);
 
