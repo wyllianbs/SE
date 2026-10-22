@@ -645,16 +645,49 @@ void CodeEditor::updatePerformanceState()
     Q_EMIT performanceActiveChanged(active);
 }
 
+/**
+ * Geometria do minimap num modelo único (como o VSCode). O indicador (slider)
+ * ocupa `sliderHeight` px e desliza de 0 a `maxSliderTop` em proporção direta
+ * à fração rolada; quando o documento é maior que o minimap, o próprio minimap
+ * rola para manter o indicador visível. Pintura e arraste usam estes valores,
+ * então o indicador fica sempre sob o cursor.
+ */
+CodeEditor::MinimapMetrics CodeEditor::minimapMetrics() const
+{
+    MinimapMetrics m;
+    m.h = qMax(0, m_minimap->height());
+    m.lineCount = qMax(1, document()->blockCount());
+
+    const QTextBlock fvb = firstVisibleBlock();
+    const double blockH = blockBoundingRect(fvb).height();
+    const int lineSpacing = blockH > 0 ? int(blockH) : qMax(1, fontMetrics().lineSpacing());
+    m.visibleLines = qMax(1, viewport()->height() / lineSpacing);
+
+    const QScrollBar *bar = verticalScrollBar();
+    m.scrollMin = bar->minimum();
+    m.scrollRange = bar->maximum() - bar->minimum();
+    const double frac = m.scrollRange > 0
+        ? qBound(0.0, double(bar->value() - m.scrollMin) / m.scrollRange, 1.0)
+        : 0.0;
+
+    // Altura do indicador = linhas visíveis; limitada à altura do minimap.
+    m.sliderHeight = qBound(kMinimapLineH, m.visibleLines * kMinimapLineH, qMax(kMinimapLineH, m.h));
+    // Curso do indicador: até o documento inteiro caber, ou até o fim do minimap.
+    const int docLinesH = m.lineCount * kMinimapLineH;
+    m.maxSliderTop = qMax(0, qMin(docLinesH, m.h) - m.sliderHeight);
+    m.sliderTop = int(qRound(frac * m.maxSliderTop));
+    m.firstVisibleLine = qMax(0, int(qRound(frac * (m.lineCount - m.visibleLines))));
+    return m;
+}
+
 /** Primeira linha do documento mostrada no topo do minimap. */
 int CodeEditor::minimapFirstLine() const
 {
-    const int visLines = qMax(1, m_minimap->height() / kMinimapLineH);
-    const int n = document()->blockCount();
-    if (n <= visLines)
-        return 0;
-    const QScrollBar *bar = verticalScrollBar();
-    const double frac = bar->maximum() > 0 ? double(bar->value()) / bar->maximum() : 0.0;
-    return qBound(0, int(qRound(frac * (n - visLines))), n - visLines);
+    const MinimapMetrics m = minimapMetrics();
+    const int capacity = m.h / kMinimapLineH;            //< linhas que o minimap exibe
+    const int maxFirst = qMax(0, m.lineCount - capacity);
+    // O minimap rola o bastante para que a linha visível fique em `sliderTop`.
+    return qBound(0, m.firstVisibleLine - m.sliderTop / kMinimapLineH, maxFirst);
 }
 
 void CodeEditor::minimapPaintEvent(QPaintEvent *)
@@ -713,13 +746,11 @@ void CodeEditor::minimapPaintEvent(QPaintEvent *)
     p.setPen(m_theme.divider);
     p.drawLine(0, 0, 0, h);
 
-    // Indicador da área visível (clicável/arrastável).
-    const QTextBlock fvb = firstVisibleBlock();
-    const double blockH = blockBoundingRect(fvb).height();
-    const int lineSpacing = blockH > 0 ? int(blockH) : qMax(1, fontMetrics().lineSpacing());
-    const int visibleLines = qMax(1, viewport()->height() / lineSpacing + 1);
-    const int indY = (fvb.blockNumber() - first) * kMinimapLineH;
-    const int indH = qMax(kMinimapLineH, visibleLines * kMinimapLineH);
+    // Indicador da área visível (clicável/arrastável): mesma geometria usada
+    // pelo arraste, então o indicador acompanha o cursor sem descompasso.
+    const MinimapMetrics mm = minimapMetrics();
+    const int indY = mm.sliderTop;
+    const int indH = mm.sliderHeight;
     QColor fill = m_theme.primary;
     fill.setAlpha(40);
     p.fillRect(QRect(0, indY, w, indH), fill);
@@ -730,32 +761,48 @@ void CodeEditor::minimapPaintEvent(QPaintEvent *)
 }
 
 /**
- * Rola o editor conforme a posição vertical no minimap. Mapeamento linear
- * direto (topo do minimap = topo do documento, base = base): sem laço de
- * realimentação com a rolagem atual, o arraste fica fluido, sem trancos.
+ * Rola o editor para que o topo do indicador fique em `sliderTop` (px no
+ * minimap). É a relação direta usada na pintura: sliderTop = fração * curso.
  */
-void CodeEditor::minimapScrollTo(int widgetY)
+void CodeEditor::minimapScrollToSliderTop(int sliderTop, const MinimapMetrics &m)
 {
-    const int h = m_minimap->height();
-    if (h <= 0)
+    if (m.maxSliderTop <= 0)
         return;
+    const double frac = qBound(0.0, double(sliderTop) / m.maxSliderTop, 1.0);
     QScrollBar *bar = verticalScrollBar();
-    const double frac = qBound(0.0, double(widgetY) / h, 1.0);
-    bar->setValue(qRound(bar->minimum() + frac * (bar->maximum() - bar->minimum())));
+    bar->setValue(qRound(m.scrollMin + frac * m.scrollRange));
 }
 
 void CodeEditor::minimapMousePressEvent(QMouseEvent *event)
 {
     if (event->button() != Qt::LeftButton)
         return;
+    const MinimapMetrics m = minimapMetrics();
+    const int y = event->position().toPoint().y();
+    // Clique fora do indicador: traz o centro do indicador até o cursor
+    // (como o VSCode fora do modo proporcional); em seguida o arraste é
+    // relativo, com o indicador seguindo o mouse 1:1.
+    if (y < m.sliderTop || y >= m.sliderTop + m.sliderHeight)
+        minimapScrollToSliderTop(y - m.sliderHeight / 2, m);
     m_minimapDragging = true;
-    minimapScrollTo(event->position().toPoint().y());
+    m_mmDragStartY = y;
+    m_mmDragStartScroll = verticalScrollBar()->value();
 }
 
 void CodeEditor::minimapMouseMoveEvent(QMouseEvent *event)
 {
-    if (m_minimapDragging)
-        minimapScrollTo(event->position().toPoint().y());
+    if (!m_minimapDragging)
+        return;
+    const MinimapMetrics m = minimapMetrics();
+    if (m.maxSliderTop <= 0)
+        return;
+    // Arraste relativo: cada pixel do mouse move o indicador um pixel, logo a
+    // rolagem anda `delta * cursoDaRolagem / cursoDoIndicador`.
+    const int delta = event->position().toPoint().y() - m_mmDragStartY;
+    const double target = double(m_mmDragStartScroll)
+        + double(delta) * m.scrollRange / m.maxSliderTop;
+    QScrollBar *bar = verticalScrollBar();
+    bar->setValue(qBound(bar->minimum(), int(qRound(target)), bar->maximum()));
 }
 
 void CodeEditor::minimapMouseReleaseEvent(QMouseEvent *)

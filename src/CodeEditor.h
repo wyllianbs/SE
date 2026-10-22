@@ -132,8 +132,23 @@ private:
     void updateLineNumberAreaWidth();
     void updateViewportMargins();
     void updateLineNumberArea(const QRect &rect, int dy);
+    // Geometria do minimap num único modelo (igual ao VSCode): o indicador
+    // (slider) é desenhado e arrastado a partir destes mesmos valores, para
+    // que ele fique sempre sob o cursor durante o arraste.
+    struct MinimapMetrics {
+        int h = 0;               //< altura do minimap em px
+        int lineCount = 1;       //< blocos do documento
+        int visibleLines = 1;    //< linhas visíveis na viewport
+        int sliderHeight = 0;    //< altura do indicador em px
+        int maxSliderTop = 0;    //< curso do indicador (0..maxSliderTop)
+        int sliderTop = 0;       //< topo atual do indicador em px
+        int firstVisibleLine = 0;//< primeira linha visível (aprox.)
+        int scrollRange = 0;     //< bar->maximum() - bar->minimum()
+        int scrollMin = 0;       //< bar->minimum()
+    };
+    MinimapMetrics minimapMetrics() const;
     int minimapFirstLine() const;
-    void minimapScrollTo(int widgetY);
+    void minimapScrollToSliderTop(int sliderTop, const MinimapMetrics &m);
     void highlightCurrentLine() { updateExtraSelections(); }
     bool handleAutoPair(QKeyEvent *event);
     void insertNewlineWithIndent();
@@ -158,6 +173,8 @@ private:
     bool m_minimapVisible = true;
     int m_minimapWidth = 55;         //< largura do minimap em px
     bool m_minimapDragging = false;
+    int m_mmDragStartY = 0;          //< Y do mouse no início do arraste (relativo)
+    int m_mmDragStartScroll = 0;     //< valor da rolagem no início do arraste
     QPixmap m_minimapCache;          //< fatia renderizada das linhas (sem o indicador)
     int m_mmCacheFirstLine = -1;     //< chave do cache: primeira linha desenhada
     int m_mmCacheRevision = -1;      //< …revisão do documento

@@ -3,6 +3,15 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Minimap: dragging now matches VS Code/VSCodium. The visible-region
+  indicator (slider) follows the cursor 1:1 during a drag (relative
+  movement) instead of the previous absolute mapping, and clicking the
+  minimap body snaps the slider's center to the cursor before dragging.
+  The painted indicator and the drag math share a single geometry model,
+  so the slider always stays under the pointer.
+
 ## 0.5.4 — 2026-10-19
 
 ## 0.5.8 — 2026-10-22
