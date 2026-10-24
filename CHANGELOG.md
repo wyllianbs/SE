@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.1 — 2026-10-24
 
 - Highlights are now more visible and theme-customizable. Matching
   brackets/tags and selection occurrences are drawn with a stronger fill
