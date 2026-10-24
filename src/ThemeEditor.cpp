@@ -32,9 +32,14 @@ QIcon swatch(const QColor &c)
     pm.fill(Qt::transparent);
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing);
+    const QRectF r(0.5, 0.5, 27, 17);
+    // Base neutra para que o alpha (destaques translúcidos) fique visível.
+    p.setPen(Qt::NoPen);
+    p.setBrush(QColor(128, 128, 128));
+    p.drawRoundedRect(r, 5, 5);
     p.setPen(QColor(128, 128, 128, 160));
     p.setBrush(c);
-    p.drawRoundedRect(QRectF(0.5, 0.5, 27, 17), 5, 5);
+    p.drawRoundedRect(r, 5, 5);
     return QIcon(pm);
 }
 
@@ -95,7 +100,8 @@ ThemeEditor::ThemeEditor(const QList<Theme> &userThemes, const QString &currentI
         grid->addWidget(new QLabel(QCoreApplication::translate("Theme", f.label)), row, 0);
         grid->addWidget(button, row++, 1, Qt::AlignLeft);
         QColor Theme::*member = f.member;
-        connect(button, &QToolButton::clicked, this, [this, button, member]() { pickColor(button, &(m_current.*member)); });
+        const bool alpha = f.alpha;
+        connect(button, &QToolButton::clicked, this, [this, button, member, alpha]() { pickColor(button, &(m_current.*member), alpha); });
         m_swatches.append({button, member});
     }
     auto *ansiTitle = new QLabel(tr("Terminal colors (ANSI 0–15)"));
@@ -297,9 +303,11 @@ void ThemeEditor::storeCurrent()
         m_user.append(m_current);
 }
 
-void ThemeEditor::pickColor(QToolButton *button, QColor *target)
+void ThemeEditor::pickColor(QToolButton *button, QColor *target, bool alpha)
 {
-    const QColor c = QColorDialog::getColor(*target, this, tr("Choose Color"));
+    const QColorDialog::ColorDialogOptions opts =
+        alpha ? QColorDialog::ShowAlphaChannel : QColorDialog::ColorDialogOptions();
+    const QColor c = QColorDialog::getColor(*target, this, tr("Choose Color"), opts);
     if (!c.isValid())
         return;
     *target = c;

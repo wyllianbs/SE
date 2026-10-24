@@ -14,6 +14,23 @@ QColor mix(const QColor &a, const QColor &b, qreal t)
                             a.blueF() + (b.blueF() - a.blueF()) * t);
 }
 
+QColor withAlpha(QColor c, int a)
+{
+    c.setAlpha(a);
+    return c;
+}
+
+/** Preenche as cores de destaque não definidas pelo tema, derivando-as do
+ *  acento. O alpha é a opacidade do preenchimento; o contorno é desenhado
+ *  pelo editor a partir da mesma cor. */
+void applyHighlightDefaults(Theme &t)
+{
+    if (!t.matchHighlight.isValid())
+        t.matchHighlight = withAlpha(t.primary, 150);      //< par de bloco/tag
+    if (!t.occurrenceHighlight.isValid())
+        t.occurrenceHighlight = withAlpha(t.primary, 90);   //< ocorrências da seleção
+}
+
 /** Paleta de 8 cores ANSI; as "brilhantes" clareiam (escuro) ou escurecem (claro) um pouco. */
 void setAnsi(Theme &t, std::initializer_list<const char *> normal, std::initializer_list<const char *> bright = {})
 {
@@ -271,6 +288,8 @@ QList<Theme> buildThemes()
     setAnsi(t, {"#1f1f1f", "#cb3a2a", "#14710a", "#846e15", "#644ac9", "#a3144d", "#036a96", "#635d97"});
     list << t;
 
+    for (Theme &theme : list)
+        applyHighlightDefaults(theme);
     return list;
 }
 
@@ -361,6 +380,8 @@ const QList<Theme::Field> &Theme::fields()
         {"divider", QT_TRANSLATE_NOOP("Theme", "Borders"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::divider},
         {"currentLine", QT_TRANSLATE_NOOP("Theme", "Current line"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::currentLine},
         {"selection", QT_TRANSLATE_NOOP("Theme", "Selection"), QT_TRANSLATE_NOOP("Theme", "Interface"), &Theme::selection},
+        {"matchHighlight", QT_TRANSLATE_NOOP("Theme", "Matching bracket/tag"), QT_TRANSLATE_NOOP("Theme", "Highlights"), &Theme::matchHighlight, true},
+        {"occurrenceHighlight", QT_TRANSLATE_NOOP("Theme", "Selection occurrences"), QT_TRANSLATE_NOOP("Theme", "Highlights"), &Theme::occurrenceHighlight, true},
         {"keyword", QT_TRANSLATE_NOOP("Theme", "Keywords"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::keyword},
         {"type", QT_TRANSLATE_NOOP("Theme", "Types"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::type},
         {"function", QT_TRANSLATE_NOOP("Theme", "Functions"), QT_TRANSLATE_NOOP("Theme", "Syntax"), &Theme::function},
@@ -377,7 +398,7 @@ QJsonObject Theme::toJson() const
 {
     QJsonObject colors;
     for (const Field &f : fields())
-        colors[QLatin1String(f.key)] = (this->*f.member).name();
+        colors[QLatin1String(f.key)] = (this->*f.member).name(f.alpha ? QColor::HexArgb : QColor::HexRgb);
     QJsonArray ansiArray;
     for (const QColor &c : ansi)
         ansiArray.append(c.name());

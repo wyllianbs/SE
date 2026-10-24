@@ -205,6 +205,12 @@ private:
     QString m_occNeedle;          //< seleção cujas ocorrências estão destacadas
     int m_occRevision = -1;
     QList<int> m_occPositions;
+    // Faixas (início,fim) a contornar no paintEvent: pares de bloco/tag e
+    // ocorrências. O preenchimento vem das ExtraSelections; o contorno é
+    // pintado por cima para o destaque ficar nítido (estilo VS Code).
+    QList<QPair<int, int>> m_matchRanges;
+    QList<QPair<int, int>> m_occRanges;
+    void paintHighlightOutlines(class QPainter &p);
     void setGhost(const QString &text);
     void clearGhost();
     void paintGhostText(class QPainter &p);

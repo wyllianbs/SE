@@ -34,7 +34,7 @@ private:
     void storeCurrent();
     void updatePreview();
     void updateButtons();
-    void pickColor(QToolButton *button, QColor *target);
+    void pickColor(QToolButton *button, QColor *target, bool alpha = false);
     bool isModified(const Theme &t) const;
 
     QList<Theme> m_user;

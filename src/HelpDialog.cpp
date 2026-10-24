@@ -122,11 +122,15 @@ QList<HelpTopic> HelpDialog::topics()
             "performance mode is on), line:column, INSERT/OVERWRITE (%1 toggles), tabs, encoding and language "
             "(click to change the highlighting).</p>")
              .arg(keys("Insert"))},
-        {tr("Themes and appearance"), tr("theme dark light color appearance scale font size zoom toolbar icons text configure"),
+        {tr("Themes and appearance"), tr("theme dark light color appearance scale font size zoom toolbar icons text configure highlight selection bracket tag match opacity"),
          tr("<p>Pick a theme in <b>View → Theme</b> or <b>Settings → Appearance</b>; it also colors the terminal. "
             "%4 switches the theme to its dark or light variant. "
             "%1 / %2 / %3 zoom the editor. Right-click the toolbar for text position, icon size, lock and "
-            "<b>Configure Toolbars…</b> (choose and order its buttons).</p>")
+            "<b>Configure Toolbars…</b> (choose and order its buttons).</p>"
+            "<p>Editing a theme (<b>Settings → Appearance</b>, edit button) sets every color, including the "
+            "<b>Highlights</b>: <b>Selection</b>, <b>Matching bracket/tag</b> and <b>Selection occurrences</b>. "
+            "The last two take an opacity (alpha) in the color picker — the editor fills the match and draws a "
+            "crisp outline around it, so the highlight stays visible on any theme.</p>")
              .arg(keys("Ctrl++"), keys("Ctrl+-"), keys("Ctrl+0"), keys("Ctrl+Shift+D"))},
         {tr("Projects"), tr("project folder open folder workspace tree quick open find in project build run cmake make"),
          tr("<p><b>File → Open Folder…</b> (%1) opens a folder as a project: its files appear in the side panel "

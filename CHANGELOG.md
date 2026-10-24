@@ -3,6 +3,16 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Highlights are now more visible and theme-customizable. Matching
+  brackets/tags and selection occurrences are drawn with a stronger fill
+  plus a crisp outline (VS Code style), so they stand out on any theme.
+  The theme editor (Settings ▸ Appearance) gained a **Highlights** group
+  with **Matching bracket/tag** and **Selection occurrences** colors, each
+  with an adjustable opacity (alpha) in the color picker; **Selection**
+  stays editable as before.
+
 ## 0.6.0 — 2026-10-22
 
 - Code-quality fixes from a source audit (no behaviour change): renamed the

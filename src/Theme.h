@@ -22,6 +22,8 @@ struct Theme
     QColor divider;
     QColor currentLine;
     QColor selection;
+    QColor matchHighlight;      //< fundo do par de bloco/tag; o alpha é a opacidade
+    QColor occurrenceHighlight; //< fundo das ocorrências da seleção; o alpha é a opacidade
 
     QColor keyword;
     QColor type;
@@ -50,7 +52,7 @@ struct Theme
     static Theme fromJson(const QJsonObject &json);
 
     /** Cores editáveis: chave, rótulo (tr no chamador) e ponteiro para o membro. */
-    struct Field { const char *key; const char *label; const char *group; QColor Theme::*member; };
+    struct Field { const char *key; const char *label; const char *group; QColor Theme::*member; bool alpha = false; };
     static const QList<Field> &fields();
 
     /** Grava o esquema de cores do QTermWidget e devolve o nome dele. */

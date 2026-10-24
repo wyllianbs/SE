@@ -18,6 +18,7 @@
 #include <QPointer>
 #include <QToolTip>
 #include <QPainter>
+#include <QPen>
 #include <QSaveFile>
 #include <QTextBlock>
 #include <QTimer>
@@ -182,7 +183,9 @@ void CodeEditor::setTheme(const Theme &theme)
     const bool same = m_theme.id == theme.id && m_theme.surface == theme.surface
                       && m_theme.text == theme.text && m_theme.selection == theme.selection
                       && m_theme.currentLine == theme.currentLine
-                      && m_theme.textSecondary == theme.textSecondary;
+                      && m_theme.textSecondary == theme.textSecondary
+                      && m_theme.matchHighlight == theme.matchHighlight
+                      && m_theme.occurrenceHighlight == theme.occurrenceHighlight;
     m_theme = theme;
     if (!same) {
         QPalette p = palette();
@@ -882,8 +885,7 @@ void CodeEditor::appendSelectionOccurrences(QList<QTextEdit::ExtraSelection> &ex
     }
     if (m_occPositions.size() < 2)
         return; // só a própria seleção
-    QColor bg = m_theme.selection;
-    bg.setAlpha(110);
+    const QColor bg = m_theme.occurrenceHighlight;
     const int selStart = cur.selectionStart();
     for (int pos : std::as_const(m_occPositions)) {
         if (pos == selStart)
@@ -894,12 +896,15 @@ void CodeEditor::appendSelectionOccurrences(QList<QTextEdit::ExtraSelection> &ex
         sel.cursor.setPosition(pos + needle.size(), QTextCursor::KeepAnchor);
         sel.format.setBackground(bg);
         extra.append(sel);
+        m_occRanges.append({pos, pos + int(needle.size())});
     }
 }
 
 void CodeEditor::updateExtraSelections()
 {
     QList<QTextEdit::ExtraSelection> extra;
+    m_matchRanges.clear();
+    m_occRanges.clear();
     if (m_highlightLine) {
         QTextEdit::ExtraSelection sel;
         sel.format.setBackground(m_theme.currentLine);
@@ -986,8 +991,7 @@ void CodeEditor::updateExtraSelections()
                 else if (c == want && --depth == 0) { mpos = p; break; }
             }
             if (mpos >= 0) {
-                QColor bg = m_theme.primary;
-                bg.setAlpha(90);
+                const QColor bg = m_theme.matchHighlight;
                 for (int p : {bpos, mpos}) {
                     QTextEdit::ExtraSelection sel;
                     QTextCursor c(d);
@@ -998,6 +1002,7 @@ void CodeEditor::updateExtraSelections()
                     sel.format.setForeground(m_theme.text);
                     sel.format.setFontWeight(QFont::Bold);
                     extra.append(sel);
+                    m_matchRanges.append({p, p + 1});
                 }
             }
         }
@@ -1079,8 +1084,7 @@ void CodeEditor::updateExtraSelections()
                     }
                 }
                 if (match.valid) {
-                    QColor bg = m_theme.primary;
-                    bg.setAlpha(90);
+                    const QColor bg = m_theme.matchHighlight;
                     const TagInfo &matchRef = match;
                     for (const TagInfo *t : {&cur, &matchRef}) {
                         QTextEdit::ExtraSelection sel;
@@ -1092,6 +1096,7 @@ void CodeEditor::updateExtraSelections()
                         sel.format.setForeground(m_theme.text);
                         sel.format.setFontWeight(QFont::Bold);
                         extra.append(sel);
+                        m_matchRanges.append({t->nameStart, t->nameStart + t->nameLen});
                     }
                 }
             }
@@ -1099,6 +1104,43 @@ void CodeEditor::updateExtraSelections()
     }
 
     setExtraSelections(extra);
+}
+
+/**
+ * Desenha um contorno arredondado sobre cada faixa destacada (par de bloco/tag
+ * e ocorrências). O preenchimento já vem das ExtraSelections; o contorno, por
+ * cima, deixa o destaque nítido mesmo em temas de baixo contraste (estilo VS
+ * Code). Só faixas numa única linha (todas as nossas são) e visíveis.
+ */
+void CodeEditor::paintHighlightOutlines(QPainter &p)
+{
+    if (m_matchRanges.isEmpty() && m_occRanges.isEmpty())
+        return;
+    const QRect vp = viewport()->rect();
+    p.save();
+    p.setBrush(Qt::NoBrush);
+    auto drawRanges = [&](const QList<QPair<int, int>> &ranges, const QColor &base) {
+        QColor border = base;
+        border.setAlpha(qBound(180, base.alpha() + 110, 255));
+        p.setPen(QPen(border, 1.0));
+        for (const auto &r : ranges) {
+            QTextCursor a(document());
+            a.setPosition(r.first);
+            QTextCursor b(document());
+            b.setPosition(r.second);
+            const QRect ra = cursorRect(a);
+            const QRect rb = cursorRect(b);
+            if (ra.top() != rb.top() || rb.left() <= ra.left())
+                continue; // só faixas numa única linha
+            QRectF box(ra.left() - 0.5, ra.top() + 0.5, rb.left() - ra.left(), ra.height() - 1.5);
+            if (!vp.intersects(box.toRect().adjusted(-1, -1, 1, 1)))
+                continue;
+            p.drawRoundedRect(box, 3, 3);
+        }
+    };
+    drawRanges(m_occRanges, m_theme.occurrenceHighlight);
+    drawRanges(m_matchRanges, m_theme.matchHighlight);
+    p.restore();
 }
 
 QString CodeEditor::diagnosticTextAt(const QPoint &viewportPos) const
@@ -1811,6 +1853,7 @@ void CodeEditor::paintEvent(QPaintEvent *event)
     p.setRenderHint(QPainter::Antialiasing);
     if (!m_perfActive)
         paintIndentGuides(p);
+    paintHighlightOutlines(p);
     if (m_prettySymbols && !m_symbols.isEmpty())
         paintPrettySymbols(p);
     paintGhostText(p);
