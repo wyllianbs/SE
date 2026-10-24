@@ -37,7 +37,9 @@ This is the Linux port of the Android Slayer Editor.
 - **Large files** — a performance mode (automatic or always on) that turns off
   the expensive features for huge or minified files.
 - **Themes** — dozens of light and dark color schemes that can follow the
-  system, plus an optional symbol display.
+  system; create and edit your own in the theme editor, including the
+  selection, matching-bracket/tag and occurrence **highlight** colors (with
+  adjustable opacity). Plus an optional symbol display.
 - **Built-in help** (<kbd>F1</kbd>) with search and a shortcut table, and an
   English / Brazilian Portuguese interface.
 
@@ -58,8 +60,10 @@ The code in every screenshot describes the editor itself.
 
 ### Debian / Ubuntu (amd64)
 
-Slayer Editor needs **Qt 6 ≥ 6.8.2**, available on Debian 13 (trixie) and newer,
-and on recent Ubuntu releases. Pick one of the options below.
+The prebuilt packages below target **Debian 13 (trixie)** and newer (and recent
+Ubuntu releases), and need the **Qt 6 (6.8+)** they were built against. Pick one
+of the options below. (Building from source needs only **Qt 6 ≥ 6.4** — see
+[Build from source](#build-from-source).)
 
 #### Option 1 — APT repository via `extrepo` (recommended)
 
@@ -123,7 +127,7 @@ and detected automatically when present (`clangd`, `pylsp`, `gdb`, `debugpy`, �
 
 ## Build from source
 
-Build dependencies:
+Requires **Qt 6 ≥ 6.4**. Build dependencies:
 
 ```bash
 sudo apt install cmake qt6-base-dev libqtermwidget-dev qt6-l10n-tools libutf8proc-dev

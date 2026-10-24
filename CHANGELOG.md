@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.2 — 2026-10-24
 
 - Running a **C or C++** file now compiles the sibling source files in the same
   folder that do not define their own `main()`, so a program split across
