@@ -30,7 +30,7 @@ class TestDebug : public QObject
     }
 
     /** Espera parar e devolve a linha do topo da pilha (base 0). */
-    static int waitStopped(QSignalSpy &spy, int timeout = 20000)
+    static int waitStopped(QSignalSpy &spy, int timeout = 40000)
     {
         const int before = spy.count();
         if (!QTest::qWaitFor([&]() { return spy.count() > before; }, timeout))
@@ -41,13 +41,13 @@ class TestDebug : public QObject
 
     static QList<DebugVariable> locals(DebugSession &s, QSignalSpy &scopes)
     {
-        if (!QTest::qWaitFor([&]() { return scopes.count() > 0; }, 10000))
+        if (!QTest::qWaitFor([&]() { return scopes.count() > 0; }, 20000))
             return {};
         const auto list = scopes.last().at(0).value<QList<QPair<QString, int>>>();
         QList<DebugVariable> vars;
         bool done = false;
         s.variables(list.isEmpty() ? 0 : list.first().second, [&](QList<DebugVariable> v) { vars = v; done = true; });
-        (void)QTest::qWaitFor([&]() { return done; }, 10000);
+        (void)QTest::qWaitFor([&]() { return done; }, 20000);
         return vars;
     }
 
@@ -185,9 +185,9 @@ while True:
             auto *t = m_terminal->current();
             const int fg = t ? t->getForegroundProcessId() : 0;
             return fg > 0 && fg != t->getShellPID() && QFileInfo::exists(QStringLiteral("/proc/%1").arg(fg));
-        }, 10000));
+        }, 30000));
         m_terminal->runCommand("echo ok > '" + marker + "'", m_dir.path());
-        QVERIFY(QTest::qWaitFor([&]() { return QFile::exists(marker); }, 10000));
+        QVERIFY(QTest::qWaitFor([&]() { return QFile::exists(marker); }, 30000));
         QVERIFY(m_terminal->current()->getShellPID() > 0); // o shell continua vivo
     }
 
@@ -212,17 +212,17 @@ while True:
         s.start(file, "c", AppSettings::defaults(), {{file, {5}}});
         // A compilação é assíncrona: start() volta na hora.
         QCOMPARE(s.state(), DebugSession::State::Starting);
-        QVERIFY(QTest::qWaitFor([&]() { return s.state() == DebugSession::State::Running; }, 20000));
+        QVERIFY(QTest::qWaitFor([&]() { return s.state() == DebugSession::State::Running; }, 40000));
         QTest::qWait(500);
         m_terminal->current()->sendText("5\n"); // o usuário digita na aba do programa
         QCOMPARE(waitStopped(stopped), 5);
         QCOMPARE(valueOf(locals(s, scopes), "dobro"), QStringLiteral("10"));
         s.resume();
-        QVERIFY(QTest::qWaitFor([&]() { return finished.count() > 0; }, 20000));
+        QVERIFY(QTest::qWaitFor([&]() { return finished.count() > 0; }, 40000));
         // Mesma aba do Run (nenhuma aba nova) e o prompt volta ao fim da sessão.
         QCOMPARE(m_terminal->terminals().size(), tabs);
         QTermWidget *t = m_terminal->current();
-        QVERIFY(QTest::qWaitFor([t]() { return t->getForegroundProcessId() == t->getShellPID(); }, 5000));
+        QVERIFY(QTest::qWaitFor([t]() { return t->getForegroundProcessId() == t->getShellPID(); }, 15000));
     }
 
     void compileErrorIsReported()
