@@ -33,8 +33,9 @@ struct DebugVariable
 /**
  * Uma sessão do depurador via Debug Adapter Protocol, no estilo do Thonny:
  * Python com debugpy (o programa roda no terminal embutido, via
- * runInTerminal) e C/C++ com o DAP nativo do gdb (programa compilado com -g
- * numa aba de terminal só para ele).
+ * runInTerminal) e C/C++/Rust com o DAP nativo do gdb — Rust pelo rust-gdb,
+ * que carrega os "pretty-printers" da biblioteca padrão — com o programa
+ * compilado com símbolos de depuração numa aba de terminal só para ele.
  */
 class DebugSession : public QObject
 {

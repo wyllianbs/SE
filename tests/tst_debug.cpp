@@ -225,6 +225,34 @@ while True:
         QVERIFY(QTest::qWaitFor([t]() { return t->getForegroundProcessId() == t->getShellPID(); }, 15000));
     }
 
+    void rustStopsAtBreakpoint()
+    {
+        if (QStandardPaths::findExecutable("rustc").isEmpty())
+            QSKIP("rustc not installed");
+        if (QStandardPaths::findExecutable("gdb").isEmpty())
+            QSKIP("gdb not installed"); // rust-gdb precisa dele; sem rust-gdb, usa o gdb puro
+        const QString file = write("prog.rs",
+                                   "fn main() {\n"
+                                   "    let n = 5;\n"
+                                   "    let dobro = n * 2;\n"        // linha 2 (base 0)
+                                   "    println!(\"{}\", dobro);\n"  // linha 3
+                                   "}\n");
+        DebugSession s(m_terminal);
+        QSignalSpy stopped(&s, &DebugSession::stopped);
+        QSignalSpy scopes(&s, &DebugSession::scopesReady);
+        QSignalSpy finished(&s, &DebugSession::finished);
+        QSignalSpy errors(&s, &DebugSession::error);
+        s.start(file, "rust", AppSettings::defaults(), {{file, {3}}}); // para no println!
+        // A compilação é assíncrona: start() volta na hora.
+        QCOMPARE(s.state(), DebugSession::State::Starting);
+        QCOMPARE(waitStopped(stopped, 60000), 3);
+        QVERIFY2(errors.isEmpty(), errors.isEmpty() ? "" : qPrintable(errors.first().at(0).toString()));
+        QCOMPARE(valueOf(locals(s, scopes), "dobro"), QStringLiteral("10"));
+        s.resume();
+        QVERIFY(QTest::qWaitFor([&]() { return finished.count() > 0; }, 40000));
+        QCOMPARE(s.state(), DebugSession::State::Idle);
+    }
+
     void compileErrorIsReported()
     {
         if (QStandardPaths::findExecutable("gcc").isEmpty())

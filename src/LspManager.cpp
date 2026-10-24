@@ -342,6 +342,91 @@ QStringList LspManager::triggerCharacters(Document *doc) const
     return (it != m_docs.cend() && it->client) ? it->client->completionTriggers() : QStringList();
 }
 
+bool LspManager::hasDefinition(Document *doc) const
+{
+    const auto it = m_docs.constFind(doc);
+    return it != m_docs.cend() && it->client && it->client->hasDefinition();
+}
+
+void LspManager::definition(Document *doc, int line, int column, DefinitionCallback callback)
+{
+    auto it = m_docs.find(doc);
+    if (it == m_docs.end() || !it->client || !it->client->hasDefinition()) {
+        callback({});
+        return;
+    }
+    if (it->timer->isActive())
+        sendChange(doc); // o servidor precisa do texto atual
+    const QJsonObject params{{"textDocument", QJsonObject{{"uri", it->uri}}},
+                             {"position", QJsonObject{{"line", line}, {"character", column}}}};
+    it->client->request(QStringLiteral("textDocument/definition"), params, [callback](const QJsonValue &result) {
+        // A resposta pode ser Location, Location[] ou LocationLink[]: pega o primeiro.
+        QJsonObject loc;
+        if (result.isArray()) {
+            const QJsonArray arr = result.toArray();
+            if (!arr.isEmpty())
+                loc = arr.first().toObject();
+        } else if (result.isObject()) {
+            loc = result.toObject();
+        }
+        LspLocation out;
+        if (!loc.isEmpty()) {
+            QString uri = loc.value("uri").toString();
+            QJsonObject range = loc.value("range").toObject();
+            if (uri.isEmpty()) { // LocationLink
+                uri = loc.value("targetUri").toString();
+                range = loc.value("targetSelectionRange").toObject();
+                if (range.isEmpty())
+                    range = loc.value("targetRange").toObject();
+            }
+            const QJsonObject start = range.value("start").toObject();
+            out.uri = uri;
+            out.line = start.value("line").toInt();
+            out.column = start.value("character").toInt();
+        }
+        callback(out);
+    });
+}
+
+bool LspManager::hasHover(Document *doc) const
+{
+    const auto it = m_docs.constFind(doc);
+    return it != m_docs.cend() && it->client && it->client->hasHover();
+}
+
+void LspManager::hover(Document *doc, int line, int column, HoverCallback callback)
+{
+    auto it = m_docs.find(doc);
+    if (it == m_docs.end() || !it->client || !it->client->hasHover()) {
+        callback(QString());
+        return;
+    }
+    if (it->timer->isActive())
+        sendChange(doc);
+    const QJsonObject params{{"textDocument", QJsonObject{{"uri", it->uri}}},
+                             {"position", QJsonObject{{"line", line}, {"character", column}}}};
+    it->client->request(QStringLiteral("textDocument/hover"), params, [callback](const QJsonValue &result) {
+        const QJsonValue contents = result.toObject().value("contents");
+        // contents: MarkupContent {kind,value}, MarkedString (texto ou {language,value}) ou um vetor deles.
+        auto textOf = [](const QJsonValue &v) {
+            return v.isString() ? v.toString() : v.toObject().value("value").toString();
+        };
+        QString text;
+        if (contents.isArray()) {
+            QStringList parts;
+            for (const QJsonValue &v : contents.toArray()) {
+                const QString s = textOf(v);
+                if (!s.isEmpty())
+                    parts << s;
+            }
+            text = parts.join(QStringLiteral("\n\n"));
+        } else {
+            text = textOf(contents);
+        }
+        callback(text.trimmed());
+    });
+}
+
 QString LspManager::statusFor(Document *doc) const
 {
     const auto it = m_docs.constFind(doc);

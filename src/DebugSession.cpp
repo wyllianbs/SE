@@ -52,20 +52,37 @@ void DebugSession::setState(State state)
 }
 
 /**
- * C/C++ com -g -O0 (sem as otimizações das configurações), sem bloquear a
- * interface: done(binário) é chamado ao terminar com sucesso.
+ * C/C++/Rust com símbolos de depuração e sem otimização (ignora as
+ * otimizações das configurações, que atrapalham o passo a passo), sem
+ * bloquear a interface: done(binário) é chamado ao terminar com sucesso.
  */
 void DebugSession::compileAsync(const QString &filePath, const QString &id, const AppSettings &settings,
                                 std::function<void(const QString &binary)> done)
 {
     const LanguageConfig cfg = settings.languageConfig(id);
+    const bool rust = (id == QLatin1String("rust"));
     QStringList before, after;
-    for (const QString &f : QProcess::splitCommand(cfg.flags)) {
+    const QStringList flags = QProcess::splitCommand(cfg.flags);
+    for (int i = 0; i < flags.size(); ++i) {
+        const QString &f = flags.at(i);
         if (f.startsWith(QLatin1String("-O")) || f == QLatin1String("-s"))
+            continue;
+        // rustc: descarta "-C opt-level=…"/"-C lto…" (nas duas formas, com e
+        // sem espaço), que também otimizam.
+        if (f == QLatin1String("-C") && i + 1 < flags.size()
+            && (flags.at(i + 1).startsWith(QLatin1String("opt-level"))
+                || flags.at(i + 1).startsWith(QLatin1String("lto")))) {
+            ++i;
+            continue;
+        }
+        if (f.startsWith(QLatin1String("-Copt-level")) || f.startsWith(QLatin1String("-Clto")))
             continue;
         // -lm e -Wl,… vão depois do arquivo, como no terminal.
         (f.startsWith(QLatin1String("-l")) || f.startsWith(QLatin1String("-Wl,")) ? after : before) << f;
     }
+    // rustc já gera sem otimização por padrão; -g basta. gcc/g++ precisam de -O0.
+    const QStringList debugFlags = rust ? QStringList{QStringLiteral("-g")}
+                                         : QStringList{QStringLiteral("-g"), QStringLiteral("-O0")};
     const QString outDir = QStringLiteral("/tmp/slayer_out");
     QDir().mkpath(outDir);
     const QString binary = outDir + QLatin1Char('/') + QFileInfo(filePath).completeBaseName() + QStringLiteral("-debug");
@@ -99,7 +116,7 @@ void DebugSession::compileAsync(const QString &filePath, const QString &id, cons
         done(binary);
     });
     Q_EMIT status(tr("Compiling %1 with -g…").arg(QFileInfo(filePath).fileName()));
-    cc->start(cfg.tool, before + QStringList{"-g", "-O0", filePath, "-o", binary} + after);
+    cc->start(cfg.tool, before + debugFlags + QStringList{filePath, "-o", binary} + after);
 }
 
 void DebugSession::start(const QString &filePath, const QString &id, const AppSettings &settings,
@@ -130,13 +147,20 @@ void DebugSession::start(const QString &filePath, const QString &id, const AppSe
         return;
     }
 
-    // C / C++: gdb com DAP nativo (gdb 14+).
+    // C / C++ / Rust: gdb com DAP nativo (gdb 14+). Para Rust, o rust-gdb (um
+    // invólucro do gdb que carrega os "pretty-printers" da biblioteca padrão),
+    // com o gdb puro como reserva se ele não estiver instalado.
+    QString debugger = QStringLiteral("gdb");
+    if (id == QLatin1String("rust") && !QStandardPaths::findExecutable(QStringLiteral("rust-gdb")).isEmpty())
+        debugger = QStringLiteral("rust-gdb");
     if (QStandardPaths::findExecutable(QStringLiteral("gdb")).isEmpty()) {
-        Q_EMIT error(tr("gdb is not installed.\n\nInstall it with:\nsudo apt install gdb"));
+        Q_EMIT error(id == QLatin1String("rust")
+                         ? tr("gdb is not installed (rust-gdb needs it).\n\nInstall it with:\nsudo apt install gdb")
+                         : tr("gdb is not installed.\n\nInstall it with:\nsudo apt install gdb"));
         return;
     }
     setState(State::Starting);
-    compileAsync(filePath, id, settings, [this, filePath](const QString &binary) {
+    compileAsync(filePath, id, settings, [this, debugger](const QString &binary) {
         // A aba de shell do terminal, com o shell em espera: o programa lê e escreve nela.
         const QString tty = m_terminal->debugTty();
         QStringList args{"-q", "-nx", "-i", "dap"};
@@ -144,7 +168,7 @@ void DebugSession::start(const QString &filePath, const QString &id, const AppSe
             args << "-iex" << QStringLiteral("set inferior-tty %1").arg(tty);
         const QJsonObject launch{{"name", "Slayer Editor"}, {"request", "launch"}, {"program", binary},
                                  {"cwd", m_workingDir}};
-        launchAdapter(QStringLiteral("gdb"), args, launch);
+        launchAdapter(debugger, args, launch);
     });
 }
 

@@ -90,6 +90,10 @@ bool LspClient::start()
              {"completion", QJsonObject{
                   {"completionItem", QJsonObject{{"snippetSupport", false}, {"insertReplaceSupport", false}}},
                   {"contextSupport", true}}},
+             {"definition", QJsonObject{{"dynamicRegistration", false}, {"linkSupport", true}}},
+             {"hover", QJsonObject{
+                  {"dynamicRegistration", false},
+                  {"contentFormat", QJsonArray{"plaintext", "markdown"}}}},
          }},
         {"workspace", QJsonObject{{"configuration", true}, {"workspaceFolders", true}}},
         {"general", QJsonObject{{"positionEncodings", QJsonArray{"utf-16"}}}},
@@ -112,6 +116,10 @@ bool LspClient::start()
         const QJsonObject caps = result.toObject().value("capabilities").toObject();
         const QJsonValue completion = caps.value("completionProvider");
         m_completion = completion.isObject() || completion.toBool();
+        const QJsonValue definition = caps.value("definitionProvider");
+        m_definition = definition.isObject() || definition.toBool();
+        const QJsonValue hover = caps.value("hoverProvider");
+        m_hover = hover.isObject() || hover.toBool();
         m_triggers.clear();
         for (const QJsonValue &t : completion.toObject().value("triggerCharacters").toArray())
             m_triggers << t.toString();

@@ -21,6 +21,7 @@
 #include <QPen>
 #include <QSaveFile>
 #include <QTextBlock>
+#include <QTextDocument>
 #include <QTimer>
 #include <QTextStream>
 
@@ -1161,11 +1162,41 @@ bool CodeEditor::viewportEvent(QEvent *event)
 {
     if (event->type() == QEvent::ToolTip) {
         auto *help = static_cast<QHelpEvent *>(event);
-        const QString text = diagnosticTextAt(help->pos());
-        if (text.isEmpty())
+        const QString diag = diagnosticTextAt(help->pos());
+        if (!diag.isEmpty()) {
+            QToolTip::showText(help->globalPos(), diag, viewport());
+            return true;
+        }
+        // Sem diagnóstico aqui: documentação do servidor (hover), se houver e se
+        // o cursor estiver sobre um identificador (não no espaço em branco).
+        const QTextCursor c = cursorForPosition(help->pos());
+        const QString blockText = c.block().text();
+        const int col = c.positionInBlock();
+        const bool onWord = (col < blockText.size()
+                             && (blockText.at(col).isLetterOrNumber() || blockText.at(col) == QLatin1Char('_')))
+                            || (col > 0
+                                && (blockText.at(col - 1).isLetterOrNumber() || blockText.at(col - 1) == QLatin1Char('_')));
+        if (!m_hoverProvider || !onWord) {
             QToolTip::hideText();
-        else
-            QToolTip::showText(help->globalPos(), text, viewport());
+            return true;
+        }
+        const QPoint gp = help->globalPos();
+        QPointer<CodeEditor> self(this);
+        m_hoverProvider(c.blockNumber(), col, [self, gp](QString text) {
+            if (!self)
+                return;
+            if (text.isEmpty()) {
+                QToolTip::hideText();
+                return;
+            }
+            // O texto vem em Markdown (rust-analyzer, clangd…); renderiza em HTML
+            // para a dica, limitando o tamanho para não cobrir a tela.
+            if (text.size() > 1500)
+                text = text.left(1500) + QStringLiteral("…");
+            QTextDocument md;
+            md.setMarkdown(text);
+            QToolTip::showText(gp, md.toHtml(), self->viewport());
+        });
         return true;
     }
     return QTextEdit::viewportEvent(event);
@@ -1585,6 +1616,38 @@ void CodeEditor::setCompletionProvider(CompletionProvider provider, const QStrin
 {
     m_provider = std::move(provider);
     m_triggers = triggers;
+}
+
+void CodeEditor::goToDefinition()
+{
+    if (!m_definitionProvider)
+        return;
+    const QTextCursor c = textCursor();
+    m_definitionProvider(c.blockNumber(), c.positionInBlock());
+}
+
+void CodeEditor::goToLineColumn(int line, int column)
+{
+    const QTextBlock b = document()->findBlockByNumber(line);
+    if (!b.isValid())
+        return;
+    QTextCursor c(b);
+    c.setPosition(b.position() + qBound(0, column, b.length() - 1));
+    setTextCursor(c);
+    centerCursorCompat();
+    setFocus();
+}
+
+void CodeEditor::mousePressEvent(QMouseEvent *event)
+{
+    // Ctrl+clique com o botão esquerdo: ir para a definição sob o cursor.
+    if (event->button() == Qt::LeftButton && (event->modifiers() & Qt::ControlModifier) && m_definitionProvider) {
+        setTextCursor(cursorForPosition(event->pos()));
+        goToDefinition();
+        event->accept();
+        return;
+    }
+    QTextEdit::mousePressEvent(event);
 }
 
 QString CodeEditor::wordUnderCursor() const

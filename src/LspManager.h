@@ -29,6 +29,15 @@ struct LspCompletion
     QString detail;
 };
 
+/** Um destino de "ir para definição" (linha e coluna UTF-16, base 0). */
+struct LspLocation
+{
+    QString uri;
+    int line = 0;
+    int column = 0;
+    bool isValid() const { return !uri.isEmpty(); }
+};
+
 /**
  * Um servidor por linguagem, iniciado sob demanda quando um documento dela é
  * aberto. Sincroniza o texto (envio completo, com atraso curto), repassa
@@ -59,6 +68,16 @@ public:
     /** Pede sugestões na posição (linha e coluna UTF-16, base 0). */
     void complete(Document *doc, int line, int column, CompletionCallback callback);
     QStringList triggerCharacters(Document *doc) const;
+
+    using DefinitionCallback = std::function<void(const LspLocation &)>;
+    /** Pede a definição do símbolo na posição; callback com uri vazio = sem resultado. */
+    void definition(Document *doc, int line, int column, DefinitionCallback callback);
+    bool hasDefinition(Document *doc) const;
+
+    using HoverCallback = std::function<void(const QString &)>;
+    /** Pede a documentação (hover) na posição; callback com texto vazio = nada. */
+    void hover(Document *doc, int line, int column, HoverCallback callback);
+    bool hasHover(Document *doc) const;
 
     /** Texto curto para o rodapé ("clangd", "pylsp — starting"…). */
     QString statusFor(Document *doc) const;

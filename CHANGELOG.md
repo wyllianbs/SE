@@ -3,6 +3,26 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Running a **C or C++** file now compiles the sibling source files in the same
+  folder that do not define their own `main()`, so a program split across
+  several files (a module plus its `.h` header, as in `main.c` + `calc.c`)
+  links without a Makefile. Other programs in the folder (each with its own
+  `main()`) are left out, so a folder of independent exercises still runs one
+  at a time. Interpreted languages (Python, JavaScript, Ruby, Perl…) and Rust
+  already resolve their sibling modules from the entry file's folder.
+- Language servers now provide **Go to Definition** (Edit ▸ Go to Definition,
+  `F12`, or Ctrl+click on a symbol) and **documentation on hover** (point at a
+  symbol to see its signature/docs), in addition to the completion and
+  diagnostics already offered. Both work for any language with a server
+  installed (clangd, pylsp/Pyright, rust-analyzer, gopls, …).
+- The debugger now supports **Rust**. `Ctrl+F5` on a `.rs` file compiles it
+  with debug symbols and debugs it through `rust-gdb` (the gdb wrapper that
+  loads the standard library's pretty-printers), falling back to plain `gdb`
+  when `rust-gdb` is not installed. Breakpoints, stepping, the call stack and
+  variable inspection work as they do for C/C++.
+
 ## 0.6.1 — 2026-10-24
 
 - Highlights are now more visible and theme-customizable. Matching

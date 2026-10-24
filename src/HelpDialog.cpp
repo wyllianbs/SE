@@ -57,9 +57,13 @@ QList<HelpTopic> HelpDialog::topics()
          tr("<p>%1 saves, %2 saves under a new name and %3 saves every modified document (untitled ones ask for a "
             "name). A ● in the tab marks unsaved changes; closing asks before discarding them.</p>")
              .arg(keys("Ctrl+S"), keys("Ctrl+Shift+S"), keys("Ctrl+L"))},
-        {tr("Running code"), tr("run execute compile build f5 gcc g++ python flags tool"),
+        {tr("Running code"), tr("run execute compile build f5 gcc g++ python flags tool multiple files modules header linker"),
          tr("<p>%1 saves the file and runs it in the terminal. C, C++ and Rust are compiled to "
             "<code>/tmp/slayer_out</code> and then executed; interpreted languages run directly.</p>"
+            "<p>For C and C++, the sibling source files in the same folder that do not have their own "
+            "<code>main()</code> are compiled together, so a program split across files (e.g. a module and its "
+            "<code>.h</code> header) links without a Makefile. Other programs in the folder (each with its own "
+            "<code>main()</code>) are left out.</p>"
             "<p>%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds "
             "and runs the whole project (see <b>Projects</b>).</p>"
             "<p>Change the tool, flags and extensions of each language in <b>Settings → Languages</b>, or add your "
@@ -94,13 +98,16 @@ QList<HelpTopic> HelpDialog::topics()
             "server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.</p>"
             "<p>Turn it on or off in <b>View</b> or <b>Settings → Editor → Features</b>.</p>")
              .arg(keys("Ctrl+Space"), keys("Enter"), keys("Tab"), keys("Esc"))},
-        {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright diagnostics errors warnings underline"),
+        {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright rust-analyzer diagnostics errors warnings underline completion go to definition hover documentation"),
          tr("<p>With a language server installed, errors and warnings are underlined (red, yellow, blue) and the "
             "line number takes their color. Hover the underline for the message; the message of the cursor line "
             "is also shown in the status bar.</p>"
+            "<p>The server also powers code completion, <b>Go to Definition</b> (%1 or Ctrl+click) and "
+            "documentation on hover (point at a symbol).</p>"
             "<p>Choose the server of each language in <b>Settings → Languages</b>; its status tells "
             "whether it is installed and how to install it. For C and C++, clangd uses "
-            "<code>compile_commands.json</code> when present, otherwise the flags from Settings → Languages.</p>")},
+            "<code>compile_commands.json</code> when present, otherwise the flags from Settings → Languages.</p>")
+             .arg(keys("F12"))},
         {tr("Code folding"), tr("fold unfold collapse expand block folding node toplevel"),
          tr("<p>Click the arrow next to a line number to fold its block (C, C++, Java, JavaScript, Rust, Go and "
             "Python). Folded lines end with ⋯. <b>View → Code Folding</b> has the Kate commands: %1 toggles the "
@@ -146,8 +153,9 @@ QList<HelpTopic> HelpDialog::topics()
             "<b>Run → Configure Project Commands…</b>.</p>")
              .arg(keys("Ctrl+Shift+O"), keys("Ctrl+Alt+B"), keys("Ctrl+P"), keys("Ctrl+Shift+F"), keys("Ctrl+Shift+B"),
                   keys("F4"))},
-        {tr("Debugging"), tr("debug debugger breakpoint step gdb debugpy variables call stack continue"),
-         tr("<p>%1 debugs the current file (Python with debugpy, C and C++ with gdb). %2 toggles a breakpoint, "
+        {tr("Debugging"), tr("debug debugger breakpoint step gdb debugpy rust-gdb variables call stack continue"),
+         tr("<p>%1 debugs the current file (Python with debugpy, C and C++ with gdb, Rust with rust-gdb). "
+            "%2 toggles a breakpoint, "
             "or click next to the line number. While paused: %3 step over, %4 step into, %5 step out, %6 continue, "
             "%7 stop.</p>"
             "<p>The <b>Debugger</b> panel shows the variables and the call stack; the program reads and writes in "
@@ -196,6 +204,7 @@ QList<HelpTopic> HelpDialog::topics()
             "<tr><td>%18</td><td>Next / previous match</td></tr>"
             "<tr><td>%19</td><td>Find in project</td></tr>"
             "<tr><td>%20</td><td>Go to line</td></tr>"
+            "<tr><td>%46</td><td>Go to definition (also Ctrl+click)</td></tr>"
             "<tr><td colspan='2'><b>View</b></td></tr>"
             "<tr><td>%21</td><td>Show/hide terminal</td></tr>"
             "<tr><td>%22</td><td>New terminal tab</td></tr>"
@@ -222,7 +231,7 @@ QList<HelpTopic> HelpDialog::topics()
             "<tr><td colspan='2'><b>Other</b></td></tr>"
             "<tr><td>%41</td><td>Settings</td></tr>"
             "<tr><td>%42</td><td>Help</td></tr></table>"),
-                       QStringList{QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+X / Ctrl+C / Ctrl+V"), QStringLiteral("Ctrl+A")})},
+                       QStringList{QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+X / Ctrl+C / Ctrl+V"), QStringLiteral("Ctrl+A"), QStringLiteral("F12")})},
     };
 }
 

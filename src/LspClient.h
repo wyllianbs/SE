@@ -36,6 +36,8 @@ public:
 
     bool hasCompletion() const { return m_completion; }
     const QStringList &completionTriggers() const { return m_triggers; }
+    bool hasDefinition() const { return m_definition; }
+    bool hasHover() const { return m_hover; }
 
     /** Junta um cabeçalho LSP a um corpo JSON (exposto para os testes). */
     static QByteArray frame(const QJsonObject &message);
@@ -64,5 +66,7 @@ private:
     bool m_ready = false;
     bool m_shuttingDown = false;
     bool m_completion = false;
+    bool m_definition = false;
+    bool m_hover = false;
     QStringList m_triggers;
 };

@@ -450,6 +450,7 @@ void MainWindow::createActions()
         if (auto *e = currentEditor()) e->toggleComment();
     }));
     reg(QStringLiteral("goToLine"), add(edit, tr("&Go to Line…"), QKeySequence(Qt::CTRL | Qt::Key_G), [this]() { goToLine(); }));
+    reg(QStringLiteral("goToDefinition"), add(edit, tr("Go to &Definition"), QKeySequence(Qt::Key_F12), [this]() { goToDefinition(); }));
     edit->addSeparator();
     // Chaves rápidas das opções de Settings → Editor → Features.
     auto toggle = [this](QMenu *menu, const QString &text, bool AppSettings::*field, const QString &on,
@@ -1362,6 +1363,27 @@ void MainWindow::openFile(const QString &path)
     if (QFileInfo::exists(abs))
         addRecentFile(abs);
     updateStatus();
+}
+
+void MainWindow::openFileAt(const QString &path, int line, int column)
+{
+    if (path.isEmpty())
+        return;
+    openFile(path);
+    if (CodeEditor *e = currentEditor())
+        e->goToLineColumn(line, column);
+}
+
+void MainWindow::goToDefinition()
+{
+    CodeEditor *editor = currentEditor();
+    if (!editor)
+        return;
+    if (!editor->hasDefinitionProvider()) {
+        statusBar()->showMessage(tr("No language server for go to definition"), 3000);
+        return;
+    }
+    editor->goToDefinition();
 }
 
 bool MainWindow::save(CodeEditor *editor)
@@ -2515,6 +2537,23 @@ void MainWindow::configureEditor(CodeEditor *editor) const
                  })
                : CodeEditor::CompletionProvider(),
         lsp->triggerCharacters(doc));
+    // configureEditor é const; o provider roda depois e precisa abrir arquivos.
+    MainWindow *self = const_cast<MainWindow *>(this);
+    editor->setDefinitionProvider(
+        useLsp ? CodeEditor::DefinitionProvider([self, lsp, doc](int line, int column) {
+                     lsp->definition(doc, line, column, [self](const LspLocation &loc) {
+                         if (loc.isValid())
+                             self->openFileAt(QUrl(loc.uri).toLocalFile(), loc.line, loc.column);
+                         else
+                             self->statusBar()->showMessage(tr("No definition found"), 3000);
+                     });
+                 })
+               : CodeEditor::DefinitionProvider());
+    editor->setHoverProvider(
+        useLsp ? CodeEditor::HoverProvider([lsp, doc](int line, int column, std::function<void(QString)> done) {
+                     lsp->hover(doc, line, column, [done](const QString &text) { done(text); });
+                 })
+               : CodeEditor::HoverProvider());
 }
 
 void MainWindow::scheduleSettingsSave()

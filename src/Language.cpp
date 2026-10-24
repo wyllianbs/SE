@@ -1,9 +1,12 @@
 #include "Language.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QHash>
 #include <QRegularExpression>
+#include <QSet>
 
 namespace {
 
@@ -12,6 +15,17 @@ QString shellQuote(const QString &s)
     QString out = s;
     out.replace(QLatin1Char('\''), QLatin1String("'\\''"));
     return QLatin1Char('\'') + out + QLatin1Char('\'');
+}
+
+/** O arquivo (C/C++) define sua própria função main()? */
+bool definesEntryPoint(const QString &path)
+{
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+        return false;
+    const QString text = QString::fromUtf8(f.read(256 * 1024));
+    static const QRegularExpression mainRe(QStringLiteral("\\bmain\\b\\s*\\("));
+    return mainRe.match(text).hasMatch();
 }
 
 QList<Language> buildLanguages()
@@ -26,7 +40,7 @@ QList<Language> buildLanguages()
          "size_t", "bool", "int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t",
          "uint32_t", "uint64_t", "FILE"},
         "//", "/*", "*/",
-        QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} %f -o /tmp/slayer_out/%b && /tmp/slayer_out/%b")});
+        QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} %F -o /tmp/slayer_out/%b && /tmp/slayer_out/%b")});
 
     list.append({QStringLiteral("cpp"), QStringLiteral("C++"), {"cpp", "cc", "cxx", "hpp", "hh", "hxx"},
         {"alignas", "alignof", "auto", "break", "case", "catch", "class", "const", "const_cast",
@@ -42,7 +56,7 @@ QList<Language> buildLanguages()
          "short", "signed", "unsigned", "void", "wchar_t", "size_t", "string", "vector", "map",
          "set", "unique_ptr", "shared_ptr", "ostream", "istream", "std"},
         "//", "/*", "*/",
-        QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} %f -o /tmp/slayer_out/%b && /tmp/slayer_out/%b")});
+        QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} %F -o /tmp/slayer_out/%b && /tmp/slayer_out/%b")});
 
     list.append({QStringLiteral("python"), QStringLiteral("Python"), {"py", "pyw"},
         {"and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del",
@@ -427,7 +441,8 @@ const Language &Language::forFileName(const QString &fileName)
 
 bool Language::debuggable(const QString &id)
 {
-    return id == QLatin1String("python") || id == QLatin1String("c") || id == QLatin1String("cpp");
+    return id == QLatin1String("python") || id == QLatin1String("c") || id == QLatin1String("cpp")
+           || id == QLatin1String("rust");
 }
 
 const Language &Language::byId(const QString &id)
@@ -450,6 +465,25 @@ QString Language::commandFor(const QString &filePath, const QString &tool, const
     cmd.replace(QLatin1String("%f"), shellQuote(info.fileName()));
     cmd.replace(QLatin1String("%b"), shellQuote(info.completeBaseName()));
     cmd.replace(QLatin1String("%d"), shellQuote(info.absolutePath()));
+    // %F: o arquivo atual mais os outros fontes da mesma linguagem na pasta que
+    // NÃO têm seu próprio main() — liga módulos auxiliares (ex.: calc.c) sem
+    // puxar outros programas. Headers (.h/.hpp…) nunca são compilados.
+    if (cmd.contains(QLatin1String("%F"))) {
+        static const QSet<QString> headerExt{QStringLiteral("h"), QStringLiteral("hpp"),
+                                              QStringLiteral("hh"), QStringLiteral("hxx")};
+        QStringList sources{shellQuote(info.fileName())};
+        QStringList filters;
+        for (const QString &ext : extensions)
+            if (!headerExt.contains(ext.toLower()))
+                filters << QLatin1String("*.") + ext;
+        const QDir dir(info.absolutePath());
+        for (const QFileInfo &fi : dir.entryInfoList(filters, QDir::Files, QDir::Name)) {
+            if (fi.fileName() == info.fileName() || definesEntryPoint(fi.absoluteFilePath()))
+                continue;
+            sources << shellQuote(fi.fileName());
+        }
+        cmd.replace(QLatin1String("%F"), sources.join(QLatin1Char(' ')));
+    }
     return cmd;
 }
 

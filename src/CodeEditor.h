@@ -52,6 +52,20 @@ public:
     using CompletionProvider = std::function<void(int line, int column, std::function<void(QList<ServerItem>)>)>;
     /** Fonte assíncrona de sugestões (LSP) e caracteres que a disparam ("." "->"…). */
     void setCompletionProvider(CompletionProvider provider, const QStringList &triggers);
+
+    /** Pede a definição do símbolo na posição (linha e coluna UTF-16, base 0). */
+    using DefinitionProvider = std::function<void(int line, int column)>;
+    void setDefinitionProvider(DefinitionProvider provider) { m_definitionProvider = std::move(provider); }
+    bool hasDefinitionProvider() const { return bool(m_definitionProvider); }
+    /** Dispara "ir para definição" na posição atual do cursor (ação/Ctrl+clique). */
+    void goToDefinition();
+
+    /** Documentação (hover) na posição; chama done com o texto (vazio = nada). */
+    using HoverProvider = std::function<void(int line, int column, std::function<void(QString)> done)>;
+    void setHoverProvider(HoverProvider provider) { m_hoverProvider = std::move(provider); }
+
+    /** Posiciona o cursor em linha/coluna (base 0) e centraliza. */
+    void goToLineColumn(int line, int column);
     bool insertSpaces() const { return m_insertSpaces; }
     int tabWidth() const { return m_indentSpaces; }
 
@@ -93,6 +107,7 @@ Q_SIGNALS:
 protected:
     void resizeEvent(QResizeEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
     bool viewportEvent(QEvent *event) override;
@@ -197,6 +212,8 @@ private:
     QCompleter *m_completer;
     QStringListModel *m_completionModel;
     CompletionProvider m_provider;
+    DefinitionProvider m_definitionProvider;
+    HoverProvider m_hoverProvider;
     QStringList m_triggers;
     QHash<QString, QString> m_insertFor; //< rótulo → texto a inserir
     int m_completionRequest = 0;

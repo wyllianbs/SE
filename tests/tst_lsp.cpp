@@ -63,6 +63,48 @@ private Q_SLOTS:
         QVERIFY2(sawPrintf, "printf not offered for 'pri'");
     }
 
+    void clangdDefinitionAndHover()
+    {
+        if (!LspManager::isInstalled("clangd"))
+            QSKIP("clangd not installed");
+        LspManager lsp;
+        AppSettings s = AppSettings::defaults();
+        s.lspEnabled = true;
+        lsp.setSettings(s);
+        Document *doc = openFile("def.c",
+                                 "static int answer(void) { return 42; }\n"
+                                 "int main(void) { return answer(); }\n", // "answer" na coluna 24
+                                 "c");
+        lsp.attach(doc);
+        // Servidor pronto: capacidades negociadas.
+        QTRY_VERIFY_WITH_TIMEOUT(lsp.hasDefinition(doc), 20000);
+        QVERIFY(lsp.hasHover(doc));
+
+        // Ir para definição de "answer" (uso na linha 1) → declaração na linha 0.
+        // Repete enquanto o clangd ainda indexa (resultado vazio no início).
+        LspLocation loc;
+        for (int attempt = 0; attempt < 40 && !loc.isValid(); ++attempt) {
+            bool done = false;
+            lsp.definition(doc, 1, 24, [&](const LspLocation &l) { loc = l; done = true; });
+            QTRY_VERIFY_WITH_TIMEOUT(done, 20000);
+            if (!loc.isValid())
+                QTest::qWait(100);
+        }
+        QVERIFY2(loc.isValid(), "no definition returned for 'answer'");
+        QCOMPARE(loc.line, 0);
+
+        // Hover sobre "answer": a documentação cita o símbolo.
+        QString hover;
+        for (int attempt = 0; attempt < 40 && !hover.contains("answer"); ++attempt) {
+            bool done = false;
+            lsp.hover(doc, 1, 24, [&](const QString &t) { hover = t; done = true; });
+            QTRY_VERIFY_WITH_TIMEOUT(done, 20000);
+            if (!hover.contains("answer"))
+                QTest::qWait(100);
+        }
+        QVERIFY2(hover.contains("answer"), qPrintable(hover));
+    }
+
     void clangdUsesSettingsFlags()
     {
         if (!LspManager::isInstalled("clangd"))

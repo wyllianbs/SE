@@ -101,6 +101,10 @@ private:
     void tabAction(ViewSpace *space, int index, const QString &action);
     void renameFile(CodeEditor *editor);
     void openFile(const QString &path);
+    /** Abre o arquivo (se preciso) e posiciona o cursor em linha/coluna (base 0). */
+    void openFileAt(const QString &path, int line, int column);
+    /** "Ir para definição" no editor atual (via servidor LSP). */
+    void goToDefinition();
     // Arquivos recentes (como no Kate): lista persistida em QSettings.
     void addRecentFile(const QString &path);
     void rebuildRecentMenu();
