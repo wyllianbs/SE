@@ -2184,10 +2184,6 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
         <translation>Executar (F5)</translation>
     </message>
     <message>
-        <source>Languages found on this system. Run (F5) saves the file and runs “tool flags file” in the terminal (C, C++, Rust… are compiled to /tmp/slayer_out first). The language server adds diagnostics and completion; turn all servers off in Settings → Editor.</source>
-        <translation>Linguagens encontradas neste sistema. Executar (F5) salva o arquivo e roda “ferramenta flags arquivo” no terminal (C, C++, Rust… são compilados antes em /tmp/slayer_out). O servidor de linguagem acrescenta diagnósticos e autocompletar; desligue todos em Configurações → Editor.</translation>
-    </message>
-    <message>
         <source>Runs: %1</source>
         <translation>Executa: %1</translation>
     </message>
@@ -2258,6 +2254,22 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
     <message>
         <source>Debounce delay</source>
         <translation>Atraso do debounce</translation>
+    </message>
+    <message>
+        <source>Languages found on this system. Run (F5) saves the file and runs “tool flags file” in the terminal (C, C++, Rust… are compiled to /tmp/slayer_out first; for C and C++ the sibling source files in the folder without their own main() are compiled together, so multi-file programs link without a Makefile). The language server adds diagnostics, completion, go to definition and hover; turn all servers off in Settings → Editor.</source>
+        <translation>Linguagens encontradas neste sistema. Executar (F5) salva o arquivo e roda “ferramenta opções arquivo” no terminal (C, C++, Rust… são compilados em /tmp/slayer_out antes; em C e C++, os fontes vizinhos na pasta sem seu próprio main() são compilados junto, de modo que programas em vários arquivos são ligados sem um Makefile). O servidor de linguagem acrescenta diagnósticos, autocompletar, ir para definição e documentação ao pairar; desligue todos os servidores em Configurações → Editor.</translation>
+    </message>
+    <message>
+        <source>The other source files in the same folder that have no main() of their own are compiled together, so a program split across files (a module and its .h header) links without a Makefile.</source>
+        <translation>Os demais fontes da mesma pasta que não têm seu próprio main() são compilados junto, de modo que um programa repartido em vários arquivos (um módulo e seu cabeçalho .h) é ligado sem um Makefile.</translation>
+    </message>
+    <message>
+        <source>rustc compiles the modules this file declares with “mod” (helper.rs, …), so a multi-file crate builds from its root file.</source>
+        <translation>O rustc compila os módulos que este arquivo declara com “mod” (helper.rs, …), de modo que um crate em vários arquivos é construído a partir do seu arquivo raiz.</translation>
+    </message>
+    <message>
+        <source>The other files in the same folder are available as modules (import/require), resolved from this file’s location.</source>
+        <translation>Os demais arquivos da mesma pasta ficam disponíveis como módulos (import/require), resolvidos a partir da localização deste arquivo.</translation>
     </message>
 </context>
 <context>

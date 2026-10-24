@@ -887,8 +887,10 @@ QWidget *SettingsDialog::buildLanguagesPage()
 
     return makePage(tr("Languages"),
                     tr("Languages found on this system. Run (F5) saves the file and runs “tool flags file” in the "
-                       "terminal (C, C++, Rust… are compiled to /tmp/slayer_out first). The language server adds "
-                       "diagnostics and completion; turn all servers off in Settings → Editor."),
+                       "terminal (C, C++, Rust… are compiled to /tmp/slayer_out first; for C and C++ the sibling "
+                       "source files in the folder without their own main() are compiled together, so multi-file "
+                       "programs link without a Makefile). The language server adds diagnostics, completion, go to "
+                       "definition and hover; turn all servers off in Settings → Editor."),
                     layout, true);
 }
 
@@ -981,8 +983,26 @@ void SettingsDialog::updateLanguageStatus()
     const Language lang = e.custom ? Language::custom(e.name, Language::splitExtensions(e.cfg.extensions))
                                    : Language::byId(e.id);
     const QString example = Language::splitExtensions(e.cfg.extensions).value(0, QStringLiteral("txt"));
-    m_langRunHint->setText(tr("Runs: %1")
-                               .arg(lang.commandFor(QStringLiteral("/dir/file.") + example, e.cfg.tool, e.cfg.flags)));
+    QString hint = tr("Runs: %1")
+                       .arg(lang.commandFor(QStringLiteral("/dir/file.") + example, e.cfg.tool, e.cfg.flags));
+    // Como cada linguagem lida com um programa repartido em vários arquivos da
+    // mesma pasta (o exemplo acima, numa pasta fictícia, mostra só um arquivo).
+    QString multiFile;
+    if (e.id == QLatin1String("c") || e.id == QLatin1String("cpp"))
+        multiFile = tr("The other source files in the same folder that have no main() of their own are compiled "
+                       "together, so a program split across files (a module and its .h header) links without a "
+                       "Makefile.");
+    else if (e.id == QLatin1String("rust"))
+        multiFile = tr("rustc compiles the modules this file declares with “mod” (helper.rs, …), so a multi-file "
+                       "crate builds from its root file.");
+    else if (e.id == QLatin1String("python") || e.id == QLatin1String("javascript")
+             || e.id == QLatin1String("ruby") || e.id == QLatin1String("perl")
+             || e.id == QLatin1String("lua") || e.id == QLatin1String("php"))
+        multiFile = tr("The other files in the same folder are available as modules (import/require), resolved "
+                       "from this file’s location.");
+    if (!multiFile.isEmpty())
+        hint += QLatin1Char('\n') + multiFile;
+    m_langRunHint->setText(hint);
 
     const QString cmd = effectiveLspCommand(e);
     m_lspCommand->setEnabled(e.lsp.enabled);
