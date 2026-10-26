@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.4 — 2026-10-26
 
 - Resizing the window no longer loses the cursor line. With word wrap on,
   reshaping the window reflows the text; the editor now keeps the cursor line
