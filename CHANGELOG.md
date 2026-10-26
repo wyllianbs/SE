@@ -10,6 +10,14 @@ All notable changes are also published on the
   in view afterwards (as Kate does) when it was visible before the resize,
   instead of scrolling away from it.
 
+## 0.6.3 — 2026-10-24
+
+- The in-app help (**Running code**, <kbd>F1</kbd>) now warns that, for C and
+  C++, every sibling source file in the folder without its own `main()` is
+  compiled together, and recommends keeping one program per folder — or opening
+  the folder as a project — to avoid linking unrelated modules (which could
+  cause “multiple definition” or compile errors).
+
 ## 0.6.2 — 2026-10-24
 
 - Running a **C or C++** file now compiles the sibling source files in the same
