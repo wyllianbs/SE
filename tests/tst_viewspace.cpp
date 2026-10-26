@@ -114,6 +114,31 @@ private Q_SLOTS:
         doc.toggleBreakpoint(2);
         QVERIFY(doc.breakpoints().isEmpty());
     }
+
+    // Com quebra de linha, redimensionar a janela reflui o texto; a linha do
+    // cursor, se estava visível, deve continuar visível (como no Kate).
+    void cursorStaysVisibleOnResize()
+    {
+        Document doc;
+        QString text;
+        for (int i = 0; i < 200; ++i) // linhas longas, para o wrap refluir bastante
+            text += QStringLiteral("linha %1 com bastante texto para quebrar quando a janela estreitar — "
+                                   "lorem ipsum dolor sit amet consectetur\n").arg(i);
+        doc.text()->setPlainText(text);
+        doc.setLanguage(Language::byId("text"));
+        CodeEditor editor(&doc);
+        editor.setWordWrap(true);
+        editor.resize(800, 400);
+        editor.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&editor));
+
+        editor.goToLine(150); // cursor bem abaixo, visível e centralizado
+        QVERIFY(QTest::qWaitFor([&]() { return editor.viewport()->rect().intersects(editor.cursorRect()); }, 2000));
+
+        // Estreita muito (reflui) e encurta: sem o ajuste, o cursor sairia de vista.
+        editor.resize(240, 300);
+        QVERIFY(QTest::qWaitFor([&]() { return editor.viewport()->rect().intersects(editor.cursorRect()); }, 2000));
+    }
 };
 
 int main(int argc, char **argv)

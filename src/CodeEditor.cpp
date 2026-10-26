@@ -548,12 +548,18 @@ void CodeEditor::applyWrapIndent()
 
 void CodeEditor::resizeEvent(QResizeEvent *event)
 {
+    // Com quebra de linha, redimensionar reflui o texto e muda a altura total;
+    // o QTextEdit preserva a rolagem em pixels, o que tira a linha do cursor de
+    // vista. Como no Kate, se o cursor estava visível antes, mantém-no visível.
+    const bool keepCursor = event && viewport()->rect().intersects(cursorRect());
     if (event)
         QTextEdit::resizeEvent(event);
     const QRect cr = contentsRect();
     m_lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
     if (m_minimapVisible)
         m_minimap->setGeometry(QRect(cr.right() - minimapWidth() + 1, cr.top(), minimapWidth(), cr.height()));
+    if (keepCursor)
+        ensureCursorVisible();
 }
 
 void CodeEditor::setLineNumbersVisible(bool visible)

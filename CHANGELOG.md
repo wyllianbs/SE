@@ -3,6 +3,13 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Resizing the window no longer loses the cursor line. With word wrap on,
+  reshaping the window reflows the text; the editor now keeps the cursor line
+  in view afterwards (as Kate does) when it was visible before the resize,
+  instead of scrolling away from it.
+
 ## 0.6.2 — 2026-10-24
 
 - Running a **C or C++** file now compiles the sibling source files in the same
