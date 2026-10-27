@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.5 — 2026-10-27
 
 - The terminal panel docked at the top or bottom can now be resized as far as
   when docked left or right. The welcome screen no longer forces a large minimum
