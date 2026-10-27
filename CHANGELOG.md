@@ -3,6 +3,13 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- The terminal panel docked at the top or bottom can now be resized as far as
+  when docked left or right. The welcome screen no longer forces a large minimum
+  height on the editor area, so dragging the terminal's splitter lets it grow to
+  most of the window (and shrink back) in every dock position.
+
 ## 0.6.4 — 2026-10-26
 
 - Resizing the window no longer loses the cursor line. With word wrap on,

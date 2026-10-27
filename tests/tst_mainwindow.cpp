@@ -5,6 +5,7 @@
 #include "../src/ProjectPanel.h"
 
 #include <QApplication>
+#include <QDockWidget>
 #include <QDir>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -41,6 +42,38 @@ class TestMainWindow : public QObject
 
 private Q_SLOTS:
     void init() { QSettings().clear(); }
+
+    // O terminal acoplado em cima/embaixo (horizontal) deve poder crescer tanto
+    // quanto acoplado às laterais — a tela de boas-vindas não pode travar a
+    // altura mínima do editor (ficava presa em ~422 px).
+    void terminalDockResizesLikeVertical()
+    {
+        MainWindow w;
+        w.resize(1000, 700);
+        w.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));
+        auto *dock = w.findChild<QDockWidget *>(QStringLiteral("TerminalDock"));
+        QVERIFY(dock);
+        QWidget *central = w.centralWidget();
+
+        // Embaixo, puxado ao máximo: o terminal deve ocupar a maior parte (o
+        // editor encolhe a um resto pequeno). Antes do ajuste o editor travava
+        // em ~422 px e o terminal mal passava de ~165 px.
+        w.addDockWidget(Qt::BottomDockWidgetArea, dock);
+        QTest::qWait(120);
+        w.resizeDocks({dock}, {10000}, Qt::Vertical);
+        QTest::qWait(120);
+        QVERIFY2(dock->height() > central->height(),
+                 qPrintable(QStringLiteral("dock=%1 central=%2").arg(dock->height()).arg(central->height())));
+        QVERIFY(dock->height() > w.height() / 2);
+
+        // À direita, o mesmo já funcionava; confirma a simetria.
+        w.addDockWidget(Qt::RightDockWidgetArea, dock);
+        QTest::qWait(120);
+        w.resizeDocks({dock}, {10000}, Qt::Horizontal);
+        QTest::qWait(120);
+        QVERIFY(dock->width() > central->width());
+    }
 
     void autoSaveKeepsExternalChanges()
     {

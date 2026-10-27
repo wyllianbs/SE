@@ -27,6 +27,7 @@
 #include <QDesktopServices>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QScrollArea>
 #include <QKeyEvent>
 #include <QMimeData>
 #include <QRegularExpression>
@@ -902,7 +903,17 @@ QWidget *MainWindow::buildEmptyState()
         v->addLayout(row);
     }
     v->addStretch(2);
-    return page;
+
+    // Numa área de rolagem, para a tela de boas-vindas (logo + botões) não impor
+    // uma altura mínima grande ao widget central — isso travava o terminal
+    // acoplado em cima/embaixo, que não crescia como o acoplado às laterais.
+    auto *scroll = new QScrollArea;
+    scroll->setObjectName(QStringLiteral("EmptyStateScroll"));
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setWidgetResizable(true);
+    scroll->viewport()->setAutoFillBackground(false);
+    scroll->setWidget(page);
+    return scroll;
 }
 
 void MainWindow::updateEmptyState()
