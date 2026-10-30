@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QRandomGenerator>
 #include <QFile>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -42,6 +43,64 @@ class TestMainWindow : public QObject
 
 private Q_SLOTS:
     void init() { QSettings().clear(); }
+
+    // Undo/redo não pode ser corrompido pelo recuo de wrap, pelo auto-save nem
+    // por ligar/desligar a quebra de linha. Fuzz: digita um conteúdo conhecido
+    // e faz um passeio aleatório de undo/redo + toggles; ao fim, navegar aos
+    // extremos tem de devolver exatamente o início e o fim do histórico.
+    void undoRedoSurvivesWrapAndAutoSave()
+    {
+        QTemporaryDir tmp;
+        const QString file = tmp.filePath(QStringLiteral("u.c"));
+        write(file, "int main() {\n}\n");
+        MainWindow w;
+        w.resize(520, 400);
+        w.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));
+        w.openFiles({file});
+        CodeEditor *e = editorFor(w, file);
+        QVERIFY(e);
+        QTextDocument *d = e->doc()->text();
+        e->setWordWrap(true);
+        e->setWrapIndentEnabled(true); // o recuo de wrap é o que corrompia o redo
+        e->setFocus();
+        QTextCursor c = e->textCursor();
+        c.movePosition(QTextCursor::Start);
+        c.movePosition(QTextCursor::EndOfLine);
+        e->setTextCursor(c);
+        QTest::qWait(20);
+        const QString base = d->toPlainText();
+        for (const QString &s : {QStringLiteral("\n    int a = 1;"), QStringLiteral("\n    int b = 22;"),
+                                 QStringLiteral("\n    int c = 333;"), QStringLiteral("\n    return a+b+c;")}) {
+            e->textCursor().insertText(s);
+            QTest::qWait(12);
+        }
+        const QString full = d->toPlainText();
+        QVERIFY(full != base);
+
+        QRandomGenerator rng(1234567u); // determinístico
+        for (int step = 0; step < 120; ++step) {
+            switch (rng.bounded(6)) {
+            case 0: if (d->isUndoAvailable()) e->undo(); break;
+            case 1: if (d->isRedoAvailable()) e->redo(); break;
+            case 2: e->setWordWrap(rng.bounded(2)); break;
+            case 3: e->setWrapIndentEnabled(rng.bounded(2)); break;
+            case 4: QTest::qWait(1600); break; // deixa o auto-save disparar
+            default: break;
+            }
+            QTest::qWait(4);
+        }
+
+        // Desfaz até o início: tem de voltar exatamente ao conteúdo aberto.
+        int guard = 0;
+        while (d->isUndoAvailable() && guard++ < 500) { e->undo(); QTest::qWait(3); }
+        QCOMPARE(d->toPlainText(), base);
+        // Refaz até o fim: tem de reconstruir exatamente o conteúdo digitado.
+        guard = 0;
+        while (d->isRedoAvailable() && guard++ < 500) { e->redo(); QTest::qWait(3); }
+        QCOMPARE(d->toPlainText(), full);
+        e->doc()->text()->setModified(false);
+    }
 
     // O terminal acoplado em cima/embaixo (horizontal) deve poder crescer tanto
     // quanto acoplado às laterais — a tela de boas-vindas não pode travar a

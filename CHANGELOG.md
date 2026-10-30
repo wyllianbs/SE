@@ -3,6 +3,15 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Undo/redo no longer breaks when the wrapped-line hanging indent (wrap indent)
+  is on. Reapplying that indent after an <kbd>Ctrl+Z</kbd> used to clear the
+  redo history — the editor could get stuck partway through the history, unable
+  to redo — because the margin reflow counted as a new edit. The reflow is now
+  skipped while a redo is pending, so the full undo/redo history survives
+  editing, saving (auto or manual) and turning word wrap on or off.
+
 ## 0.6.5 — 2026-10-27
 
 - The terminal panel docked at the top or bottom can now be resized as far as

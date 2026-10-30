@@ -486,6 +486,19 @@ void CodeEditor::applyWrapIndent()
     if (document()->revision() == m_wrapIndentRevision)
         return; // nada mudou desde a última aplicação (ex.: só rolagem)
 
+    // Com um redo pendente (o usuário desfez e pode refazer), NÃO editar o
+    // documento: qualquer alteração — inclusive de formato — descarta a pilha
+    // de redo do Qt. As margens do estado atual já foram restauradas pelo
+    // próprio undo (o recuo é fundido na edição, via joinPreviousEditBlock),
+    // então basta anotar a revisão e sair. Reflui de novo na próxima edição
+    // real (quando o redo deixa de estar disponível).
+    if (document()->isRedoAvailable()) {
+        m_wrapIndentRevision = document()->revision();
+        m_wrapDirtyFrom = -1;
+        m_wrapDirtyTo = -1;
+        return;
+    }
+
     // O recuo das linhas quebradas (margem esquerda + textIndent negativo) é
     // OPCIONAL e desligado por padrão: num documento com wrap, ao desenhar uma
     // seleção sobre esses blocos houve segfault no QTextDocumentLayout::draw do
