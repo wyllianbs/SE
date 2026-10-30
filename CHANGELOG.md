@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.6 — 2026-10-30
 
 - Undo/redo no longer breaks when the wrapped-line hanging indent (wrap indent)
   is on. Reapplying that indent after an <kbd>Ctrl+Z</kbd> used to clear the
