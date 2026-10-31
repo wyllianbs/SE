@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.7 — 2026-10-31
 
 - **Open File** now opens its dialog in the folder of the current tab's file,
   instead of the folder of the last file that was opened. Untitled tabs (no file
