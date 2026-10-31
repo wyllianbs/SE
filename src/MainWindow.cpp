@@ -388,7 +388,7 @@ void MainWindow::createActions()
     newA->setToolTip(tr("New file with a Hello, World! template (Ctrl+N)"));
     reg(QStringLiteral("newEmpty"), add(file, tr("New &Empty File"), QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_N), [this]() { newTab(); }));
     QAction *openA = add(file, tr("&Open…"), QKeySequence::Open, [this]() {
-        const QStringList paths = QFileDialog::getOpenFileNames(this, tr("Open File"), m_lastDir);
+        const QStringList paths = QFileDialog::getOpenFileNames(this, tr("Open File"), currentFileDir());
         openFiles(paths);
     }, Icons::Open);
     m_recentMenu = file->addMenu(tr("Open &Recent"));
@@ -892,7 +892,7 @@ QWidget *MainWindow::buildEmptyState()
     auto *folderButton = makeButton(Icons::Folder, tr("Open Folder…"), QStringLiteral("Ctrl+Shift+O"));
     connect(newButton, &QPushButton::clicked, this, [this]() { newFileFromTemplate(); });
     connect(openButton, &QPushButton::clicked, this, [this]() {
-        openFiles(QFileDialog::getOpenFileNames(this, tr("Open File"), m_lastDir));
+        openFiles(QFileDialog::getOpenFileNames(this, tr("Open File"), currentFileDir()));
     });
     connect(folderButton, &QPushButton::clicked, this, [this]() { openFolder(); });
     for (QPushButton *b : {newButton, openButton, folderButton}) {
@@ -1274,6 +1274,18 @@ void MainWindow::newFileFromTemplate()
 CodeEditor *MainWindow::currentEditor() const
 {
     return m_activeSpace ? m_activeSpace->currentEditor() : nullptr;
+}
+
+QString MainWindow::currentFileDir() const
+{
+    // Abrir arquivo começa na pasta do arquivo da aba ativa; só recorre ao
+    // último diretório usado se a aba não tem arquivo em disco (Sem título).
+    if (CodeEditor *e = currentEditor()) {
+        const QString path = e->filePath();
+        if (!path.isEmpty())
+            return QFileInfo(path).absolutePath();
+    }
+    return m_lastDir;
 }
 
 void MainWindow::openFiles(const QStringList &paths)

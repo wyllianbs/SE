@@ -3,6 +3,12 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- **Open File** now opens its dialog in the folder of the current tab's file,
+  instead of the folder of the last file that was opened. Untitled tabs (no file
+  on disk) still fall back to the last-used folder.
+
 ## 0.6.6 — 2026-10-30
 
 - Undo/redo no longer breaks when the wrapped-line hanging indent (wrap indent)

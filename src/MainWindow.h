@@ -42,6 +42,8 @@ public:
     ~MainWindow() override;
 
     void openFiles(const QStringList &paths);
+    /** Diretório onde os diálogos de abrir começam: o da aba ativa, ou o último usado. */
+    QString currentFileDir() const;
 
 protected:
     void closeEvent(QCloseEvent *event) override;

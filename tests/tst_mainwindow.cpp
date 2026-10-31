@@ -102,6 +102,25 @@ private Q_SLOTS:
         e->doc()->text()->setModified(false);
     }
 
+    // "Abrir arquivo" começa na pasta da aba ATIVA, não na do último arquivo aberto.
+    void openDialogUsesActiveTabDir()
+    {
+        QTemporaryDir dirA, dirB;
+        const QString fileA = dirA.filePath(QStringLiteral("a.c"));
+        const QString fileB = dirB.filePath(QStringLiteral("b.c"));
+        write(fileA, "int a;\n");
+        write(fileB, "int b;\n");
+        MainWindow w;
+        w.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));
+        w.openFiles({fileA});
+        w.openFiles({fileB}); // ativa B; o "último diretório" passa a ser o de B
+        QCOMPARE(QDir(w.currentFileDir()).absolutePath(), QDir(dirB.path()).absolutePath());
+        w.openFiles({fileA}); // volta o foco para a aba de A
+        // Deve ser a pasta de A (aba ativa), não a de B (último aberto).
+        QCOMPARE(QDir(w.currentFileDir()).absolutePath(), QDir(dirA.path()).absolutePath());
+    }
+
     // O terminal acoplado em cima/embaixo (horizontal) deve poder crescer tanto
     // quanto acoplado às laterais — a tela de boas-vindas não pode travar a
     // altura mínima do editor (ficava presa em ~422 px).
