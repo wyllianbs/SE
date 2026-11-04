@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.8 — 2026-11-04
 
 - The language indicator in the bottom-right status bar is now a read-only label
   showing the active file's language, instead of a dropdown that let you pick a
