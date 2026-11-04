@@ -956,3 +956,11 @@ void TerminalDock::focusTerminal()
     if (QTermWidget *t = current())
         t->setFocus();
 }
+
+void TerminalDock::ensureShell()
+{
+    // Abrir o terminal (toggle) deve sempre deixar um shell pronto para digitar,
+    // mesmo sem ter compilado/executado nada antes.
+    if (QTermWidget *t = shellTerminal())
+        t->setFocus();
+}

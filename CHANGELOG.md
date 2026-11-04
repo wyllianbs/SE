@@ -5,6 +5,10 @@ All notable changes are also published on the
 
 ## Unreleased
 
+- Opening the terminal (the toolbar toggle, or `Ctrl+``) now always leaves a
+  shell prompt ready to type, even before anything has been compiled or run.
+  Previously the panel could open empty until the first Run/Build started a
+  shell.
 - Indentation now follows the Kate model, with three separate settings (in
   **Settings ▸ Editor** and on the status-bar button for the current file):
   **Tab width** (the visual width of a tab character), **Indentation width**

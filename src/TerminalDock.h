@@ -47,6 +47,8 @@ public:
 
     /** Abre uma aba de terminal nova e a torna a atual. */
     QTermWidget *newTerminal();
+    /** Garante uma aba de shell com o prompt pronto (cria se preciso) e a foca. */
+    void ensureShell();
     void closeTerminal(int index);
     /**
      * Aba sem shell (PTY livre) para o programa depurado: devolve o caminho do

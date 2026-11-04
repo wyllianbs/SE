@@ -266,6 +266,13 @@ while True:
         QCOMPARE(s.state(), DebugSession::State::Idle);
     }
 
+    // Abrir o terminal (toggle) deve deixar um shell pronto, sem rodar nada antes.
+    void ensureShellGivesRunningPrompt()
+    {
+        m_terminal->ensureShell();
+        QTRY_VERIFY_WITH_TIMEOUT(m_terminal->current() && m_terminal->current()->getShellPID() > 0, 15000);
+    }
+
     void terminalHasCopyPasteMenu()
     {
         QTermWidget *t = m_terminal->current();

@@ -477,7 +477,7 @@ void MainWindow::createActions()
             if (auto *e = currentEditor()) e->setFocus();
         } else {
             m_terminal->show();
-            m_terminal->focusTerminal();
+            m_terminal->ensureShell(); // sempre com um shell pronto para digitar
         }
     }, Icons::Terminal);
     reg(QStringLiteral("newTerminalTab"), add(view, tr("New Terminal Ta&b"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_QuoteLeft), [this]() {
