@@ -5,6 +5,11 @@ All notable changes are also published on the
 
 ## Unreleased
 
+- The text-encoding menu (status bar) is now organized by region, like Kate —
+  Unicode, Western European, Central European, Cyrillic, Greek, Arabic, Hebrew,
+  Japanese, Korean, Chinese, Thai, … — instead of one long flat list. Only the
+  encodings this build's Qt actually supports are shown, and UTF-8 stays at the
+  top for quick access.
 - Opening the terminal (the toolbar toggle, or `Ctrl+``) now always leaves a
   shell prompt ready to type, even before anything has been compiled or run.
   Previously the panel could open empty until the first Run/Build started a

@@ -1632,31 +1632,82 @@ void MainWindow::buildStatusBar()
             return;
         Document *doc = editor->doc();
         auto addEncoding = [this, doc](QMenu *menu, const QString &label, const QString &name, bool bom) {
+            // Só as codificações que este Qt (via ICU) realmente suporta.
+            if (!QStringEncoder(name.toLatin1().constData()).isValid())
+                return;
             QAction *a = menu->addAction(label);
             a->setCheckable(true);
             a->setChecked(doc->encoding().compare(name, Qt::CaseInsensitive) == 0 && doc->hasBom() == bom);
             connect(a, &QAction::triggered, this, [this, name, bom]() { changeEncoding(name, bom); });
         };
-        const QList<std::tuple<QString, QString, bool>> common{
-            {QStringLiteral("UTF-8"), QStringLiteral("UTF-8"), false},
-            {tr("UTF-8 with BOM"), QStringLiteral("UTF-8"), true},
-            {QStringLiteral("UTF-16 LE"), QStringLiteral("UTF-16LE"), true},
-            {QStringLiteral("UTF-16 BE"), QStringLiteral("UTF-16BE"), true},
-            {tr("ISO-8859-1 (Western European)"), QStringLiteral("ISO-8859-1"), false},
-            {tr("ISO-8859-15 (Western European, €)"), QStringLiteral("ISO-8859-15"), false},
-            {tr("Windows-1252 (Western European)"), QStringLiteral("windows-1252"), false},
-            {QStringLiteral("US-ASCII"), QStringLiteral("US-ASCII"), false}};
         encodingMenu->addSection(doc->isModified() || doc->filePath().isEmpty()
                                      ? tr("Save with encoding") : tr("Reload with encoding"));
-        for (const auto &[label, name, bom] : common)
-            addEncoding(encodingMenu, label, name, bom);
-        QMenu *more = encodingMenu->addMenu(tr("Other Encodings"));
-        QStringList names = QStringConverter::availableCodecs();
-        names.removeIf([](const QString &n) { return n.contains(QLatin1Char(',')) || n.contains(QLatin1Char('_')); });
-        names.sort(Qt::CaseInsensitive);
-        names.removeDuplicates();
-        for (const QString &n : std::as_const(names))
-            addEncoding(more, n, n, false);
+        // Mais comuns, no topo, para acesso rápido.
+        addEncoding(encodingMenu, QStringLiteral("UTF-8"), QStringLiteral("UTF-8"), false);
+        addEncoding(encodingMenu, tr("UTF-8 with BOM"), QStringLiteral("UTF-8"), true);
+
+        // Agrupadas por região, como no Kate (grupos/itens sem suporte somem).
+        using Enc = std::tuple<QString, QString, bool>; // rótulo, nome, BOM
+        const QList<QPair<QString, QList<Enc>>> groups{
+            {tr("Unicode"), {{QStringLiteral("UTF-8"), QStringLiteral("UTF-8"), false},
+                             {tr("UTF-8 with BOM"), QStringLiteral("UTF-8"), true},
+                             {QStringLiteral("UTF-16 LE"), QStringLiteral("UTF-16LE"), true},
+                             {QStringLiteral("UTF-16 BE"), QStringLiteral("UTF-16BE"), true},
+                             {QStringLiteral("UTF-32 LE"), QStringLiteral("UTF-32LE"), true},
+                             {QStringLiteral("UTF-32 BE"), QStringLiteral("UTF-32BE"), true}}},
+            {tr("Western European"), {{QStringLiteral("ISO-8859-1"), QStringLiteral("ISO-8859-1"), false},
+                                      {QStringLiteral("ISO-8859-15 (€)"), QStringLiteral("ISO-8859-15"), false},
+                                      {QStringLiteral("Windows-1252"), QStringLiteral("windows-1252"), false},
+                                      {QStringLiteral("IBM850"), QStringLiteral("IBM850"), false},
+                                      {QStringLiteral("Macintosh"), QStringLiteral("macintosh"), false},
+                                      {QStringLiteral("US-ASCII"), QStringLiteral("US-ASCII"), false}}},
+            {tr("Central European"), {{QStringLiteral("ISO-8859-2"), QStringLiteral("ISO-8859-2"), false},
+                                      {QStringLiteral("Windows-1250"), QStringLiteral("windows-1250"), false},
+                                      {QStringLiteral("IBM852"), QStringLiteral("IBM852"), false},
+                                      {tr("Mac Central European"), QStringLiteral("x-mac-centraleurroman"), false}}},
+            {tr("South-Eastern Europe"), {{QStringLiteral("ISO-8859-16"), QStringLiteral("ISO-8859-16"), false}}},
+            {tr("Baltic"), {{QStringLiteral("ISO-8859-4"), QStringLiteral("ISO-8859-4"), false},
+                            {QStringLiteral("ISO-8859-13"), QStringLiteral("ISO-8859-13"), false},
+                            {QStringLiteral("Windows-1257"), QStringLiteral("windows-1257"), false}}},
+            {tr("Cyrillic"), {{QStringLiteral("ISO-8859-5"), QStringLiteral("ISO-8859-5"), false},
+                              {QStringLiteral("Windows-1251"), QStringLiteral("windows-1251"), false},
+                              {QStringLiteral("KOI8-R"), QStringLiteral("KOI8-R"), false},
+                              {QStringLiteral("KOI8-U"), QStringLiteral("KOI8-U"), false},
+                              {QStringLiteral("IBM866"), QStringLiteral("IBM866"), false},
+                              {tr("Mac Cyrillic"), QStringLiteral("x-mac-cyrillic"), false}}},
+            {tr("Greek"), {{QStringLiteral("ISO-8859-7"), QStringLiteral("ISO-8859-7"), false},
+                           {QStringLiteral("Windows-1253"), QStringLiteral("windows-1253"), false},
+                           {tr("Mac Greek"), QStringLiteral("x-mac-greek"), false}}},
+            {tr("Hebrew"), {{QStringLiteral("ISO-8859-8"), QStringLiteral("ISO-8859-8"), false},
+                            {QStringLiteral("Windows-1255"), QStringLiteral("windows-1255"), false}}},
+            {tr("Arabic"), {{QStringLiteral("ISO-8859-6"), QStringLiteral("ISO-8859-6"), false},
+                            {QStringLiteral("Windows-1256"), QStringLiteral("windows-1256"), false}}},
+            {tr("Turkish"), {{QStringLiteral("ISO-8859-9"), QStringLiteral("ISO-8859-9"), false},
+                             {QStringLiteral("Windows-1254"), QStringLiteral("windows-1254"), false},
+                             {tr("Mac Turkish"), QStringLiteral("x-mac-turkish"), false}}},
+            {tr("Thai"), {{QStringLiteral("TIS-620"), QStringLiteral("TIS-620"), false},
+                          {QStringLiteral("Windows-874"), QStringLiteral("windows-874-2000"), false}}},
+            {tr("Japanese"), {{QStringLiteral("Shift-JIS"), QStringLiteral("Shift_JIS"), false},
+                              {QStringLiteral("EUC-JP"), QStringLiteral("EUC-JP"), false},
+                              {QStringLiteral("ISO-2022-JP"), QStringLiteral("ISO-2022-JP"), false}}},
+            {tr("Korean"), {{QStringLiteral("EUC-KR"), QStringLiteral("EUC-KR"), false},
+                            {QStringLiteral("ISO-2022-KR"), QStringLiteral("ISO-2022-KR"), false}}},
+            {tr("Chinese Simplified"), {{QStringLiteral("GB18030"), QStringLiteral("GB18030"), false},
+                                        {QStringLiteral("GBK"), QStringLiteral("GBK"), false},
+                                        {QStringLiteral("GB2312"), QStringLiteral("GB2312"), false},
+                                        {QStringLiteral("HZ-GB-2312"), QStringLiteral("HZ-GB-2312"), false}}},
+            {tr("Chinese Traditional"), {{QStringLiteral("Big5"), QStringLiteral("Big5"), false},
+                                         {QStringLiteral("Big5-HKSCS"), QStringLiteral("Big5-HKSCS"), false}}},
+        };
+        for (const auto &[title, items] : groups) {
+            auto *sub = new QMenu(title, encodingMenu);
+            for (const auto &[label, name, bom] : items)
+                addEncoding(sub, label, name, bom);
+            if (sub->isEmpty())
+                delete sub;
+            else
+                encodingMenu->addMenu(sub);
+        }
     });
 
     m_tabsButton = new QToolButton(this);

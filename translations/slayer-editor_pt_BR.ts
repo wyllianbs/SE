@@ -907,28 +907,12 @@ sudo apt install gdb</translation>
         <translation>UTF-8 com BOM</translation>
     </message>
     <message>
-        <source>ISO-8859-1 (Western European)</source>
-        <translation>ISO-8859-1 (Europa Ocidental)</translation>
-    </message>
-    <message>
-        <source>ISO-8859-15 (Western European, €)</source>
-        <translation>ISO-8859-15 (Europa Ocidental, €)</translation>
-    </message>
-    <message>
-        <source>Windows-1252 (Western European)</source>
-        <translation>Windows-1252 (Europa Ocidental)</translation>
-    </message>
-    <message>
         <source>Save with encoding</source>
         <translation>Salvar com a codificação</translation>
     </message>
     <message>
         <source>Reload with encoding</source>
         <translation>Recarregar com a codificação</translation>
-    </message>
-    <message>
-        <source>Other Encodings</source>
-        <translation>Outras codificações</translation>
     </message>
     <message>
         <source>Tab Width</source>
@@ -1488,6 +1472,82 @@ sudo apt install gdb</translation>
     <message>
         <source>Tabs + Spaces: %1</source>
         <translation>Tabs + Espaços: %1</translation>
+    </message>
+    <message>
+        <source>Unicode</source>
+        <translation>Unicode</translation>
+    </message>
+    <message>
+        <source>Western European</source>
+        <translation>Europeu Ocidental</translation>
+    </message>
+    <message>
+        <source>Central European</source>
+        <translation>Europeu Central</translation>
+    </message>
+    <message>
+        <source>Mac Central European</source>
+        <translation>Mac Europeu Central</translation>
+    </message>
+    <message>
+        <source>South-Eastern Europe</source>
+        <translation>Europa do Sudeste</translation>
+    </message>
+    <message>
+        <source>Baltic</source>
+        <translation>Báltico</translation>
+    </message>
+    <message>
+        <source>Cyrillic</source>
+        <translation>Cirílico</translation>
+    </message>
+    <message>
+        <source>Mac Cyrillic</source>
+        <translation>Mac Cirílico</translation>
+    </message>
+    <message>
+        <source>Greek</source>
+        <translation>Grego</translation>
+    </message>
+    <message>
+        <source>Mac Greek</source>
+        <translation>Mac Grego</translation>
+    </message>
+    <message>
+        <source>Hebrew</source>
+        <translation>Hebraico</translation>
+    </message>
+    <message>
+        <source>Arabic</source>
+        <translation>Árabe</translation>
+    </message>
+    <message>
+        <source>Turkish</source>
+        <translation>Turco</translation>
+    </message>
+    <message>
+        <source>Mac Turkish</source>
+        <translation>Mac Turco</translation>
+    </message>
+    <message>
+        <source>Thai</source>
+        <translation>Tailandês</translation>
+    </message>
+    <message>
+        <source>Japanese</source>
+        <translation>Japonês</translation>
+    </message>
+    <message>
+        <source>Korean</source>
+        <translation>Coreano</translation>
+    </message>
+    <message>
+        <source>Chinese Simplified</source>
+        <translation>Chinês Simplificado</translation>
+    </message>
+    <message>
+        <source>Chinese Traditional</source>
+        <translation>Chinês Tradicional</translation>
     </message>
 </context>
 <context>
