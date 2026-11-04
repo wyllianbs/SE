@@ -2395,6 +2395,14 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
         <source>Indentation mode</source>
         <translation>Modo de indentação</translation>
     </message>
+    <message>
+        <source>Choose the editor font…</source>
+        <translation>Escolher a fonte do editor…</translation>
+    </message>
+    <message>
+        <source>Select Font</source>
+        <translation>Selecionar fonte</translation>
+    </message>
 </context>
 <context>
     <name>TerminalDock</name>

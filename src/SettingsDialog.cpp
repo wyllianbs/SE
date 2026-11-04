@@ -13,6 +13,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFontComboBox>
+#include <QFontDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -263,11 +264,33 @@ QWidget *SettingsDialog::buildProfilesPage()
 
 QWidget *SettingsDialog::buildEditorPage()
 {
-    m_editorFont = new QFontComboBox;
-    m_editorFont->setFontFilters(QFontComboBox::MonospacedFonts);
-    m_editorFontSize = new QSpinBox;
-    m_editorFontSize->setRange(6, 48);
-    m_editorFontSize->setSuffix(QStringLiteral(" pt"));
+    // Fonte do editor como no Kate: um rótulo "Família Tamanho" e um botão de
+    // edição (lápis) que abre o seletor de fonte (QFontDialog), em vez de um
+    // combo de família + um spin de tamanho.
+    m_editorFontLabel = new QLabel;
+    m_editorFontEdit = new QToolButton;
+    m_editorFontEdit->setObjectName(QStringLiteral("StatusButton"));
+    m_editorFontEdit->setAutoRaise(true);
+    m_editorFontEdit->setToolTip(tr("Choose the editor font…"));
+    m_editorFontEdit->setIcon(Icons::icon(Icons::SaveAs, m_theme.text, 16));
+    m_editorFontEdit->setIconSize(QSize(16, 16));
+    auto *fontRow = new QWidget;
+    auto *fontRowLayout = new QHBoxLayout(fontRow);
+    fontRowLayout->setContentsMargins(0, 0, 0, 0);
+    fontRowLayout->addWidget(m_editorFontLabel);
+    fontRowLayout->addStretch(1);
+    fontRowLayout->addWidget(m_editorFontEdit);
+    auto chooseFont = [this]() {
+        bool ok = false;
+        const QFont f = QFontDialog::getFont(&ok, m_editorFontValue, this, tr("Select Font"),
+                                             QFontDialog::MonospacedFonts);
+        if (ok) {
+            m_editorFontValue = f;
+            m_editorFontLabel->setText(QStringLiteral("%1 %2").arg(f.family()).arg(f.pointSize()));
+        }
+    };
+    connect(m_editorFontEdit, &QToolButton::clicked, this, chooseFont);
+
     m_tabWidth = new QSpinBox;
     m_tabWidth->setRange(1, 16);
     m_tabWidth->setSuffix(tr(" columns"));
@@ -284,8 +307,7 @@ QWidget *SettingsDialog::buildEditorPage()
     auto *font = new QFormLayout;
     font->setLabelAlignment(Qt::AlignLeft);
     font->setHorizontalSpacing(24);
-    font->addRow(tr("Font"), m_editorFont);
-    font->addRow(tr("Size"), m_editorFontSize);
+    font->addRow(tr("Font"), fontRow);
     font->addRow(tr("Tab width"), m_tabWidth);
     font->addRow(tr("Indentation width"), m_indentWidth);
     font->addRow(tr("Indentation mode"), m_indentMode);
@@ -1130,9 +1152,9 @@ void SettingsDialog::refreshProfiles()
 
 void SettingsDialog::setForm(const AppSettings &s)
 {
-    QFont ef(s.editorFont.isEmpty() ? Icons::monoFamily() : s.editorFont);
-    m_editorFont->setCurrentFont(ef);
-    m_editorFontSize->setValue(s.editorFontSize);
+    m_editorFontValue = QFont(s.editorFont.isEmpty() ? Icons::monoFamily() : s.editorFont);
+    m_editorFontValue.setPointSize(s.editorFontSize);
+    m_editorFontLabel->setText(QStringLiteral("%1 %2").arg(m_editorFontValue.family()).arg(s.editorFontSize));
     m_tabWidth->setValue(s.tabWidth);
     m_indentWidth->setValue(s.indentWidth);
     m_indentMode->setCurrentIndex(qBound(0, s.indentMode, 2));
@@ -1233,9 +1255,9 @@ void SettingsDialog::setForm(const AppSettings &s)
 AppSettings SettingsDialog::settings() const
 {
     AppSettings s;
-    const QString ef = m_editorFont->currentFont().family();
+    const QString ef = m_editorFontValue.family();
     s.editorFont = (ef == Icons::monoFamily()) ? QString() : ef;
-    s.editorFontSize = m_editorFontSize->value();
+    s.editorFontSize = m_editorFontValue.pointSize();
     s.tabWidth = m_tabWidth->value();
     s.indentWidth = m_indentWidth->value();
     s.indentMode = m_indentMode->currentIndex();

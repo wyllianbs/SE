@@ -5,6 +5,10 @@ All notable changes are also published on the
 
 ## Unreleased
 
+- The editor font is now chosen like Kate: **Settings ▸ Editor** shows the
+  current font as e.g. “Hack 11” with an edit button that opens the system font
+  picker (family, style, size and a live sample; monospaced fonts), instead of a
+  family dropdown plus a separate size box.
 - The text-encoding menu (status bar) is now organized by region, like Kate —
   Unicode, Western European, Central European, Cyrillic, Greek, Arabic, Hebrew,
   Japanese, Korean, Chinese, Thai, … — instead of one long flat list. Only the

@@ -4,8 +4,10 @@
 #include "Theme.h"
 
 #include <QDialog>
+#include <QFont>
 
 class QCheckBox;
+class QToolButton;
 class QComboBox;
 class QFontComboBox;
 class QLabel;
@@ -73,8 +75,9 @@ private:
     QLabel *m_activeProfile = nullptr;
 
     // Editor
-    QFontComboBox *m_editorFont = nullptr;
-    QSpinBox *m_editorFontSize = nullptr;
+    QLabel *m_editorFontLabel = nullptr;  //< mostra "Família Tamanho" (como no Kate)
+    QToolButton *m_editorFontEdit = nullptr;
+    QFont m_editorFontValue;              //< fonte escolhida no modal
     QSpinBox *m_tabWidth = nullptr;
     QSpinBox *m_indentWidth = nullptr;
     QComboBox *m_indentMode = nullptr;
