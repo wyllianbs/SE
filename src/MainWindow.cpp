@@ -80,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_findBar(new FindBar(this))
     , m_terminal(new TerminalDock(this))
     , m_languageLabel(new QLabel(this))
-    , m_cursorLabel(new QLabel(this))
+    , m_cursorLabel(new QToolButton(this))
     , m_lsp(new LspManager(this))
     , m_theme(Theme::all().first())
     , m_lastDir(QDir::homePath())
@@ -1616,8 +1616,33 @@ void MainWindow::buildStatusBar()
     m_perfLabel->hide();
     statusBar()->addPermanentWidget(m_perfLabel);
 
-    m_modeLabel = new QLabel(this);
-    m_modeLabel->setToolTip(tr("Insert key toggles insert/overwrite"));
+    // Posição do cursor: clicar abre a barra "ir para linha".
+    m_cursorLabel->setObjectName(QStringLiteral("StatusButton"));
+    m_cursorLabel->setAutoRaise(true);
+    m_cursorLabel->setToolTip(tr("Line and column — click to go to a line"));
+    connect(m_cursorLabel, &QToolButton::clicked, this, [this]() {
+        // Toggle: se a barra já está aberta, fecha; senão, abre.
+        if (m_gotoBar && m_gotoBar->isVisible()) {
+            m_gotoBar->hide();
+            if (CodeEditor *e = currentEditor())
+                e->setFocus();
+        } else {
+            goToLine();
+        }
+    });
+
+    // INSERT/OVERWRITE: clicar alterna o modo (como a tecla Insert).
+    m_modeLabel = new QToolButton(this);
+    m_modeLabel->setObjectName(QStringLiteral("StatusButton"));
+    m_modeLabel->setAutoRaise(true);
+    m_modeLabel->setToolTip(tr("Insert / overwrite — click or press Insert to toggle"));
+    connect(m_modeLabel, &QToolButton::clicked, this, [this]() {
+        if (CodeEditor *e = currentEditor()) {
+            e->setOverwriteMode(!e->overwriteMode());
+            updateStatus();
+            e->setFocus();
+        }
+    });
     m_encodingButton = new QToolButton(this);
     m_encodingButton->setObjectName(QStringLiteral("StatusButton"));
     m_encodingButton->setPopupMode(QToolButton::InstantPopup);

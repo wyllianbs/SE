@@ -895,10 +895,6 @@ sudo apt install gdb</translation>
         <translation>Modo desempenho: realce de sintaxe, dobramento, minimap, recuo das linhas quebradas, guias de indentação e destaque de ocorrências desligados (Configurações ▸ Editor)</translation>
     </message>
     <message>
-        <source>Insert key toggles insert/overwrite</source>
-        <translation>A tecla Insert alterna entre inserir e sobrescrever</translation>
-    </message>
-    <message>
         <source>Text encoding</source>
         <translation>Codificação de texto</translation>
     </message>
@@ -1548,6 +1544,14 @@ sudo apt install gdb</translation>
     <message>
         <source>Chinese Traditional</source>
         <translation>Chinês Tradicional</translation>
+    </message>
+    <message>
+        <source>Line and column — click to go to a line</source>
+        <translation>Linha e coluna — clique para ir a uma linha</translation>
+    </message>
+    <message>
+        <source>Insert / overwrite — click or press Insert to toggle</source>
+        <translation>Inserir / sobrescrever — clique ou tecle Insert para alternar</translation>
     </message>
 </context>
 <context>

@@ -9,6 +9,8 @@
 #include <QDockWidget>
 #include <QLabel>
 #include <QStatusBar>
+#include <QToolButton>
+#include <QSpinBox>
 #include <QDir>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -126,6 +128,44 @@ private Q_SLOTS:
         QVERIFY2(label->text().endsWith(QStringLiteral("&nbsp;Python")), qPrintable(label->text()));
         w.openFiles({c});
         QVERIFY2(label->text().endsWith(QStringLiteral("&nbsp;C")), qPrintable(label->text()));
+    }
+
+    // No rodapé: clicar em INSERT/OVERWRITE alterna o modo; clicar na posição
+    // do cursor abre a barra "ir para linha".
+    void statusModeAndCursorClickable()
+    {
+        QTemporaryDir tmp;
+        const QString f = tmp.filePath(QStringLiteral("a.c"));
+        write(f, "int main() {\n    return 0;\n}\n");
+        MainWindow w;
+        w.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));
+        w.openFiles({f});
+        CodeEditor *e = editorFor(w, f);
+        QVERIFY(e);
+        QToolButton *mode = nullptr, *cursor = nullptr;
+        for (QToolButton *b : w.findChildren<QToolButton *>()) {
+            if (b->text() == QLatin1String("INSERT") || b->text() == QLatin1String("OVERWRITE"))
+                mode = b;
+            else if (b->text().contains(QLatin1Char(':')) && !b->text().isEmpty() && b->text().at(0).isDigit())
+                cursor = b;
+        }
+        QVERIFY(mode);
+        QVERIFY(cursor);
+        // Alterna o modo de inserção.
+        QVERIFY(!e->overwriteMode());
+        mode->click();
+        QVERIFY(e->overwriteMode());
+        QCOMPARE(mode->text(), QStringLiteral("OVERWRITE"));
+        mode->click();
+        QVERIFY(!e->overwriteMode());
+        // Clique na posição do cursor é um toggle: abre, e um novo clique fecha.
+        QSpinBox *gotoSpin = w.findChild<QSpinBox *>();
+        QVERIFY(gotoSpin);
+        cursor->click();
+        QVERIFY(gotoSpin->isVisible());
+        cursor->click();
+        QVERIFY(!gotoSpin->isVisible());
     }
 
     // "Abrir arquivo" começa na pasta da aba ATIVA, não na do último arquivo aberto.

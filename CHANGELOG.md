@@ -5,6 +5,10 @@ All notable changes are also published on the
 
 ## Unreleased
 
+- The status bar is more interactive, as in Kate: clicking the cursor position
+  (**line:column**) toggles the “go to line” bar (click to show, click again to
+  hide), and clicking the **INSERT/OVERWRITE** indicator toggles the
+  insert/overwrite mode (same as the Insert key).
 - The editor font is now chosen like Kate: **Settings ▸ Editor** shows the
   current font as e.g. “Hack 11” with an edit button that opens the system font
   picker (family, style, size and a live sample; monospaced fonts), instead of a

@@ -163,9 +163,9 @@ private:
     TerminalDock *m_terminal;
     QToolBar *m_toolbar = nullptr;
     QLabel *m_languageLabel; //< só indica a linguagem da aba ativa (trocar é via Salvar como)
-    QLabel *m_cursorLabel;
+    QToolButton *m_cursorLabel;        //< posição do cursor; clicar abre "ir para linha"
     QLabel *m_branchLabel = nullptr;
-    QLabel *m_modeLabel = nullptr;
+    QToolButton *m_modeLabel = nullptr; //< INSERT/OVERWRITE; clicar alterna o modo
     QLabel *m_perfLabel = nullptr; //< "Performance" quando o modo desempenho está em vigor
     QToolButton *m_tabsButton = nullptr;
     QToolButton *m_encodingButton = nullptr;
