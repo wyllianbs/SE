@@ -3,6 +3,18 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Indentation now follows the Kate model, with three separate settings (in
+  **Settings ▸ Editor** and on the status-bar button for the current file):
+  **Tab width** (the visual width of a tab character), **Indentation width**
+  (how far one level indents) and **Indentation mode** — **Spaces** (soft tabs),
+  **Tabulators** (tab characters) or **Tabulators & Spaces** (tabs for whole tab
+  stops, spaces for the rest). All default to 4 and Spaces, so existing files
+  behave as before. The status bar shows e.g. “Soft Tabs: 4” (or “4 (8)” when
+  the two widths differ). This replaces the old single tab-width plus
+  “insert spaces” checkbox.
+
 ## 0.6.8 — 2026-11-04
 
 - The language indicator in the bottom-right status bar is now a read-only label

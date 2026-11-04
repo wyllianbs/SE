@@ -116,12 +116,16 @@ QList<HelpTopic> HelpDialog::topics()
             "Python). Folded lines end with ⋯. <b>View → Code Folding</b> has the Kate commands: %1 toggles the "
             "current node, %2 the nodes contained in it, %3 / %4 fold or unfold the toplevel nodes.</p>")
              .arg(keys("Ctrl+Shift+["), keys("Ctrl+Shift+]"), keys("Ctrl+Alt+["), keys("Ctrl+Alt+]"))},
-        {tr("Brackets, indentation and tabs"), tr("auto closing pairs brackets quotes indent tab spaces soft tabs width"),
+        {tr("Brackets, indentation and tabs"), tr("auto closing pairs brackets quotes indent tab spaces soft tabs width indentation mode tabulators"),
          tr("<p>Brackets and quotes are closed automatically; typing the closing one just steps over it. Enter "
             "keeps the indentation and indents after <code>{</code> or a Python <code>:</code>. %1 / %2 indent "
             "or unindent the selected lines, %3 toggles comments.</p>"
-            "<p>Tab width (4 by default) and “insert spaces” are in <b>Settings → Editor</b>; the status bar "
-            "button changes them for the current file.</p>")
+            "<p>As in Kate, indentation has three settings (in <b>Settings → Editor</b>, and on the status-bar "
+            "button for the current file): <b>Tab width</b> — the visual width of a tab character; "
+            "<b>Indentation width</b> — how far one level indents; and <b>Indentation mode</b> — "
+            "<b>Spaces</b> (soft tabs), <b>Tabulators</b> (tab characters) or <b>Tabulators &amp; Spaces</b> "
+            "(tabs for whole tab stops, spaces for the rest). All default to 4 and Spaces. The status bar shows "
+            "“Soft Tabs: 4”, or “4 (8)” when the two widths differ.</p>")
              .arg(keys("Tab"), keys("Shift+Tab"), keys("Ctrl+/"))},
         {tr("Text encoding"), tr("encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação"),
          tr("<p>The status bar shows the encoding of the file. Click it to choose another one: an unmodified file "

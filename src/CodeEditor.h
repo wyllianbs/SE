@@ -34,7 +34,15 @@ public:
     void setTheme(const Theme &theme);
     void setEditorFont(const QFont &font);
     void setAutoClosePairs(bool enabled) { m_autoClosePairs = enabled; }
+    /** Como no Kate: largura visual do tab (\t) e passo da indentação são
+     * separados, e o modo decide o que a indentação insere. */
+    enum IndentMode { IndentSpaces, IndentTabs, IndentTabsAndSpaces };
+    /** Largura visual de um caractere de tabulação (\t). */
     void setTabWidthSpaces(int spaces);
+    /** Passo da indentação, em colunas (um nível). */
+    void setIndentWidth(int columns);
+    /** Modo de indentação: só espaços, só tabulações, ou tabs + espaços. */
+    void setIndentMode(int mode);
     void setLineNumbersVisible(bool visible);
     void setWordWrap(bool wrap);
     /** Liga o recuo (suspenso) das linhas quebradas. Padrão desligado. */
@@ -43,7 +51,6 @@ public:
     void setWrapIndentExtra(int spaces);
     void setHighlightCurrentLine(bool enabled);
     void setCodeCompletion(bool enabled) { m_completionEnabled = enabled; }
-    void setInsertSpaces(bool spaces) { m_insertSpaces = spaces; }
     /** Substituição de exibição de símbolos (texto intacto); vazio = desligado. */
     void setPrettySymbols(bool enabled, const QList<QPair<QString, QString>> &rules);
 
@@ -66,8 +73,9 @@ public:
 
     /** Posiciona o cursor em linha/coluna (base 0) e centraliza. */
     void goToLineColumn(int line, int column);
-    bool insertSpaces() const { return m_insertSpaces; }
-    int tabWidth() const { return m_indentSpaces; }
+    int tabWidth() const { return m_tabWidth; }
+    int indentWidth() const { return m_indentWidth; }
+    int indentMode() const { return m_indentMode; }
 
     bool loadFile(const QString &path, QString *error = nullptr);
     bool saveFile(const QString &path, QString *error = nullptr);
@@ -197,11 +205,12 @@ private:
     Document *m_doc;
     Theme m_theme;
     bool m_autoClosePairs = true;
-    int m_indentSpaces = 4;
+    int m_tabWidth = 4;   //< largura visual de um \t
+    int m_indentWidth = 4; //< passo da indentação (colunas por nível)
     bool m_lineNumbers = true;
     bool m_highlightLine = true;
     bool m_completionEnabled = true;
-    bool m_insertSpaces = true;
+    int m_indentMode = IndentSpaces;
     bool m_prettySymbols = false;
     QList<QPair<QString, QString>> m_symbols; //< (sequência, símbolo), mais longa primeiro
     int m_hoverBreakpointLine = -1;
@@ -209,6 +218,10 @@ private:
     int m_reloadColumn = 0;
     int m_reloadScroll = 0;
     QString indentUnit() const;
+    /** Serializa um recuo de `columns` colunas em tabs/espaços conforme o modo. */
+    QString whitespaceForColumns(int columns) const;
+    /** Coluna visual (expandindo \t por tabWidth) até `pos` caracteres da linha. */
+    int visualColumn(const QString &line, int pos) const;
     QCompleter *m_completer;
     QStringListModel *m_completionModel;
     CompletionProvider m_provider;

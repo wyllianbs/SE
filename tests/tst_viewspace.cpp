@@ -115,6 +115,39 @@ private Q_SLOTS:
         QVERIFY(doc.breakpoints().isEmpty());
     }
 
+    // Tab Width (visual) e Indentation Width (passo) são separados, e o modo
+    // decide o que a tecla Tab insere (como no Kate).
+    void indentModesInsertExpectedWhitespace()
+    {
+        Document doc;
+        doc.setLanguage(Language::byId(QStringLiteral("c")));
+        CodeEditor e(&doc);
+        e.resize(400, 200);
+        e.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&e));
+        e.setFocus();
+        auto tabInsert = [&](int mode, int tabW, int indentW) -> QString {
+            doc.text()->setPlainText(QString());
+            e.setTabWidthSpaces(tabW);
+            e.setIndentWidth(indentW);
+            e.setIndentMode(mode);
+            QTextCursor c = e.textCursor();
+            c.movePosition(QTextCursor::Start);
+            e.setTextCursor(c);
+            QTest::keyClick(&e, Qt::Key_Tab);
+            return doc.text()->toPlainText();
+        };
+        // Só espaços: insere "indentWidth" espaços (não a largura do tab).
+        QCOMPARE(tabInsert(CodeEditor::IndentSpaces, 4, 4), QStringLiteral("    "));
+        QCOMPARE(tabInsert(CodeEditor::IndentSpaces, 8, 2), QStringLiteral("  "));
+        // Tabulações: uma \t por nível.
+        QCOMPARE(tabInsert(CodeEditor::IndentTabs, 4, 4), QStringLiteral("\t"));
+        // Tabs + espaços: largura de indentação serializada em tabs/espaços.
+        QCOMPARE(tabInsert(CodeEditor::IndentTabsAndSpaces, 4, 4), QStringLiteral("\t")); // 4 cols = 1 tab
+        QCOMPARE(tabInsert(CodeEditor::IndentTabsAndSpaces, 8, 4), QStringLiteral("    ")); // 4 cols < tab(8)
+        QCOMPARE(tabInsert(CodeEditor::IndentTabsAndSpaces, 4, 6), QStringLiteral("\t  ")); // 6 = 1 tab + 2 esp
+    }
+
     // Com quebra de linha, redimensionar a janela reflui o texto; a linha do
     // cursor, se estava visível, deve continuar visível (como no Kate).
     void cursorStaysVisibleOnResize()

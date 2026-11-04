@@ -60,7 +60,9 @@ struct AppSettings
     // Editor
     QString editorFont;          //< vazio = Hack (fonts-hack)
     int editorFontSize = 11;
-    int tabWidth = 4;
+    int tabWidth = 4;            //< largura visual de um caractere de tabulação (\t)
+    int indentWidth = 4;        //< passo da indentação, em colunas (um nível)
+    int indentMode = 0;         //< 0 = espaços, 1 = tabulações, 2 = tabulações + espaços
     bool lineNumbers = true;
     bool wordWrap = false;
     bool wrapIndent = false;     //< recua as linhas quebradas (opcional; ver crash no Wayland)
@@ -74,7 +76,6 @@ struct AppSettings
     bool autoReload = false;     //< relê sozinho arquivos alterados por outros programas
     bool autoSave = true;        //< salva automaticamente os arquivos editados (com nome)
     bool lspEnabled = false;     //< chave geral dos servidores de linguagem
-    bool insertSpaces = true;    //< Tab insere espaços (tabulações emuladas)
     bool editorCursorBlink = true;
     bool prettySymbols = false;  //< exibir sequências como símbolos (<= vira ≤); texto não muda
 

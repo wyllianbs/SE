@@ -1672,22 +1672,54 @@ void MainWindow::buildStatusBar()
             return;
         // Vale para o documento atual (todas as suas visões), como no Kate.
         const QList<CodeEditor *> views = editorsFor(editor->doc());
-        QAction *soft = tabsMenu->addAction(tr("Insert Spaces (Soft Tabs)"));
-        soft->setCheckable(true);
-        soft->setChecked(editor->insertSpaces());
-        connect(soft, &QAction::toggled, this, [this, views](bool on) {
-            for (CodeEditor *v : views)
-                v->setInsertSpaces(on);
-            updateStatus();
-        });
-        tabsMenu->addSection(tr("Tab Width"));
-        for (int w : {2, 3, 4, 8}) {
-            QAction *a = tabsMenu->addAction(QString::number(w));
-            a->setCheckable(true);
-            a->setChecked(editor->tabWidth() == w);
-            connect(a, &QAction::triggered, this, [this, views, w]() {
+        // Seção de largura (Tab Width / Indentation Width): 2/4/8 + Outra…
+        auto widthSection = [this, tabsMenu, views](const QString &title, const QString &prompt, int current,
+                                                    const std::function<void(CodeEditor *, int)> &apply) {
+            tabsMenu->addSection(title);
+            auto *group = new QActionGroup(tabsMenu);
+            auto applyAll = [this, views, apply](int w) {
                 for (CodeEditor *v : views)
-                    v->setTabWidthSpaces(w);
+                    apply(v, w);
+                updateStatus();
+            };
+            bool known = false;
+            for (int w : {2, 4, 8}) {
+                QAction *a = tabsMenu->addAction(QString::number(w));
+                a->setCheckable(true);
+                group->addAction(a);
+                a->setChecked(current == w);
+                known = known || current == w;
+                connect(a, &QAction::triggered, this, [applyAll, w]() { applyAll(w); });
+            }
+            QAction *other = tabsMenu->addAction(tr("Other…"));
+            other->setCheckable(true);
+            group->addAction(other);
+            other->setChecked(!known);
+            connect(other, &QAction::triggered, this, [this, prompt, current, applyAll]() {
+                bool ok = false;
+                const int w = QInputDialog::getInt(this, prompt, tr("Columns:"), current, 1, 16, 1, &ok);
+                if (ok)
+                    applyAll(w);
+            });
+        };
+        widthSection(tr("Tab Width"), tr("Tab width"), editor->tabWidth(),
+                     [](CodeEditor *v, int w) { v->setTabWidthSpaces(w); });
+        widthSection(tr("Indentation Width"), tr("Indentation width"), editor->indentWidth(),
+                     [](CodeEditor *v, int w) { v->setIndentWidth(w); });
+
+        tabsMenu->addSection(tr("Indentation Mode"));
+        auto *modeGroup = new QActionGroup(tabsMenu);
+        const QList<QPair<QString, int>> modes{{tr("Tabulators && Spaces"), CodeEditor::IndentTabsAndSpaces},
+                                               {tr("Tabulators"), CodeEditor::IndentTabs},
+                                               {tr("Spaces"), CodeEditor::IndentSpaces}};
+        for (const auto &[label, mode] : modes) {
+            QAction *a = tabsMenu->addAction(label);
+            a->setCheckable(true);
+            modeGroup->addAction(a);
+            a->setChecked(editor->indentMode() == mode);
+            connect(a, &QAction::triggered, this, [this, views, mode]() {
+                for (CodeEditor *v : views)
+                    v->setIndentMode(mode);
                 updateStatus();
             });
         }
@@ -1961,8 +1993,21 @@ void MainWindow::updateStatus()
                                  .arg(QLatin1String(colors[qBound(0, d.severity, 4)]), msg.toHtmlEscaped()));
         m_diagLabel->setToolTip(d.message);
     }
-    m_tabsButton->setText(editor->insertSpaces() ? tr("Soft Tabs: %1").arg(editor->tabWidth())
-                                                 : tr("Tab Size: %1").arg(editor->tabWidth()));
+    // Texto estilo Kate: largura de indentação e, entre parênteses, a do tab.
+    const int iw = editor->indentWidth();
+    const int tw = editor->tabWidth();
+    const QString widths = iw == tw ? QString::number(iw) : QStringLiteral("%1 (%2)").arg(iw).arg(tw);
+    switch (editor->indentMode()) {
+    case CodeEditor::IndentTabs:
+        m_tabsButton->setText(tr("Tabs: %1").arg(tw));
+        break;
+    case CodeEditor::IndentTabsAndSpaces:
+        m_tabsButton->setText(tr("Tabs + Spaces: %1").arg(widths));
+        break;
+    default:
+        m_tabsButton->setText(tr("Soft Tabs: %1").arg(widths));
+        break;
+    }
     const QString branch = gitBranchFor(editor->filePath());
     m_branchLabel->setText(branch.isEmpty() ? QString()
                                             : QStringLiteral("<span style=\"font-family:'%1'\">%2</span>&nbsp;&nbsp;%3")
@@ -2535,7 +2580,8 @@ void MainWindow::configureEditor(CodeEditor *editor) const
                                       qint64(m_settings.performanceSizeMB) * 1024 * 1024);
     editor->setAutoClosePairs(m_settings.autoClosePairs);
     editor->setCodeCompletion(m_settings.codeCompletion);
-    editor->setInsertSpaces(m_settings.insertSpaces);
+    editor->setIndentWidth(m_settings.indentWidth);
+    editor->setIndentMode(m_settings.indentMode);
     QList<QPair<QString, QString>> symbolRules;
     for (const SymbolRule &r : m_settings.effectiveSymbols())
         symbolRules.append({r.sequence, r.symbol});
@@ -2715,7 +2761,8 @@ void MainWindow::applySettings(const AppSettings &settings)
         || old.performanceSizeMB != m_settings.performanceSizeMB
         || old.autoClosePairs != m_settings.autoClosePairs
         || old.codeCompletion != m_settings.codeCompletion
-        || old.insertSpaces != m_settings.insertSpaces
+        || old.indentWidth != m_settings.indentWidth
+        || old.indentMode != m_settings.indentMode
         || old.prettySymbols != m_settings.prettySymbols
         || old.symbols != m_settings.symbols
         || old.lspEnabled != m_settings.lspEnabled;

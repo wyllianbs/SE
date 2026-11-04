@@ -210,22 +210,56 @@ void CodeEditor::setEditorFont(const QFont &font)
     if (this->font() == font)
         return;
     setFont(font);
-    setTabWidthSpaces(m_indentSpaces);
+    setTabWidthSpaces(m_tabWidth);
     updateLineNumberAreaWidth();
+}
+
+int CodeEditor::visualColumn(const QString &line, int pos) const
+{
+    const int tabW = qMax(1, m_tabWidth);
+    int col = 0;
+    for (int i = 0; i < pos && i < line.size(); ++i)
+        col = line.at(i) == QLatin1Char('\t') ? (col / tabW + 1) * tabW : col + 1;
+    return col;
+}
+
+QString CodeEditor::whitespaceForColumns(int columns) const
+{
+    if (columns <= 0)
+        return QString();
+    if (m_indentMode == IndentSpaces)
+        return QString(columns, QLatin1Char(' '));
+    // Tabulações inteiras e o resto em espaços (modos Tabs e Tabs+Espaços).
+    const int tabW = qMax(1, m_tabWidth);
+    return QString(columns / tabW, QLatin1Char('\t')) + QString(columns % tabW, QLatin1Char(' '));
 }
 
 QString CodeEditor::indentUnit() const
 {
-    return m_insertSpaces ? QString(m_indentSpaces, QLatin1Char(' ')) : QStringLiteral("\t");
+    if (m_indentMode == IndentSpaces)
+        return QString(qMax(1, m_indentWidth), QLatin1Char(' '));
+    if (m_indentMode == IndentTabs)
+        return QStringLiteral("\t"); // uma tabulação por nível
+    return whitespaceForColumns(qMax(1, m_indentWidth)); // tabs + espaços
 }
 
 void CodeEditor::setTabWidthSpaces(int spaces)
 {
-    m_indentSpaces = spaces;
-    setTabStopDistance(fontMetrics().horizontalAdvance(QLatin1Char(' ')) * spaces);
+    m_tabWidth = qMax(1, spaces);
+    setTabStopDistance(fontMetrics().horizontalAdvance(QLatin1Char(' ')) * m_tabWidth);
     // A indentação do wrap depende da largura do espaço/tab: reaplica.
     m_wrapIndentRevision = -1;
     applyWrapIndent();
+}
+
+void CodeEditor::setIndentWidth(int columns)
+{
+    m_indentWidth = qMax(1, columns);
+}
+
+void CodeEditor::setIndentMode(int mode)
+{
+    m_indentMode = qBound(0, mode, int(IndentTabsAndSpaces));
 }
 
 bool CodeEditor::loadFile(const QString &path, QString *error)
@@ -506,7 +540,7 @@ void CodeEditor::applyWrapIndent()
     // Mitigação: arredondar o recuo para pixel inteiro (evita coordenadas
     // fracionárias que o backend pode tratar mal). Fica atrás de uma opção.
     const qreal spaceW = fontMetrics().horizontalAdvance(QLatin1Char(' '));
-    const int tabW = qMax(1, m_indentSpaces);
+    const int tabW = qMax(1, m_tabWidth);
 
     m_applyingWrapIndent = true;
     const bool wasModified = document()->isModified();
@@ -1514,18 +1548,15 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
             }
             c.endEditBlock();
         } else {
-            // Coluna visual: tabs contam como (tabW - col%tabW) colunas.
-            const int tabW = qMax(1, m_indentSpaces);
-            int col = 0;
-            const QString lineText = c.block().text();
-            for (int i = 0; i < c.positionInBlock() && i < lineText.size(); ++i) {
-                if (lineText.at(i) == QLatin1Char('\t'))
-                    col = (col / tabW + 1) * tabW;
-                else
-                    ++col;
+            // Só espaços: avança até o próximo múltiplo da largura de indentação.
+            // Com tabulações: insere um \t (os modos Tabs/Tabs+Espaços).
+            if (m_indentMode == IndentSpaces) {
+                const int step = qMax(1, m_indentWidth);
+                const int col = visualColumn(c.block().text(), c.positionInBlock());
+                c.insertText(QString(step - col % step, QLatin1Char(' ')));
+            } else {
+                c.insertText(indentUnit()); // "\t" (Tabs) ou tabs+espaços (misto)
             }
-            c.insertText(m_insertSpaces ? QString(tabW - col % tabW, QLatin1Char(' '))
-                                        : QStringLiteral("\t"));
         }
         return;
     }
@@ -1540,7 +1571,7 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
             if (!t.isEmpty() && t.at(0) == QLatin1Char('\t'))
                 n = 1;
             else
-                while (n < m_indentSpaces && n < t.length() && t.at(n) == QLatin1Char(' '))
+                while (n < m_indentWidth && n < t.length() && t.at(n) == QLatin1Char(' '))
                     ++n;
             QTextCursor bc(b);
             bc.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, n);
@@ -1893,7 +1924,7 @@ void CodeEditor::paintPrettySymbols(QPainter &p)
 /** Linhas verticais sutis de indentação, como no VSCode. */
 void CodeEditor::paintIndentGuides(QPainter &p)
 {
-    const int tabW = qMax(1, m_indentSpaces);
+    const int tabW = qMax(1, m_tabWidth);
     const qreal stepPx = tabW * fontMetrics().horizontalAdvance(QLatin1Char(' '));
     if (stepPx <= 0)
         return;
@@ -1968,7 +1999,7 @@ void CodeEditor::wheelEvent(QWheelEvent *event)
             zoomIn(1);
         else if (delta < 0)
             zoomOut(1);
-        setTabWidthSpaces(m_indentSpaces);
+        setTabWidthSpaces(m_tabWidth);
         updateLineNumberAreaWidth();
         return;
     }

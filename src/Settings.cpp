@@ -153,6 +153,8 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("editorFont")] = editorFont;
     o[QStringLiteral("editorFontSize")] = editorFontSize;
     o[QStringLiteral("tabWidth")] = tabWidth;
+    o[QStringLiteral("indentWidth")] = indentWidth;
+    o[QStringLiteral("indentMode")] = indentMode;
     o[QStringLiteral("lineNumbers")] = lineNumbers;
     o[QStringLiteral("wordWrap")] = wordWrap;
     o[QStringLiteral("wrapIndent")] = wrapIndent;
@@ -175,7 +177,6 @@ QJsonObject AppSettings::toJson() const
         lspObj[it.key()] = QJsonObject{{"enabled", it->enabled}, {"command", it->command}};
     o[QStringLiteral("lsp")] = lspObj;
     o[QStringLiteral("userThemes")] = userThemes;
-    o[QStringLiteral("insertSpaces")] = insertSpaces;
     o[QStringLiteral("editorCursorBlink")] = editorCursorBlink;
     o[QStringLiteral("theme")] = theme;
     o[QStringLiteral("themeFollowSystem")] = themeFollowSystem;
@@ -236,6 +237,8 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.editorFont = str("editorFont", s.editorFont);
     s.editorFontSize = qBound(6, num("editorFontSize", s.editorFontSize), 48);
     s.tabWidth = qBound(1, num("tabWidth", s.tabWidth), 16);
+    // Largura de indentação: por padrão acompanha a do tab (comportamento antigo).
+    s.indentWidth = qBound(1, num("indentWidth", s.tabWidth), 16);
     s.lineNumbers = flag("lineNumbers", s.lineNumbers);
     s.wordWrap = flag("wordWrap", s.wordWrap);
     s.wrapIndent = flag("wrapIndent", s.wrapIndent);
@@ -261,7 +264,11 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
         const QJsonObject l = it.value().toObject();
         s.lsp.insert(it.key(), {l.value("enabled").toBool(false), l.value("command").toString()});
     }
-    s.insertSpaces = flag("insertSpaces", s.insertSpaces);
+    // Modo de indentação; migra do antigo "insertSpaces" (espaços / tabulações).
+    if (o.contains(QStringLiteral("indentMode")))
+        s.indentMode = qBound(0, num("indentMode", s.indentMode), 2);
+    else
+        s.indentMode = flag("insertSpaces", true) ? 0 : 1;
     s.editorCursorBlink = flag("editorCursorBlink", s.editorCursorBlink);
     s.theme = str("theme", s.theme);
     s.themeFollowSystem = flag("themeFollowSystem", s.themeFollowSystem);

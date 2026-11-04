@@ -272,14 +272,6 @@ sudo apt install gdb</translation>
         <translation>Parênteses, indentação e tabulação</translation>
     </message>
     <message>
-        <source>auto closing pairs brackets quotes indent tab spaces soft tabs width</source>
-        <translation>auto closing pairs brackets quotes indent tab spaces soft tabs width fechamento automático pares parênteses chaves aspas indentação tabulação espaços largura</translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;Brackets and quotes are closed automatically; typing the closing one just steps over it. Enter keeps the indentation and indents after &lt;code&gt;{&lt;/code&gt; or a Python &lt;code&gt;:&lt;/code&gt;. %1 / %2 indent or unindent the selected lines, %3 toggles comments.&lt;/p&gt;&lt;p&gt;Tab width (4 by default) and “insert spaces” are in &lt;b&gt;Settings → Editor&lt;/b&gt;; the status bar button changes them for the current file.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;Parênteses e aspas são fechados automaticamente; digitar o fechamento apenas avança sobre ele. Enter mantém a indentação e indenta depois de &lt;code&gt;{&lt;/code&gt; ou de &lt;code&gt;:&lt;/code&gt; em Python. %1 / %2 indentam ou desindentam as linhas selecionadas, %3 alterna comentários.&lt;/p&gt;&lt;p&gt;A largura da tabulação (4 por padrão) e “inserir espaços” ficam em &lt;b&gt;Configurações → Editor&lt;/b&gt;; o botão da barra de status muda isso para o arquivo atual.&lt;/p&gt;</translation>
-    </message>
-    <message>
         <source>Text encoding</source>
         <translation>Codificação de texto</translation>
     </message>
@@ -442,6 +434,14 @@ sudo apt install gdb</translation>
     <message>
         <source>&lt;p&gt;Slayer Editor is a code editor with an embedded terminal. Create a file with %1, open one with %2 (the dialog opens in the folder of the current tab&apos;s file) or drop file names on the command line: &lt;code&gt;slayer-editor main.c&lt;/code&gt;. A folder (&lt;code&gt;slayer-editor project/&lt;/code&gt;, or dropped on the window) opens as a project.&lt;/p&gt;&lt;p&gt;Closing the last tab shows the welcome screen. Open files, window layout and terminal position are restored on the next start.&lt;/p&gt;</source>
         <translation>&lt;p&gt;O Slayer Editor é um editor de código com terminal embutido. Crie um arquivo com %1, abra um com %2 (o diálogo abre na pasta do arquivo da aba atual) ou passe nomes de arquivo na linha de comando: &lt;code&gt;slayer-editor main.c&lt;/code&gt;. Uma pasta (&lt;code&gt;slayer-editor projeto/&lt;/code&gt;, ou arrastada para a janela) abre como projeto.&lt;/p&gt;&lt;p&gt;Fechar a última aba mostra a tela de boas-vindas. Os arquivos abertos, o layout da janela e a posição do terminal são restaurados na próxima abertura.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>auto closing pairs brackets quotes indent tab spaces soft tabs width indentation mode tabulators</source>
+        <translation>auto closing pairs brackets quotes indent tab spaces soft tabs width indentation mode tabulators recuo indentação tabulações espaços largura modo</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Brackets and quotes are closed automatically; typing the closing one just steps over it. Enter keeps the indentation and indents after &lt;code&gt;{&lt;/code&gt; or a Python &lt;code&gt;:&lt;/code&gt;. %1 / %2 indent or unindent the selected lines, %3 toggles comments.&lt;/p&gt;&lt;p&gt;As in Kate, indentation has three settings (in &lt;b&gt;Settings → Editor&lt;/b&gt;, and on the status-bar button for the current file): &lt;b&gt;Tab width&lt;/b&gt; — the visual width of a tab character; &lt;b&gt;Indentation width&lt;/b&gt; — how far one level indents; and &lt;b&gt;Indentation mode&lt;/b&gt; — &lt;b&gt;Spaces&lt;/b&gt; (soft tabs), &lt;b&gt;Tabulators&lt;/b&gt; (tab characters) or &lt;b&gt;Tabulators &amp;amp; Spaces&lt;/b&gt; (tabs for whole tab stops, spaces for the rest). All default to 4 and Spaces. The status bar shows “Soft Tabs: 4”, or “4 (8)” when the two widths differ.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Parênteses e aspas são fechados automaticamente; digitar o fechamento apenas avança sobre ele. Enter mantém a indentação e indenta depois de &lt;code&gt;{&lt;/code&gt; ou de &lt;code&gt;:&lt;/code&gt; em Python. %1 / %2 indentam ou desindentam as linhas selecionadas, %3 alterna comentários.&lt;/p&gt;&lt;p&gt;Como no Kate, a indentação tem três ajustes (em &lt;b&gt;Configurações → Editor&lt;/b&gt; e no botão da barra de status, para o arquivo atual): &lt;b&gt;Largura do tab&lt;/b&gt; — a largura visual de um caractere de tabulação; &lt;b&gt;Largura da indentação&lt;/b&gt; — quanto cada nível recua; e &lt;b&gt;Modo de indentação&lt;/b&gt; — &lt;b&gt;Espaços&lt;/b&gt; (soft tabs), &lt;b&gt;Tabulações&lt;/b&gt; (caracteres de tabulação) ou &lt;b&gt;Tabulações &amp;amp; Espaços&lt;/b&gt; (tabs nas paradas inteiras, espaços no resto). O padrão é 4 e Espaços. A barra de status mostra “Soft Tabs: 4”, ou “4 (8)” quando as duas larguras diferem.&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -931,10 +931,6 @@ sudo apt install gdb</translation>
         <translation>Outras codificações</translation>
     </message>
     <message>
-        <source>Insert Spaces (Soft Tabs)</source>
-        <translation>Inserir espaços (tabulações emuladas)</translation>
-    </message>
-    <message>
         <source>Tab Width</source>
         <translation>Largura da tabulação</translation>
     </message>
@@ -961,10 +957,6 @@ sudo apt install gdb</translation>
     <message>
         <source>Soft Tabs: %1</source>
         <translation>Tabulações emuladas: %1</translation>
-    </message>
-    <message>
-        <source>Tab Size: %1</source>
-        <translation>Tabulação: %1</translation>
     </message>
     <message>
         <source>No run command for %1 files — set one in Settings → Languages.</source>
@@ -1453,6 +1445,50 @@ sudo apt install gdb</translation>
         <source>Language of the active file (change it with Save As)</source>
         <translation>Linguagem do arquivo ativo (troque em Salvar como)</translation>
     </message>
+    <message>
+        <source>Other…</source>
+        <translation>Outra…</translation>
+    </message>
+    <message>
+        <source>Columns:</source>
+        <translation>Colunas:</translation>
+    </message>
+    <message>
+        <source>Tab width</source>
+        <translation>Largura da tabulação</translation>
+    </message>
+    <message>
+        <source>Indentation Width</source>
+        <translation>Largura da indentação</translation>
+    </message>
+    <message>
+        <source>Indentation width</source>
+        <translation>Largura da indentação</translation>
+    </message>
+    <message>
+        <source>Indentation Mode</source>
+        <translation>Modo de indentação</translation>
+    </message>
+    <message>
+        <source>Tabulators &amp;&amp; Spaces</source>
+        <translation>Tabulações &amp;&amp; Espaços</translation>
+    </message>
+    <message>
+        <source>Tabulators</source>
+        <translation>Tabulações</translation>
+    </message>
+    <message>
+        <source>Spaces</source>
+        <translation>Espaços</translation>
+    </message>
+    <message>
+        <source>Tabs: %1</source>
+        <translation>Tabs: %1</translation>
+    </message>
+    <message>
+        <source>Tabs + Spaces: %1</source>
+        <translation>Tabs + Espaços: %1</translation>
+    </message>
 </context>
 <context>
     <name>NewFileDialog</name>
@@ -1864,10 +1900,6 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
         <translation>Largura da tabulação</translation>
     </message>
     <message>
-        <source>Insert spaces instead of tab characters</source>
-        <translation>Inserir espaços em vez de caracteres de tabulação</translation>
-    </message>
-    <message>
         <source>Show line numbers</source>
         <translation>Mostrar números de linha</translation>
     </message>
@@ -2270,6 +2302,38 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
     <message>
         <source>The other files in the same folder are available as modules (import/require), resolved from this file’s location.</source>
         <translation>Os demais arquivos da mesma pasta ficam disponíveis como módulos (import/require), resolvidos a partir da localização deste arquivo.</translation>
+    </message>
+    <message>
+        <source> columns</source>
+        <translation> colunas</translation>
+    </message>
+    <message>
+        <source>Visual width of a tab character (\t)</source>
+        <translation>Largura visual de um caractere de tabulação (\t)</translation>
+    </message>
+    <message>
+        <source>Width of one indentation level</source>
+        <translation>Largura de um nível de indentação</translation>
+    </message>
+    <message>
+        <source>Spaces</source>
+        <translation>Espaços</translation>
+    </message>
+    <message>
+        <source>Tabulators</source>
+        <translation>Tabulações</translation>
+    </message>
+    <message>
+        <source>Tabulators &amp;&amp; Spaces</source>
+        <translation>Tabulações &amp;&amp; Espaços</translation>
+    </message>
+    <message>
+        <source>Indentation width</source>
+        <translation>Largura da indentação</translation>
+    </message>
+    <message>
+        <source>Indentation mode</source>
+        <translation>Modo de indentação</translation>
     </message>
 </context>
 <context>

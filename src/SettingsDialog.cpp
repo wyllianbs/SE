@@ -270,7 +270,16 @@ QWidget *SettingsDialog::buildEditorPage()
     m_editorFontSize->setSuffix(QStringLiteral(" pt"));
     m_tabWidth = new QSpinBox;
     m_tabWidth->setRange(1, 16);
-    m_tabWidth->setSuffix(tr(" spaces"));
+    m_tabWidth->setSuffix(tr(" columns"));
+    m_tabWidth->setToolTip(tr("Visual width of a tab character (\\t)"));
+    m_indentWidth = new QSpinBox;
+    m_indentWidth->setRange(1, 16);
+    m_indentWidth->setSuffix(tr(" columns"));
+    m_indentWidth->setToolTip(tr("Width of one indentation level"));
+    m_indentMode = new QComboBox;
+    m_indentMode->addItem(tr("Spaces"));              // 0
+    m_indentMode->addItem(tr("Tabulators"));          // 1
+    m_indentMode->addItem(tr("Tabulators && Spaces")); // 2
 
     auto *font = new QFormLayout;
     font->setLabelAlignment(Qt::AlignLeft);
@@ -278,8 +287,8 @@ QWidget *SettingsDialog::buildEditorPage()
     font->addRow(tr("Font"), m_editorFont);
     font->addRow(tr("Size"), m_editorFontSize);
     font->addRow(tr("Tab width"), m_tabWidth);
-    m_insertSpaces = new QCheckBox(tr("Insert spaces instead of tab characters"));
-    font->addRow(QString(), m_insertSpaces);
+    font->addRow(tr("Indentation width"), m_indentWidth);
+    font->addRow(tr("Indentation mode"), m_indentMode);
 
     m_lineNumbers = new QCheckBox(tr("Show line numbers"));
     m_wordWrap = new QCheckBox(tr("Wrap long lines"));
@@ -1125,6 +1134,8 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_editorFont->setCurrentFont(ef);
     m_editorFontSize->setValue(s.editorFontSize);
     m_tabWidth->setValue(s.tabWidth);
+    m_indentWidth->setValue(s.indentWidth);
+    m_indentMode->setCurrentIndex(qBound(0, s.indentMode, 2));
     m_lineNumbers->setChecked(s.lineNumbers);
     m_wordWrap->setChecked(s.wordWrap);
     m_wrapIndent->setChecked(s.wrapIndent);
@@ -1141,7 +1152,6 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_completion->setChecked(s.codeCompletion);
     m_folding->setChecked(s.codeFolding);
     m_lspEnabled->setChecked(s.lspEnabled);
-    m_insertSpaces->setChecked(s.insertSpaces);
     m_prettySymbols->setChecked(s.prettySymbols);
     m_symbolsTable->setEnabled(s.prettySymbols);
     m_symbolsTable->setRowCount(0);
@@ -1227,6 +1237,8 @@ AppSettings SettingsDialog::settings() const
     s.editorFont = (ef == Icons::monoFamily()) ? QString() : ef;
     s.editorFontSize = m_editorFontSize->value();
     s.tabWidth = m_tabWidth->value();
+    s.indentWidth = m_indentWidth->value();
+    s.indentMode = m_indentMode->currentIndex();
     s.lineNumbers = m_lineNumbers->isChecked();
     s.wordWrap = m_wordWrap->isChecked();
     s.wrapIndent = m_wrapIndent->isChecked();
@@ -1244,7 +1256,6 @@ AppSettings SettingsDialog::settings() const
     s.codeCompletion = m_completion->isChecked();
     s.codeFolding = m_folding->isChecked();
     s.lspEnabled = m_lspEnabled->isChecked();
-    s.insertSpaces = m_insertSpaces->isChecked();
     s.prettySymbols = m_prettySymbols->isChecked();
     for (int row = 0; row < m_symbolsTable->rowCount(); ++row) {
         const bool on = m_symbolsTable->cellWidget(row, 0)->findChild<QCheckBox *>()->isChecked();

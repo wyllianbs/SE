@@ -76,6 +76,8 @@ private:
     QFontComboBox *m_editorFont = nullptr;
     QSpinBox *m_editorFontSize = nullptr;
     QSpinBox *m_tabWidth = nullptr;
+    QSpinBox *m_indentWidth = nullptr;
+    QComboBox *m_indentMode = nullptr;
     QCheckBox *m_lineNumbers = nullptr;
     QCheckBox *m_wordWrap = nullptr;
     QCheckBox *m_highlightLine = nullptr;
@@ -91,7 +93,6 @@ private:
     QCheckBox *m_completion = nullptr;
     QCheckBox *m_folding = nullptr;
     QCheckBox *m_lspEnabled = nullptr;
-    QCheckBox *m_insertSpaces = nullptr;
     QCheckBox *m_editorBlink = nullptr;
     QCheckBox *m_prettySymbols = nullptr;
     class QTableWidget *m_symbolsTable = nullptr;
