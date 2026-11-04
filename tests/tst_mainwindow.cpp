@@ -5,7 +5,10 @@
 #include "../src/ProjectPanel.h"
 
 #include <QApplication>
+#include <QComboBox>
 #include <QDockWidget>
+#include <QLabel>
+#include <QStatusBar>
 #include <QDir>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -100,6 +103,29 @@ private Q_SLOTS:
         while (d->isRedoAvailable() && guard++ < 500) { e->redo(); QTest::qWait(3); }
         QCOMPARE(d->toPlainText(), full);
         e->doc()->text()->setModified(false);
+    }
+
+    // O indicador de linguagem no rodapé é só um rótulo (não um combo com lista):
+    // mostra a linguagem da aba ativa e muda ao trocar de aba.
+    void statusBarLanguageIsLabel()
+    {
+        QTemporaryDir tmp;
+        const QString py = tmp.filePath(QStringLiteral("a.py"));
+        const QString c = tmp.filePath(QStringLiteral("b.c"));
+        write(py, "print(1)\n");
+        write(c, "int main(){}\n");
+        MainWindow w;
+        w.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&w));
+        // Não há mais um QComboBox (seletor com lista) no rodapé.
+        QVERIFY(!w.statusBar()->findChild<QComboBox *>());
+        auto *label = w.findChild<QLabel *>(QStringLiteral("LanguageLabel"));
+        QVERIFY(label);
+
+        w.openFiles({py});
+        QVERIFY2(label->text().endsWith(QStringLiteral("&nbsp;Python")), qPrintable(label->text()));
+        w.openFiles({c});
+        QVERIFY2(label->text().endsWith(QStringLiteral("&nbsp;C")), qPrintable(label->text()));
     }
 
     // "Abrir arquivo" começa na pasta da aba ATIVA, não na do último arquivo aberto.

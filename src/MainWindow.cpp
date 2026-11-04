@@ -35,7 +35,6 @@
 #include <QHostAddress>
 #include <QUrl>
 #include <QGuiApplication>
-#include <QComboBox>
 #include <QContextMenuEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -80,7 +79,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_findBar(new FindBar(this))
     , m_terminal(new TerminalDock(this))
-    , m_languageCombo(new QComboBox(this))
+    , m_languageLabel(new QLabel(this))
     , m_cursorLabel(new QLabel(this))
     , m_lsp(new LspManager(this))
     , m_theme(Theme::all().first())
@@ -197,10 +196,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     buildStatusBar();
 
-    connect(m_languageCombo, &QComboBox::activated, this, [this](int index) {
-        if (CodeEditor *ed = currentEditor())
-            ed->setLanguage(languageById(m_languageCombo->itemData(index).toString()));
-    });
     // O desktop trocou entre claro e escuro: reaplica se "seguir o sistema".
     connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {
         if (m_settings.themeFollowSystem)
@@ -1698,10 +1693,12 @@ void MainWindow::buildStatusBar()
         }
     });
 
-    m_languageCombo->setFocusPolicy(Qt::NoFocus);
-    m_languageCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    // Só indica a linguagem da aba ativa; para trocá-la, usa-se Salvar como.
+    m_languageLabel->setObjectName(QStringLiteral("LanguageLabel"));
+    m_languageLabel->setTextFormat(Qt::RichText);
+    m_languageLabel->setToolTip(tr("Language of the active file (change it with Save As)"));
     for (QWidget *w : std::initializer_list<QWidget *>{m_lspLabel, m_cursorLabel, m_modeLabel, m_tabsButton,
-                                                        m_encodingButton, m_languageCombo})
+                                                        m_encodingButton, m_languageLabel})
         statusBar()->addPermanentWidget(w);
 }
 
@@ -1930,7 +1927,7 @@ void MainWindow::updateStatus()
     CodeEditor *editor = currentEditor();
     const bool has = editor != nullptr;
     for (QWidget *w : std::initializer_list<QWidget *>{m_cursorLabel, m_modeLabel, m_tabsButton, m_encodingButton,
-                                                        m_languageCombo})
+                                                        m_languageLabel})
         w->setVisible(has);
     if (!has) {
         m_branchLabel->clear();
@@ -1971,15 +1968,12 @@ void MainWindow::updateStatus()
                                             : QStringLiteral("<span style=\"font-family:'%1'\">%2</span>&nbsp;&nbsp;%3")
                                                   .arg(Icons::symbolFamily(), Icons::glyphText(Icons::GitBranch),
                                                        branch.toHtmlEscaped()));
-    int idx = m_languageCombo->findData(editor->language().id);
-    if (idx < 0) {
-        // Arquivo de uma linguagem não instalada: aparece só enquanto for o atual.
-        const Language &lang = editor->language();
-        m_languageCombo->addItem(Icons::icon(Icons::forLanguage(lang.id), Icons::colorForLanguage(lang.id), 14),
-                                 tr("%1 (not installed)").arg(lang.displayName), lang.id);
-        idx = m_languageCombo->count() - 1;
-    }
-    m_languageCombo->setCurrentIndex(idx);
+    // Indica a linguagem da aba ativa (ícone colorido + nome), sem permitir
+    // trocar: a linguagem segue a extensão do arquivo, mudada em Salvar como.
+    const Language &lang = editor->language();
+    m_languageLabel->setText(QStringLiteral("<span style=\"font-family:'%1'; color:%2\">%3</span>&nbsp;%4")
+                                 .arg(Icons::symbolFamily(), Icons::colorForLanguage(lang.id).name(),
+                                      Icons::glyphText(Icons::forLanguage(lang.id)), lang.displayName.toHtmlEscaped()));
     if (m_livePreviewAction)
         m_livePreviewAction->setEnabled(editor->language().id == QLatin1String("html"));
     const QString title = editor->displayName() + (editor->doc()->isModified() ? QStringLiteral(" ●") : QString());
@@ -2748,9 +2742,6 @@ void MainWindow::applySettings(const AppSettings &settings)
         }
     }
 
-    if (m_languageCombo->count() == 0 || langsChanged || old.lsp != m_settings.lsp)
-        rebuildLanguageCombo();
-
     const bool termFontChanged = old.terminalFont != m_settings.terminalFont
                                  || old.terminalFontSize != m_settings.terminalFontSize;
     if (termFontChanged)
@@ -2780,23 +2771,6 @@ void MainWindow::showSettings()
             QTimer::singleShot(0, this, &MainWindow::restartApplication);
     });
     dialog->open();
-}
-
-void MainWindow::rebuildLanguageCombo()
-{
-    // Linguagens instaladas no sistema (o realce das outras continua valendo
-    // para arquivos abertos; updateStatus acrescenta a do arquivo atual).
-    m_languageCombo->clear();
-    for (const Language &lang : Language::all()) {
-        if (m_settings.languageInstalled(lang.id))
-            m_languageCombo->addItem(Icons::icon(Icons::forLanguage(lang.id), Icons::colorForLanguage(lang.id), 14),
-                                     lang.displayName, lang.id);
-    }
-    for (const CustomLanguage &c : std::as_const(m_settings.customLanguages))
-        m_languageCombo->addItem(Icons::icon(Icons::File, Icons::colorForLanguage(QString()), 14), c.name,
-                                 QStringLiteral("custom:") + c.name);
-    m_languageCombo->addItem(Icons::icon(Icons::File, Icons::colorForLanguage(QString()), 14),
-                             Language::plainText().displayName, Language::plainText().id);
 }
 
 Language MainWindow::languageById(const QString &id) const

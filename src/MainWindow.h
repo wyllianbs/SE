@@ -11,7 +11,6 @@
 class CodeEditor;
 class FindBar;
 class QAction;
-class QComboBox;
 class QLabel;
 class QSpinBox;
 class QMenu;
@@ -142,7 +141,6 @@ private:
     void toggleDarkMode();
     void configureEditor(CodeEditor *editor) const;
     void showSettings();
-    void rebuildLanguageCombo();
     Language languageForPath(const QString &path) const;
     Language languageById(const QString &id) const;
     QFont editorFont() const;
@@ -164,7 +162,7 @@ private:
     int m_gotoOriginalPos = 0;          //< posição do cursor ao abrir (para Esc cancelar)
     TerminalDock *m_terminal;
     QToolBar *m_toolbar = nullptr;
-    QComboBox *m_languageCombo;
+    QLabel *m_languageLabel; //< só indica a linguagem da aba ativa (trocar é via Salvar como)
     QLabel *m_cursorLabel;
     QLabel *m_branchLabel = nullptr;
     QLabel *m_modeLabel = nullptr;

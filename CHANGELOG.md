@@ -3,6 +3,13 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- The language indicator in the bottom-right status bar is now a read-only label
+  showing the active file's language, instead of a dropdown that let you pick a
+  language from a list. A file's language follows its extension; to change it,
+  use **Save As**.
+
 ## 0.6.7 — 2026-10-31
 
 - **Open File** now opens its dialog in the folder of the current tab's file,

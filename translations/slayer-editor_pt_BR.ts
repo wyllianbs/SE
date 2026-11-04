@@ -1262,10 +1262,6 @@ sudo apt install gdb</translation>
         <translation>Novo arquivo &amp;vazio</translation>
     </message>
     <message>
-        <source>%1 (not installed)</source>
-        <translation>%1 (não instalada)</translation>
-    </message>
-    <message>
         <source>Auto &amp;Reload Document</source>
         <translation>&amp;Recarregar documento automaticamente</translation>
     </message>
@@ -1452,6 +1448,10 @@ sudo apt install gdb</translation>
     <message>
         <source>No definition found</source>
         <translation>Definição não encontrada</translation>
+    </message>
+    <message>
+        <source>Language of the active file (change it with Save As)</source>
+        <translation>Linguagem do arquivo ativo (troque em Salvar como)</translation>
     </message>
 </context>
 <context>
