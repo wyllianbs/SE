@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.6.9 — 2026-11-04
 
 - The status bar is more interactive, as in Kate: clicking the cursor position
   (**line:column**) toggles the “go to line” bar (click to show, click again to
