@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.7.3 — 2026-11-05
 
 - Custom languages can now be marked **Compiled** (Settings ▸ Languages). Instead
   of just running `tool flags file`, the editor builds the file to
