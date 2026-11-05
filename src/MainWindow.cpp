@@ -2475,10 +2475,10 @@ QWidget *MainWindow::buildGoToBar()
     auto *go = new QPushButton(Icons::icon(Icons::Run, m_theme.text, 14), tr("Go to"), m_gotoBar);
     go->setAutoDefault(false);
     auto *up = new QToolButton(m_gotoBar);
-    up->setText(QStringLiteral("↑"));
+    up->setIcon(Icons::icon(Icons::ChevronUp, m_theme.text, 14));
     up->setAutoRaise(true);
     auto *down = new QToolButton(m_gotoBar);
-    down->setText(QStringLiteral("↓"));
+    down->setIcon(Icons::icon(Icons::ChevronDown, m_theme.text, 14));
     down->setAutoRaise(true);
     auto *close = new QToolButton(m_gotoBar);
     close->setText(QStringLiteral("✕"));

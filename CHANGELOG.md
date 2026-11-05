@@ -3,6 +3,11 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- The “go to line” bar's up/down buttons now use chevrons (like Kate), matching
+  the folding and other arrows in the editor, instead of filled arrow glyphs.
+
 ## 0.7.0 — 2026-11-05
 
 - The terminal also comes up with a shell prompt ready when it is restored
