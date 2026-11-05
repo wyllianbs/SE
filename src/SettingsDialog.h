@@ -54,6 +54,8 @@ private:
         LspConfig lsp;
     };
     void refreshLanguageList(int select);
+    /** Ordena m_entries por nome (alfabética, sensível à localidade). */
+    void sortLanguageEntries();
     void loadLanguageForm();
     void storeLanguageForm();
     void updateLanguageStatus();

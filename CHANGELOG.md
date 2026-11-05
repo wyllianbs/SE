@@ -23,6 +23,9 @@ All notable changes are also published on the
   (PNG, SVG…). The badge shows in the language list, the file tabs, the status
   bar and the New File dialog; leaving it on **Default** follows the language.
   The ready-made list is sorted alphabetically.
+- The language list in **Settings ▸ Languages** is now sorted alphabetically
+  (built-in and custom languages together); a language added with **Add
+  Language…** drops into its alphabetical place instead of at the bottom.
 
 ## 0.7.1 — 2026-11-05
 

@@ -968,7 +968,11 @@ QWidget *SettingsDialog::buildLanguagesPage()
             return;
         storeLanguageForm();
         m_entries.append({QString(), tool, true, false, {tool, QString(), ext}, {}});
-        refreshLanguageList(m_entries.size() - 1);
+        sortLanguageEntries(); // mantém a ordem alfabética
+        int row = 0;           // seleciona a linguagem recém-adicionada no seu lugar ordenado
+        for (int i = 0; i < m_entries.size(); ++i)
+            if (m_entries[i].custom && m_entries[i].name == tool) { row = i; break; }
+        refreshLanguageList(row);
     });
     connect(m_langRemove, &QPushButton::clicked, this, [this]() {
         if (m_currentEntry < 0 || !m_entries[m_currentEntry].custom)
@@ -994,6 +998,13 @@ QWidget *SettingsDialog::buildLanguagesPage()
                        "programs link without a Makefile). The language server adds diagnostics, completion, go to "
                        "definition and hover; turn all servers off in Settings → Editor."),
                     layout, true);
+}
+
+void SettingsDialog::sortLanguageEntries()
+{
+    std::sort(m_entries.begin(), m_entries.end(), [](const LangEntry &a, const LangEntry &b) {
+        return a.name.localeAwareCompare(b.name) < 0;
+    });
 }
 
 void SettingsDialog::refreshLanguageList(int select)
@@ -1359,6 +1370,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     for (const CustomLanguage &c : s.customLanguages)
         m_entries.append({QString(), c.name, true, c.compiled,
                           {c.tool, c.flags, c.extensions, c.runAfterBuild, QString(), c.icon}, {}});
+    sortLanguageEntries(); // lista em ordem alfabética (embutidas e personalizadas juntas)
     m_missingLanguages->setText(missing.isEmpty() ? QString()
                                                   : tr("Not installed on this system (hidden): %1. Install a "
                                                        "compiler or interpreter and it appears here.")
