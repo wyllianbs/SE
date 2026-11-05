@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.7.1 — 2026-11-05
 
 - The “go to line” bar's up/down buttons now use chevrons (like Kate), matching
   the folding and other arrows in the editor, instead of filled arrow glyphs.
