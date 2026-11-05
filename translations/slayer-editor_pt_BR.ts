@@ -276,14 +276,6 @@ sudo apt install gdb</translation>
         <translation>Codificação de texto</translation>
     </message>
     <message>
-        <source>encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação</source>
-        <translation>encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação acentos</translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;The status bar shows the encoding of the file. Click it to choose another one: an unmodified file is reloaded in that encoding, otherwise it applies when saving. Files with a BOM keep it; files that are not valid UTF-8 open as Windows-1252.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;A barra de status mostra a codificação do arquivo. Clique nela para escolher outra: um arquivo sem alterações é recarregado nessa codificação; caso contrário, ela vale ao salvar. Arquivos com BOM o mantêm; arquivos que não são UTF-8 válido abrem como Windows-1252.&lt;/p&gt;</translation>
-    </message>
-    <message>
         <source>Status bar</source>
         <translation>Barra de status</translation>
     </message>
@@ -442,6 +434,14 @@ sudo apt install gdb</translation>
     <message>
         <source>&lt;p&gt;Brackets and quotes are closed automatically; typing the closing one just steps over it. Enter keeps the indentation and indents after &lt;code&gt;{&lt;/code&gt; or a Python &lt;code&gt;:&lt;/code&gt;. %1 / %2 indent or unindent the selected lines, %3 toggles comments.&lt;/p&gt;&lt;p&gt;As in Kate, indentation has three settings (in &lt;b&gt;Settings → Editor&lt;/b&gt;, and on the status-bar button for the current file): &lt;b&gt;Tab width&lt;/b&gt; — the visual width of a tab character; &lt;b&gt;Indentation width&lt;/b&gt; — how far one level indents; and &lt;b&gt;Indentation mode&lt;/b&gt; — &lt;b&gt;Spaces&lt;/b&gt; (soft tabs), &lt;b&gt;Tabulators&lt;/b&gt; (tab characters) or &lt;b&gt;Tabulators &amp;amp; Spaces&lt;/b&gt; (tabs for whole tab stops, spaces for the rest). All default to 4 and Spaces. The status bar shows “Soft Tabs: 4”, or “4 (8)” when the two widths differ.&lt;/p&gt;</source>
         <translation>&lt;p&gt;Parênteses e aspas são fechados automaticamente; digitar o fechamento apenas avança sobre ele. Enter mantém a indentação e indenta depois de &lt;code&gt;{&lt;/code&gt; ou de &lt;code&gt;:&lt;/code&gt; em Python. %1 / %2 indentam ou desindentam as linhas selecionadas, %3 alterna comentários.&lt;/p&gt;&lt;p&gt;Como no Kate, a indentação tem três ajustes (em &lt;b&gt;Configurações → Editor&lt;/b&gt; e no botão da barra de status, para o arquivo atual): &lt;b&gt;Largura do tab&lt;/b&gt; — a largura visual de um caractere de tabulação; &lt;b&gt;Largura da indentação&lt;/b&gt; — quanto cada nível recua; e &lt;b&gt;Modo de indentação&lt;/b&gt; — &lt;b&gt;Espaços&lt;/b&gt; (soft tabs), &lt;b&gt;Tabulações&lt;/b&gt; (caracteres de tabulação) ou &lt;b&gt;Tabulações &amp;amp; Espaços&lt;/b&gt; (tabs nas paradas inteiras, espaços no resto). O padrão é 4 e Espaços. A barra de status mostra “Soft Tabs: 4”, ou “4 (8)” quando as duas larguras diferem.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação region</source>
+        <translation>encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação região região grupos</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The status bar shows the encoding of the file. Click it to choose another one, grouped by region like Kate (Unicode, Western European, Cyrillic, Japanese…): an unmodified file is reloaded in that encoding, otherwise it applies when saving. Files with a BOM keep it; files that are not valid UTF-8 open as Windows-1252.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;A barra de status mostra a codificação do arquivo. Clique para escolher outra, agrupada por região como no Kate (Unicode, Europeu Ocidental, Cirílico, Japonês…): um arquivo não modificado é relido nessa codificação; caso contrário, ela vale ao salvar. Arquivos com BOM o mantêm; arquivos que não são UTF-8 válido abrem como Windows-1252.&lt;/p&gt;</translation>
     </message>
 </context>
 <context>

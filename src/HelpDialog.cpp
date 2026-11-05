@@ -127,10 +127,11 @@ QList<HelpTopic> HelpDialog::topics()
             "(tabs for whole tab stops, spaces for the rest). All default to 4 and Spaces. The status bar shows "
             "“Soft Tabs: 4”, or “4 (8)” when the two widths differ.</p>")
              .arg(keys("Tab"), keys("Shift+Tab"), keys("Ctrl+/"))},
-        {tr("Text encoding"), tr("encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação"),
-         tr("<p>The status bar shows the encoding of the file. Click it to choose another one: an unmodified file "
-            "is reloaded in that encoding, otherwise it applies when saving. Files with a BOM keep it; files that "
-            "are not valid UTF-8 open as Windows-1252.</p>")},
+        {tr("Text encoding"), tr("encoding utf-8 utf8 latin iso-8859 windows-1252 bom charset codificação region"),
+         tr("<p>The status bar shows the encoding of the file. Click it to choose another one, grouped by region "
+            "like Kate (Unicode, Western European, Cyrillic, Japanese…): an unmodified file is reloaded in that "
+            "encoding, otherwise it applies when saving. Files with a BOM keep it; files that are not valid UTF-8 "
+            "open as Windows-1252.</p>")},
         {tr("Status bar"), tr("status bar footer branch git line column insert overwrite"),
          tr("<p>From left to right: git branch, message of the cursor line, language server, “Performance” (when "
             "performance mode is on), line:column, INSERT/OVERWRITE (%1 toggles), tabs, encoding and language "
