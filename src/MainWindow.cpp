@@ -3131,6 +3131,19 @@ void MainWindow::restoreSession()
         restoreTabs(QStringLiteral("session"));
     else
         m_projectPanel->setVisible(s.value(QStringLiteral("session/projectPanel"), true).toBool());
+
+    // Terminal visível na sessão anterior: garante um shell pronto para digitar,
+    // como no toggle. É agendado (a janela ainda não foi exibida aqui) e mantém
+    // o foco no editor.
+    if (!m_terminal->isHidden()) {
+        QTimer::singleShot(0, this, [this]() {
+            if (m_terminal->isHidden())
+                return;
+            m_terminal->ensureShell();
+            if (CodeEditor *e = currentEditor())
+                e->setFocus();
+        });
+    }
 }
 
 QString MainWindow::sessionKey() const

@@ -3,6 +3,13 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- The terminal also comes up with a shell prompt ready when it is restored
+  visible at startup (its state from the last session), not only on the toolbar
+  toggle. Previously a terminal that was open when the app last closed could
+  reopen empty until the first Run/Build started a shell.
+
 ## 0.6.9 — 2026-11-04
 
 - The status bar is more interactive, as in Kate: clicking the cursor position

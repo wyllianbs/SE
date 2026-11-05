@@ -3,7 +3,9 @@
 #include "../src/Icons.h"
 #include "../src/MainWindow.h"
 #include "../src/ProjectPanel.h"
+#include "../src/TerminalDock.h"
 
+#include <qtermwidget.h>
 #include <QApplication>
 #include <QComboBox>
 #include <QDockWidget>
@@ -128,6 +130,27 @@ private Q_SLOTS:
         QVERIFY2(label->text().endsWith(QStringLiteral("&nbsp;Python")), qPrintable(label->text()));
         w.openFiles({c});
         QVERIFY2(label->text().endsWith(QStringLiteral("&nbsp;C")), qPrintable(label->text()));
+    }
+
+    // Se o terminal estava visível na sessão anterior, ao reabrir o software ele
+    // deve subir com um shell pronto (não um painel vazio).
+    void terminalRestoredVisibleGetsShell()
+    {
+        {
+            MainWindow w1;
+            w1.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&w1));
+            auto *dock = w1.findChild<QDockWidget *>(QStringLiteral("TerminalDock"));
+            QVERIFY(dock);
+            dock->setVisible(true);
+            QSettings().setValue(QStringLiteral("ui/state"), w1.saveState());
+        }
+        MainWindow w2; // restaura o estado: terminal visível
+        w2.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&w2));
+        auto *term = w2.findChild<TerminalDock *>();
+        QVERIFY(term);
+        QTRY_VERIFY_WITH_TIMEOUT(term->current() && term->current()->getShellPID() > 0, 15000);
     }
 
     // No rodapé: clicar em INSERT/OVERWRITE alterna o modo; clicar na posição
