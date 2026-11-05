@@ -69,12 +69,13 @@ QList<HelpTopic> HelpDialog::topics()
             "unrelated modules are not linked in (which could cause “multiple definition” or compile errors).</p>"
             "<p>%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds "
             "and runs the whole project (see <b>Projects</b>).</p>"
-            "<p>Change the tool, flags, extensions and the <b>Language name</b> shown in the list for each language "
-            "in <b>Settings → Languages</b> — every language can be renamed (for example “LLVM” instead of the "
-            "tool). Add your own language (Ruby, Lua, Perl…) with <b>Add Language…</b> and tick <b>Compiled</b> to "
-            "build it to <code>/tmp/slayer_out</code> (like C/C++) instead of just passing the file to the tool. "
-            "For any compiled language, <b>Run after building</b> (on by default) chooses whether %1 also runs the "
-            "binary or only builds it.</p>")
+            "<p>Change the tool, flags, extensions, the <b>Language name</b> shown in the list and its <b>Badge</b> "
+            "for each language in <b>Settings → Languages</b> — every language can be renamed (for example “LLVM” "
+            "instead of the tool) and given a badge from the built-in library (Zig, Kotlin, Swift and many more) or "
+            "an image file of your own; the default badge follows the language. Add your own language (Ruby, Lua, "
+            "Perl…) with <b>Add Language…</b> and tick <b>Compiled</b> to build it to <code>/tmp/slayer_out</code> "
+            "(like C/C++) instead of just passing the file to the tool. For any compiled language, <b>Run after "
+            "building</b> (on by default) chooses whether %1 also runs the binary or only builds it.</p>")
              .arg(keys("F5"), keys("Alt+F5"), keys("F4"))},
         {tr("Terminal"), tr("terminal shell bash console dock position left right top bottom float exit interrupt sigint ctrl+c"),
          tr("<p>%1 shows or hides the terminal and moves the focus to it; %2 opens a new terminal tab. The ▥ "

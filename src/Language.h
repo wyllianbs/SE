@@ -36,6 +36,9 @@ struct Language
      */
     QRegularExpression increaseIndentPattern;
     QRegularExpression decreaseIndentPattern;
+    /** Badge: vazio = padrão; "glyph:<chave>" da biblioteca; ou caminho de uma imagem.
+     *  Fica por último para não quebrar a inicialização posicional do catálogo. */
+    QString iconSpec;
 
     static const QList<Language> &all();
     static const Language &plainText();

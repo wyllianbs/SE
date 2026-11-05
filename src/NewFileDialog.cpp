@@ -49,13 +49,14 @@ NewFileDialog::NewFileDialog(const AppSettings &settings, const QString &lastLan
         const Language &lang = Language::byId(id);
         if (lang.helloWorld.isEmpty())
             continue;
-        add(Icons::icon(Icons::forLanguage(id), Icons::colorForLanguage(id), 18),
+        add(Icons::badgeIcon(settings.languageIconSpec(id), id, 18),
             settings.languageDisplayName(id), id, lang.newFileName, lang.helloWorld);
     }
     for (const CustomLanguage &c : settings.customLanguages) {
         const QString ext = Language::splitExtensions(c.extensions).value(0, QStringLiteral("txt"));
-        add(Icons::icon(Icons::File, Icons::colorForLanguage(QString()), 18), c.name, QStringLiteral("custom:") + c.name,
-            QStringLiteral("untitled.") + ext, Language::helloWorldForTool(c.tool));
+        add(Icons::badgeIcon(c.icon, QStringLiteral("custom:") + c.name, 18), c.name,
+            QStringLiteral("custom:") + c.name, QStringLiteral("untitled.") + ext,
+            Language::helloWorldForTool(c.tool));
     }
     add(Icons::icon(Icons::File, Icons::colorForLanguage(QString()), 18), tr("Empty file"), QString(),
         QString(), QString());

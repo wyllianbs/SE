@@ -115,6 +115,11 @@ QString AppSettings::languageDisplayName(const QString &id) const
     return custom.isEmpty() ? Language::byId(id).displayName : custom;
 }
 
+QString AppSettings::languageIconSpec(const QString &id) const
+{
+    return languages.value(id).icon.trimmed();
+}
+
 bool AppSettings::languageInstalled(const QString &id) const
 {
     const Language &lang = Language::byId(id);
@@ -221,7 +226,8 @@ QJsonObject AppSettings::toJson() const
     QJsonObject langs;
     for (auto it = languages.cbegin(); it != languages.cend(); ++it) {
         langs[it.key()] = QJsonObject{{"tool", it->tool}, {"flags", it->flags}, {"extensions", it->extensions},
-                                      {"runAfterBuild", it->runAfterBuild}, {"name", it->displayName}};
+                                      {"runAfterBuild", it->runAfterBuild}, {"name", it->displayName},
+                                      {"icon", it->icon}};
     }
     o[QStringLiteral("languages")] = langs;
 
@@ -229,7 +235,7 @@ QJsonObject AppSettings::toJson() const
     for (const CustomLanguage &c : customLanguages) {
         custom.append(QJsonObject{{"name", c.name}, {"tool", c.tool}, {"flags", c.flags},
                                   {"extensions", c.extensions}, {"compiled", c.compiled},
-                                  {"runAfterBuild", c.runAfterBuild}});
+                                  {"runAfterBuild", c.runAfterBuild}, {"icon", c.icon}});
     }
     o[QStringLiteral("customLanguages")] = custom;
     return o;
@@ -327,13 +333,15 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
         s.languages.insert(it.key(), {l.value("tool").toString(), l.value("flags").toString(),
                                       l.value("extensions").toString(),
                                       l.value("runAfterBuild").toBool(true),
-                                      l.value("name").toString().trimmed()});
+                                      l.value("name").toString().trimmed(),
+                                      l.value("icon").toString().trimmed()});
     }
     for (const QJsonValue &v : o.value(QStringLiteral("customLanguages")).toArray()) {
         const QJsonObject c = v.toObject();
         CustomLanguage cl{c.value("name").toString().trimmed(), c.value("tool").toString().trimmed(),
                           c.value("flags").toString(), c.value("extensions").toString(),
-                          c.value("compiled").toBool(), c.value("runAfterBuild").toBool(true)};
+                          c.value("compiled").toBool(), c.value("runAfterBuild").toBool(true),
+                          c.value("icon").toString().trimmed()};
         if (!cl.name.isEmpty())
             s.customLanguages.append(cl);
     }

@@ -16,6 +16,13 @@ All notable changes are also published on the
 - All compiled languages (built-in C/C++/Rust and custom ones marked
   **Compiled**) gained a **Run after building** toggle, on by default. Turn it
   off to only build the binary without running it.
+- Every language now has a customizable **Badge** (Settings ▸ Languages). Pick
+  a ready-made badge from a built-in library of 60+ language logos — including
+  ones outside the editor's own list such as LLVM, Zig, Kotlin, Swift, Dart,
+  Elixir, Scala, TypeScript and more — or choose an image file of your own
+  (PNG, SVG…). The badge shows in the language list, the file tabs, the status
+  bar and the New File dialog; leaving it on **Default** follows the language.
+  The ready-made list is sorted alphabetically.
 
 ## 0.7.1 — 2026-11-05
 

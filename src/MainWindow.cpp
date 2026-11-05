@@ -1555,8 +1555,8 @@ void MainWindow::renameFile(CodeEditor *editor)
 void MainWindow::updateDocumentTitles(Document *doc)
 {
     const QString modified = doc->isModified() ? QStringLiteral("  ●") : QString();
-    const QString lang = doc->language().id;
-    const QIcon icon = Icons::icon(Icons::forLanguage(lang), Icons::colorForLanguage(lang), 16);
+    const Language &docLang = doc->language();
+    const QIcon icon = Icons::badgeIcon(docLang.iconSpec, docLang.id, 16);
     for (ViewSpace *s : viewSpaces()) {
         for (int i = 0; i < s->count(); ++i) {
             if (s->editorAt(i)->doc() != doc)
@@ -2092,9 +2092,9 @@ void MainWindow::updateStatus()
     // Indica a linguagem da aba ativa (ícone colorido + nome), sem permitir
     // trocar: a linguagem segue a extensão do arquivo, mudada em Salvar como.
     const Language &lang = editor->language();
-    m_languageLabel->setText(QStringLiteral("<span style=\"font-family:'%1'; color:%2\">%3</span>&nbsp;%4")
-                                 .arg(Icons::symbolFamily(), Icons::colorForLanguage(lang.id).name(),
-                                      Icons::glyphText(Icons::forLanguage(lang.id)), lang.displayName.toHtmlEscaped()));
+    m_languageLabel->setText(QStringLiteral("%1&nbsp;%2")
+                                 .arg(Icons::badgeHtml(lang.iconSpec, lang.id, 14),
+                                      lang.displayName.toHtmlEscaped()));
     if (m_livePreviewAction)
         m_livePreviewAction->setEnabled(editor->language().id == QLatin1String("html"));
     const QString title = editor->displayName() + (editor->doc()->isModified() ? QStringLiteral(" ●") : QString());
@@ -2903,13 +2903,17 @@ Language MainWindow::languageById(const QString &id) const
 {
     if (id.startsWith(QLatin1String("custom:"))) {
         for (const CustomLanguage &c : m_settings.customLanguages) {
-            if (QStringLiteral("custom:") + c.name == id)
-                return Language::custom(c.name, Language::splitExtensions(c.extensions), c.compiled);
+            if (QStringLiteral("custom:") + c.name == id) {
+                Language lang = Language::custom(c.name, Language::splitExtensions(c.extensions), c.compiled);
+                lang.iconSpec = c.icon; // badge personalizado, se houver
+                return lang;
+            }
         }
         return Language::plainText();
     }
     Language lang = Language::byId(id);
     lang.displayName = m_settings.languageDisplayName(id); // nome personalizado, se houver
+    lang.iconSpec = m_settings.languageIconSpec(id);       // badge personalizado, se houver
     return lang;
 }
 
@@ -2922,13 +2926,17 @@ Language MainWindow::languageForPath(const QString &path) const
     if (ext.isEmpty())
         return Language::plainText();
     for (const CustomLanguage &c : m_settings.customLanguages) {
-        if (Language::splitExtensions(c.extensions).contains(ext))
-            return Language::custom(c.name, Language::splitExtensions(c.extensions), c.compiled);
+        if (Language::splitExtensions(c.extensions).contains(ext)) {
+            Language lang = Language::custom(c.name, Language::splitExtensions(c.extensions), c.compiled);
+            lang.iconSpec = c.icon; // badge personalizado, se houver
+            return lang;
+        }
     }
     for (const Language &lang : Language::all()) {
         if (Language::splitExtensions(m_settings.languageConfig(lang.id).extensions).contains(ext)) {
             Language l = lang;
             l.displayName = m_settings.languageDisplayName(lang.id); // nome personalizado, se houver
+            l.iconSpec = m_settings.languageIconSpec(lang.id);       // badge personalizado, se houver
             return l;
         }
     }

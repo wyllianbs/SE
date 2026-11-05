@@ -271,6 +271,28 @@ private Q_SLOTS:
                  Language::byId(QStringLiteral("python")).displayName); // outras intactas
     }
 
+    // Badge personalizável: "glyph:<chave>" numa embutida e caminho de imagem
+    // numa personalizada sobrevivem ao round-trip do JSON.
+    void languageBadgeOverride()
+    {
+        AppSettings s = AppSettings::defaults();
+        QCOMPARE(s.languageIconSpec(QStringLiteral("c")), QString()); // sem override
+
+        LanguageConfig cfg = s.languageConfig(QStringLiteral("c"));
+        cfg.icon = QStringLiteral("glyph:zig");
+        s.languages.insert(QStringLiteral("c"), cfg);
+        s.customLanguages.append({QStringLiteral("LLVM"), QStringLiteral("clang"), QStringLiteral("-O3"),
+                                  QStringLiteral("ll"), true, false, QStringLiteral("/home/u/llvm.svg")});
+
+        const AppSettings r = AppSettings::fromJson(s.toJson());
+        QCOMPARE(r.languageIconSpec(QStringLiteral("c")), QStringLiteral("glyph:zig"));
+        QCOMPARE(r.languageIconSpec(QStringLiteral("python")), QString()); // outras intactas
+        QCOMPARE(r.customLanguages.size(), 1);
+        QCOMPARE(r.customLanguages.first().icon, QStringLiteral("/home/u/llvm.svg"));
+        QVERIFY(r.customLanguages.first().compiled);
+        QVERIFY(!r.customLanguages.first().runAfterBuild);
+    }
+
     void customLanguageTemplates()
     {
         QVERIFY(Language::helloWorldForTool("ruby").contains("puts"));

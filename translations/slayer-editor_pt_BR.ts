@@ -440,8 +440,8 @@ sudo apt install gdb</translation>
         <translation>&lt;p&gt;A barra de status mostra a codificação do arquivo. Clique para escolher outra, agrupada por região como no Kate (Unicode, Europeu Ocidental, Cirílico, Japonês…): um arquivo não modificado é relido nessa codificação; caso contrário, ela vale ao salvar. Arquivos com BOM o mantêm; arquivos que não são UTF-8 válido abrem como Windows-1252.&lt;/p&gt;</translation>
     </message>
     <message>
-        <source>&lt;p&gt;%1 saves the file and runs it in the terminal. C, C++ and Rust are compiled to &lt;code&gt;/tmp/slayer_out&lt;/code&gt; and then executed; interpreted languages run directly.&lt;/p&gt;&lt;p&gt;For C and C++, the sibling source files in the same folder that do not have their own &lt;code&gt;main()&lt;/code&gt; are compiled together, so a program split across files (e.g. a module and its &lt;code&gt;.h&lt;/code&gt; header) links without a Makefile. Other programs in the folder (each with its own &lt;code&gt;main()&lt;/code&gt;) are left out. Because every other source file without a &lt;code&gt;main()&lt;/code&gt; is pulled in, keep one program per folder — or open the folder as a project (see &lt;b&gt;Projects&lt;/b&gt;) — so unrelated modules are not linked in (which could cause “multiple definition” or compile errors).&lt;/p&gt;&lt;p&gt;%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds and runs the whole project (see &lt;b&gt;Projects&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Change the tool, flags, extensions and the &lt;b&gt;Language name&lt;/b&gt; shown in the list for each language in &lt;b&gt;Settings → Languages&lt;/b&gt; — every language can be renamed (for example “LLVM” instead of the tool). Add your own language (Ruby, Lua, Perl…) with &lt;b&gt;Add Language…&lt;/b&gt; and tick &lt;b&gt;Compiled&lt;/b&gt; to build it to &lt;code&gt;/tmp/slayer_out&lt;/code&gt; (like C/C++) instead of just passing the file to the tool. For any compiled language, &lt;b&gt;Run after building&lt;/b&gt; (on by default) chooses whether %1 also runs the binary or only builds it.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;%1 salva o arquivo e o executa no terminal. C, C++ e Rust são compilados para &lt;code&gt;/tmp/slayer_out&lt;/code&gt; e então executados; as linguagens interpretadas rodam diretamente.&lt;/p&gt;&lt;p&gt;Em C e C++, os arquivos-fonte vizinhos da mesma pasta que não têm o próprio &lt;code&gt;main()&lt;/code&gt; são compilados juntos, de modo que um programa repartido em vários arquivos (p. ex. um módulo e seu cabeçalho &lt;code&gt;.h&lt;/code&gt;) liga sem Makefile. Outros programas da pasta (cada um com seu próprio &lt;code&gt;main()&lt;/code&gt;) ficam de fora. Como todo arquivo-fonte sem &lt;code&gt;main()&lt;/code&gt; é incluído, mantenha um programa por pasta — ou abra a pasta como projeto (veja &lt;b&gt;Projetos&lt;/b&gt;) — para que módulos sem relação não sejam ligados (o que poderia causar “multiple definition” ou erros de compilação).&lt;/p&gt;&lt;p&gt;%2 executa e permanece no interpretador (Python, JavaScript, shell). Com uma pasta aberta, %3 compila e executa o projeto inteiro (veja &lt;b&gt;Projetos&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Altere a ferramenta, as flags, as extensões e o &lt;b&gt;Nome da linguagem&lt;/b&gt; exibido na lista de cada linguagem em &lt;b&gt;Configurações → Linguagens&lt;/b&gt; — toda linguagem pode ser renomeada (por exemplo “LLVM” no lugar da ferramenta). Adicione sua própria linguagem (Ruby, Lua, Perl…) com &lt;b&gt;Adicionar linguagem…&lt;/b&gt; e marque &lt;b&gt;Compilada&lt;/b&gt; para compilá-la em &lt;code&gt;/tmp/slayer_out&lt;/code&gt; (como C/C++) em vez de apenas passar o arquivo à ferramenta. Para qualquer linguagem compilada, &lt;b&gt;Executar após compilar&lt;/b&gt; (ligado por padrão) escolhe se %1 também executa o binário ou apenas o compila.&lt;/p&gt;</translation>
+        <source>&lt;p&gt;%1 saves the file and runs it in the terminal. C, C++ and Rust are compiled to &lt;code&gt;/tmp/slayer_out&lt;/code&gt; and then executed; interpreted languages run directly.&lt;/p&gt;&lt;p&gt;For C and C++, the sibling source files in the same folder that do not have their own &lt;code&gt;main()&lt;/code&gt; are compiled together, so a program split across files (e.g. a module and its &lt;code&gt;.h&lt;/code&gt; header) links without a Makefile. Other programs in the folder (each with its own &lt;code&gt;main()&lt;/code&gt;) are left out. Because every other source file without a &lt;code&gt;main()&lt;/code&gt; is pulled in, keep one program per folder — or open the folder as a project (see &lt;b&gt;Projects&lt;/b&gt;) — so unrelated modules are not linked in (which could cause “multiple definition” or compile errors).&lt;/p&gt;&lt;p&gt;%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds and runs the whole project (see &lt;b&gt;Projects&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Change the tool, flags, extensions, the &lt;b&gt;Language name&lt;/b&gt; shown in the list and its &lt;b&gt;Badge&lt;/b&gt; for each language in &lt;b&gt;Settings → Languages&lt;/b&gt; — every language can be renamed (for example “LLVM” instead of the tool) and given a badge from the built-in library (Zig, Kotlin, Swift and many more) or an image file of your own; the default badge follows the language. Add your own language (Ruby, Lua, Perl…) with &lt;b&gt;Add Language…&lt;/b&gt; and tick &lt;b&gt;Compiled&lt;/b&gt; to build it to &lt;code&gt;/tmp/slayer_out&lt;/code&gt; (like C/C++) instead of just passing the file to the tool. For any compiled language, &lt;b&gt;Run after building&lt;/b&gt; (on by default) chooses whether %1 also runs the binary or only builds it.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;%1 salva o arquivo e o executa no terminal. C, C++ e Rust são compilados para &lt;code&gt;/tmp/slayer_out&lt;/code&gt; e então executados; as linguagens interpretadas rodam diretamente.&lt;/p&gt;&lt;p&gt;Em C e C++, os arquivos-fonte vizinhos da mesma pasta que não têm o próprio &lt;code&gt;main()&lt;/code&gt; são compilados juntos, de modo que um programa repartido em vários arquivos (p. ex. um módulo e seu cabeçalho &lt;code&gt;.h&lt;/code&gt;) liga sem Makefile. Outros programas da pasta (cada um com seu próprio &lt;code&gt;main()&lt;/code&gt;) ficam de fora. Como todo arquivo-fonte sem &lt;code&gt;main()&lt;/code&gt; é incluído, mantenha um programa por pasta — ou abra a pasta como projeto (veja &lt;b&gt;Projetos&lt;/b&gt;) — para que módulos sem relação não sejam ligados (o que poderia causar “multiple definition” ou erros de compilação).&lt;/p&gt;&lt;p&gt;%2 executa e permanece no interpretador (Python, JavaScript, shell). Com uma pasta aberta, %3 compila e executa o projeto inteiro (veja &lt;b&gt;Projetos&lt;/b&gt;).&lt;/p&gt;&lt;p&gt;Altere a ferramenta, as flags, as extensões, o &lt;b&gt;Nome da linguagem&lt;/b&gt; exibido na lista e o &lt;b&gt;Badge&lt;/b&gt; de cada linguagem em &lt;b&gt;Configurações → Linguagens&lt;/b&gt; — toda linguagem pode ser renomeada (por exemplo “LLVM” no lugar da ferramenta) e receber um badge da biblioteca embutida (Zig, Kotlin, Swift e muitos outros) ou um arquivo de imagem seu; o badge padrão acompanha a linguagem. Adicione sua própria linguagem (Ruby, Lua, Perl…) com &lt;b&gt;Adicionar linguagem…&lt;/b&gt; e marque &lt;b&gt;Compilada&lt;/b&gt; para compilá-la em &lt;code&gt;/tmp/slayer_out&lt;/code&gt; (como C/C++) em vez de apenas passar o arquivo à ferramenta. Para qualquer linguagem compilada, &lt;b&gt;Executar após compilar&lt;/b&gt; (ligado por padrão) escolhe se %1 também executa o binário ou apenas o compila.&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -2430,6 +2430,38 @@ Arquivo ▸ Abrir Pasta… (Ctrl+Shift+O)</translation>
     <message>
         <source>Language name</source>
         <translation>Nome da linguagem</translation>
+    </message>
+    <message>
+        <source>Pick a ready-made badge or an image file; the default follows the language</source>
+        <translation>Escolha um badge pronto ou um arquivo de imagem; o padrão acompanha a linguagem</translation>
+    </message>
+    <message>
+        <source>Default (follows the language)</source>
+        <translation>Padrão (acompanha a linguagem)</translation>
+    </message>
+    <message>
+        <source>Ready-made badges</source>
+        <translation>Badges prontos</translation>
+    </message>
+    <message>
+        <source>Choose image file…</source>
+        <translation>Escolher arquivo de imagem…</translation>
+    </message>
+    <message>
+        <source>Choose badge image</source>
+        <translation>Escolher imagem do badge</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.svg *.svgz *.jpg *.jpeg *.webp *.ico *.xpm *.bmp)</source>
+        <translation>Imagens (*.png *.svg *.svgz *.jpg *.jpeg *.webp *.ico *.xpm *.bmp)</translation>
+    </message>
+    <message>
+        <source>Badge</source>
+        <translation>Badge</translation>
+    </message>
+    <message>
+        <source>Default</source>
+        <translation>Padrão</translation>
     </message>
 </context>
 <context>

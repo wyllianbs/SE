@@ -57,6 +57,8 @@ private:
     void loadLanguageForm();
     void storeLanguageForm();
     void updateLanguageStatus();
+    /** Rótulo do botão de badge para um "spec" (Padrão / nome da biblioteca / arquivo). */
+    QString badgeLabel(const QString &spec) const;
     QString effectiveLspCommand(const LangEntry &e) const;
     void rebuildThemeList(const QString &selectId);
     QString currentThemeId() const;
@@ -148,6 +150,7 @@ private:
     QLineEdit *m_langExtensions = nullptr;
     QCheckBox *m_langCompiled = nullptr;  //< personalizada: compilar (vs interpretar)
     QCheckBox *m_langRunAfter = nullptr;  //< compilada: executar após compilar
+    QToolButton *m_langBadge = nullptr;   //< badge: abre menu (biblioteca + arquivo)
     QLabel *m_langRunHint = nullptr;
     QPushButton *m_langReset = nullptr;
     QPushButton *m_langRemove = nullptr;

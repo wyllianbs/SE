@@ -2,6 +2,8 @@
 
 #include "TerminalDock.h"
 #include "Icons.h"
+
+#include <algorithm>
 #include "Language.h"
 #include "LspManager.h"
 #include "ThemeEditor.h"
@@ -12,12 +14,14 @@
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFontComboBox>
 #include <QFontDialog>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
+#include <QMenu>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -814,10 +818,52 @@ QWidget *SettingsDialog::buildLanguagesPage()
     m_langCompiled->setToolTip(tr("Compiles to /tmp/slayer_out instead of just passing the file to the tool"));
     m_langRunAfter = new QCheckBox(tr("Run after building"));
     m_langRunAfter->setToolTip(tr("Execute the compiled binary after building (off: build only)"));
+
+    // ── Badge (ícone exibido na lista, nas abas e na barra de status) ──
+    m_langBadge = new QToolButton;
+    m_langBadge->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_langBadge->setPopupMode(QToolButton::InstantPopup);
+    m_langBadge->setIconSize(QSize(18, 18));
+    m_langBadge->setToolTip(tr("Pick a ready-made badge or an image file; the default follows the language"));
+    auto *badgeMenu = new QMenu(m_langBadge);
+    m_langBadge->setMenu(badgeMenu);
+    // Define o badge da entrada atual e atualiza botão, lista e pré-visualização.
+    auto setBadge = [this](const QString &spec) {
+        if (m_currentEntry < 0 || m_currentEntry >= m_entries.size())
+            return;
+        m_entries[m_currentEntry].cfg.icon = spec;
+        loadLanguageForm();
+        if (m_currentEntry < m_langList->count()) {
+            const LangEntry &e = m_entries[m_currentEntry];
+            const QString iconId = e.custom ? QStringLiteral("custom:") + e.name : e.id;
+            m_langList->item(m_currentEntry)->setIcon(Icons::badgeIcon(e.cfg.icon, iconId, 16));
+        }
+    };
+    badgeMenu->addAction(tr("Default (follows the language)"), this, [setBadge]() { setBadge(QString()); });
+    auto *libMenu = badgeMenu->addMenu(tr("Ready-made badges"));
+    QList<Icons::Badge> badges = Icons::badgeLibrary();
+    std::sort(badges.begin(), badges.end(), [](const Icons::Badge &a, const Icons::Badge &b) {
+        return a.label.localeAwareCompare(b.label) < 0; // ordem alfabética
+    });
+    for (const Icons::Badge &b : std::as_const(badges)) {
+        const QString spec = QStringLiteral("glyph:") + b.key;
+        libMenu->addAction(Icons::icon(Icons::Glyph(b.glyph), b.color, 18), b.label, this,
+                           [setBadge, spec]() { setBadge(spec); });
+    }
+    badgeMenu->addSeparator();
+    badgeMenu->addAction(tr("Choose image file…"), this, [this, setBadge]() {
+        const QString file = QFileDialog::getOpenFileName(
+            this, tr("Choose badge image"), QString(),
+            tr("Images (*.png *.svg *.svgz *.jpg *.jpeg *.webp *.ico *.xpm *.bmp)"));
+        if (!file.isEmpty())
+            setBadge(file);
+    });
+
     auto *runForm = new QFormLayout;
     runForm->setHorizontalSpacing(18);
     runForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     runForm->addRow(tr("Language name"), m_langName);
+    runForm->addRow(tr("Badge"), m_langBadge);
     runForm->addRow(tr("Tool"), m_langTool);
     runForm->addRow(tr("Flags"), m_langFlags);
     runForm->addRow(tr("Extensions"), m_langExtensions);
@@ -955,9 +1001,8 @@ void SettingsDialog::refreshLanguageList(int select)
     const QSignalBlocker blocker(m_langList);
     m_langList->clear();
     for (const LangEntry &e : std::as_const(m_entries)) {
-        const QString iconId = e.custom ? QString() : e.id;
-        auto *item = new QListWidgetItem(Icons::icon(Icons::forLanguage(iconId), Icons::colorForLanguage(iconId), 16),
-                                         e.name);
+        const QString iconId = e.custom ? QStringLiteral("custom:") + e.name : e.id;
+        auto *item = new QListWidgetItem(Icons::badgeIcon(e.cfg.icon, iconId, 16), e.name);
         // Indicador do LSP: ● ativo e instalado, ○ ativo mas não encontrado.
         const QString cmd = effectiveLspCommand(e);
         if (!e.custom && e.lsp.enabled && !cmd.isEmpty())
@@ -982,7 +1027,7 @@ void SettingsDialog::loadLanguageForm()
     const bool has = m_currentEntry >= 0 && m_currentEntry < m_entries.size();
     for (QWidget *w : std::initializer_list<QWidget *>{m_langName, m_langTool, m_langFlags, m_langExtensions,
                                                        m_lspCard, m_langReset, m_langRemove, m_langCompiled,
-                                                       m_langRunAfter})
+                                                       m_langRunAfter, m_langBadge})
         w->setEnabled(has);
     if (!has)
         return;
@@ -1004,6 +1049,10 @@ void SettingsDialog::loadLanguageForm()
     const bool compiled = e.custom ? e.compiled : Language::byId(e.id).isCompiled();
     m_langRunAfter->setVisible(compiled);
     m_langRunAfter->setChecked(e.cfg.runAfterBuild);
+    // Badge atual no botão: ícone resolvido + rótulo (padrão / biblioteca / arquivo).
+    const QString iconId = e.custom ? QStringLiteral("custom:") + e.name : e.id;
+    m_langBadge->setIcon(Icons::badgeIcon(e.cfg.icon, iconId, 18));
+    m_langBadge->setText(badgeLabel(e.cfg.icon));
 
     const QList<LspPreset> presets = e.custom ? QList<LspPreset>() : LspManager::presets(e.id);
     m_lspCard->setVisible(!presets.isEmpty());
@@ -1021,14 +1070,30 @@ void SettingsDialog::loadLanguageForm()
     updateLanguageStatus();
 }
 
+QString SettingsDialog::badgeLabel(const QString &spec) const
+{
+    if (spec.isEmpty())
+        return tr("Default");
+    if (spec.startsWith(QLatin1String("glyph:"))) {
+        const QString key = spec.mid(6);
+        for (const Icons::Badge &b : Icons::badgeLibrary())
+            if (b.key == key)
+                return b.label;
+        return tr("Default");
+    }
+    return QFileInfo(spec).fileName(); // arquivo de imagem
+}
+
 /** Grava o formulário na entrada atual. */
 void SettingsDialog::storeLanguageForm()
 {
     if (m_loadingLanguage || m_currentEntry < 0 || m_currentEntry >= m_entries.size())
         return;
     LangEntry &e = m_entries[m_currentEntry];
+    const QString badge = e.cfg.icon; // o badge vem do menu próprio, não dos campos de texto
     e.cfg = {m_langTool->text().trimmed(), m_langFlags->text().trimmed(), m_langExtensions->text().trimmed(),
              m_langRunAfter->isChecked()};
+    e.cfg.icon = badge;
     e.compiled = m_langCompiled->isChecked();
     if (e.custom) {
         const QString typed = m_langName->text().trimmed();
@@ -1292,7 +1357,8 @@ void SettingsDialog::setForm(const AppSettings &s)
         }
     }
     for (const CustomLanguage &c : s.customLanguages)
-        m_entries.append({QString(), c.name, true, c.compiled, {c.tool, c.flags, c.extensions, c.runAfterBuild}, {}});
+        m_entries.append({QString(), c.name, true, c.compiled,
+                          {c.tool, c.flags, c.extensions, c.runAfterBuild, QString(), c.icon}, {}});
     m_missingLanguages->setText(missing.isEmpty() ? QString()
                                                   : tr("Not installed on this system (hidden): %1. Install a "
                                                        "compiler or interpreter and it appears here.")
@@ -1389,13 +1455,14 @@ AppSettings SettingsDialog::settings() const
         if (e.custom) {
             if (!e.name.trimmed().isEmpty())
                 s.customLanguages.append({e.name.trimmed(), e.cfg.tool.isEmpty() ? e.name : e.cfg.tool, e.cfg.flags,
-                                          e.cfg.extensions, e.compiled, e.cfg.runAfterBuild});
+                                          e.cfg.extensions, e.compiled, e.cfg.runAfterBuild, e.cfg.icon});
             continue;
         }
         // Só guarda o que difere do padrão: padrões futuros continuam valendo.
         const LanguageConfig def = AppSettings::defaultLanguageConfig(e.id);
         if (e.cfg.tool != def.tool || e.cfg.flags != def.flags || e.cfg.extensions != def.extensions
-            || e.cfg.runAfterBuild != def.runAfterBuild || e.cfg.displayName != def.displayName)
+            || e.cfg.runAfterBuild != def.runAfterBuild || e.cfg.displayName != def.displayName
+            || e.cfg.icon != def.icon)
             s.languages.insert(e.id, e.cfg);
         if (!e.lsp.enabled || !e.lsp.command.isEmpty())
             s.lsp.insert(e.id, e.lsp);

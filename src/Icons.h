@@ -104,4 +104,23 @@ QString glyphUrl(Glyph glyph, const QColor &color, int size);
 Glyph forLanguage(const QString &languageId);
 QColor colorForLanguage(const QString &languageId);
 
+/** Badge pronto da biblioteca embutida: chave estável, glifo, rótulo e cor. */
+struct Badge {
+    QString key;       //< identificador estável gravado como "glyph:<key>"
+    char32_t glyph;    //< codepoint na Symbols Nerd Font
+    QString label;     //< nome exibido (ex.: "TypeScript")
+    QColor color;
+};
+/** Lista de badges prontos (linguagens além das do catálogo: Zig, LLVM genérico…). */
+const QList<Badge> &badgeLibrary();
+
+/**
+ * Resolve o "spec" de badge de uma linguagem em um ícone:
+ * vazio = padrão da linguagem (forLanguage); "glyph:<key>" = badge da biblioteca;
+ * qualquer outra coisa = caminho de um arquivo de imagem escolhido pelo usuário.
+ */
+QIcon badgeIcon(const QString &spec, const QString &languageId, int size = 18);
+/** O mesmo badge como fragmento HTML (para QLabel com texto rico na barra de status). */
+QString badgeHtml(const QString &spec, const QString &languageId, int size = 16);
+
 } // namespace Icons
