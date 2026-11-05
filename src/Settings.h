@@ -15,8 +15,13 @@ struct LanguageConfig
     QString tool;
     QString flags;
     QString extensions; //< separadas por espaço ou vírgula
+    bool runAfterBuild = true; //< compiladas: executar o binário após compilar
+    QString displayName;       //< nome exibido; vazio = nome padrão do catálogo
     bool operator==(const LanguageConfig &o) const
-    { return tool == o.tool && flags == o.flags && extensions == o.extensions; }
+    {
+        return tool == o.tool && flags == o.flags && extensions == o.extensions
+               && runAfterBuild == o.runAfterBuild && displayName == o.displayName;
+    }
 };
 
 /** Servidor LSP de uma linguagem. */
@@ -45,11 +50,12 @@ struct CustomLanguage
     QString tool;
     QString flags;
     QString extensions;
-    bool compiled = false; //< compila em /tmp/slayer_out e executa o binário (como C/C++)
+    bool compiled = false;       //< compila em /tmp/slayer_out (como C/C++); senão só roda o arquivo
+    bool runAfterBuild = true;   //< se compilada, executa o binário após compilar
     bool operator==(const CustomLanguage &o) const
     {
         return name == o.name && tool == o.tool && flags == o.flags && extensions == o.extensions
-               && compiled == o.compiled;
+               && compiled == o.compiled && runAfterBuild == o.runAfterBuild;
     }
 };
 
@@ -142,6 +148,8 @@ struct AppSettings
 
     /** Config efetiva de uma linguagem embutida (com os padrões preenchidos). */
     LanguageConfig languageConfig(const QString &languageId) const;
+    /** Nome exibido de uma linguagem embutida: a personalização, senão o do catálogo. */
+    QString languageDisplayName(const QString &languageId) const;
     /** A ferramenta da linguagem (e o que mais ela exigir) existe no sistema? */
     bool languageInstalled(const QString &languageId) const;
     /** Linguagens embutidas disponíveis neste sistema, na ordem do catálogo. */

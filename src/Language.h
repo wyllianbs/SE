@@ -48,9 +48,12 @@ struct Language
     static QString idForSpecialFileName(const QString &fileName);
     bool isCustom() const { return id.startsWith(QLatin1String("custom:")); }
 
-    /** Monta o comando para um arquivo, já com aspas de shell. */
+    /** A linguagem compila um binário em /tmp/slayer_out (C/C++, Rust, Pascal…)? */
+    bool isCompiled() const;
+    /** Monta o comando para um arquivo, já com aspas de shell. runAfterBuild=false
+     * nas compiladas: só compila, sem executar o binário. */
     QString commandFor(const QString &filePath, const QString &tool, const QString &flags,
-                       bool interactive = false) const;
+                       bool interactive = false, bool runAfterBuild = true) const;
 
     static Language custom(const QString &name, const QStringList &extensions, bool compiled = false);
     /** Hello, World! para um interpretador/compilador pelo nome (linguagens personalizadas). */

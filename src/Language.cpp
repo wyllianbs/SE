@@ -454,11 +454,20 @@ const Language &Language::byId(const QString &id)
     return plainText();
 }
 
+bool Language::isCompiled() const
+{
+    // As compiladas geram e executam /tmp/slayer_out/<base>.
+    return runCommand.contains(QLatin1String("/tmp/slayer_out/%b"));
+}
+
 QString Language::commandFor(const QString &filePath, const QString &tool, const QString &flags,
-                             bool interactive) const
+                             bool interactive, bool runAfterBuild) const
 {
     const QFileInfo info(filePath);
     QString cmd = (interactive && !interactiveCommand.isEmpty()) ? interactiveCommand : runCommand;
+    // Compiladas sem "executar após compilar": remove o passo final de execução.
+    if (!runAfterBuild)
+        cmd.replace(QLatin1String(" && /tmp/slayer_out/%b"), QString());
     cmd.replace(QLatin1String("{tool}"), tool.trimmed());
     cmd.replace(QLatin1String("{flags}"), flags.trimmed());
     cmd = cmd.simplified(); // flags vazias deixam espaços duplos

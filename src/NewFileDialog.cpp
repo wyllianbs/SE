@@ -49,8 +49,8 @@ NewFileDialog::NewFileDialog(const AppSettings &settings, const QString &lastLan
         const Language &lang = Language::byId(id);
         if (lang.helloWorld.isEmpty())
             continue;
-        add(Icons::icon(Icons::forLanguage(id), Icons::colorForLanguage(id), 18), lang.displayName, id,
-            lang.newFileName, lang.helloWorld);
+        add(Icons::icon(Icons::forLanguage(id), Icons::colorForLanguage(id), 18),
+            settings.languageDisplayName(id), id, lang.newFileName, lang.helloWorld);
     }
     for (const CustomLanguage &c : settings.customLanguages) {
         const QString ext = Language::splitExtensions(c.extensions).value(0, QStringLiteral("txt"));

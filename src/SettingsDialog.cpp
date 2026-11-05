@@ -803,21 +803,26 @@ QWidget *SettingsDialog::buildLanguagesPage()
     m_langRemove->setObjectName(QStringLiteral("Danger"));
 
     // ── Execução ──
+    m_langName = new QLineEdit;
+    m_langName->setPlaceholderText(tr("shown in the list, e.g. LLVM"));
     m_langTool = new QLineEdit;
     m_langFlags = new QLineEdit;
     m_langExtensions = new QLineEdit;
     m_langTool->setPlaceholderText(tr("compiler or interpreter"));
     m_langExtensions->setPlaceholderText(tr("e.g. rb, rake"));
-    m_langCompiled = new QCheckBox(tr("Compiled — build to a binary and run it"));
-    m_langCompiled->setToolTip(tr("Like C/C++: compiles to /tmp/slayer_out and runs the result "
-                                  "(instead of just passing the file to the tool)"));
+    m_langCompiled = new QCheckBox(tr("Compiled — build to a binary (like C/C++)"));
+    m_langCompiled->setToolTip(tr("Compiles to /tmp/slayer_out instead of just passing the file to the tool"));
+    m_langRunAfter = new QCheckBox(tr("Run after building"));
+    m_langRunAfter->setToolTip(tr("Execute the compiled binary after building (off: build only)"));
     auto *runForm = new QFormLayout;
     runForm->setHorizontalSpacing(18);
     runForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    runForm->addRow(tr("Language name"), m_langName);
     runForm->addRow(tr("Tool"), m_langTool);
     runForm->addRow(tr("Flags"), m_langFlags);
     runForm->addRow(tr("Extensions"), m_langExtensions);
     runForm->addRow(QString(), m_langCompiled);
+    runForm->addRow(QString(), m_langRunAfter);
     m_langRunHint = new QLabel;
     m_langRunHint->setObjectName(QStringLiteral("Hint"));
     m_langRunHint->setWordWrap(true);
@@ -879,12 +884,21 @@ QWidget *SettingsDialog::buildLanguagesPage()
     // O que se digita vai para a entrada atual na hora (lista e status refletem).
     for (QLineEdit *e : {m_langTool, m_langFlags, m_langExtensions})
         connect(e, &QLineEdit::textEdited, this, [this]() { storeLanguageForm(); updateLanguageStatus(); });
-    connect(m_langCompiled, &QCheckBox::toggled, this, [this]() {
-        if (!m_loadingLanguage) {
-            storeLanguageForm();
-            updateLanguageStatus();
-        }
+    // Nome: atualiza também o texto do item na lista.
+    connect(m_langName, &QLineEdit::textEdited, this, [this]() {
+        storeLanguageForm();
+        if (m_currentEntry >= 0 && m_currentEntry < m_langList->count())
+            m_langList->item(m_currentEntry)->setText(m_entries[m_currentEntry].name);
+        updateLanguageStatus();
     });
+    for (QCheckBox *cb : {m_langCompiled, m_langRunAfter})
+        connect(cb, &QCheckBox::toggled, this, [this]() {
+            if (!m_loadingLanguage) {
+                storeLanguageForm();
+                updateLanguageStatus();
+                loadLanguageForm(); // reavalia visibilidade (run-after depende de compiled)
+            }
+        });
     connect(m_lspOn, &QCheckBox::toggled, this, [this]() { storeLanguageForm(); updateLanguageStatus(); });
     connect(m_lspCommand, &QComboBox::currentTextChanged, this, [this]() {
         if (!m_loadingLanguage) {
@@ -922,6 +936,7 @@ QWidget *SettingsDialog::buildLanguagesPage()
             return;
         LangEntry &e = m_entries[m_currentEntry];
         e.cfg = AppSettings::defaultLanguageConfig(e.id);
+        e.name = Language::byId(e.id).displayName; // volta ao nome do catálogo
         e.lsp = LspConfig();
         loadLanguageForm();
     });
@@ -965,22 +980,30 @@ QString SettingsDialog::effectiveLspCommand(const LangEntry &e) const
 void SettingsDialog::loadLanguageForm()
 {
     const bool has = m_currentEntry >= 0 && m_currentEntry < m_entries.size();
-    for (QWidget *w : std::initializer_list<QWidget *>{m_langTool, m_langFlags, m_langExtensions, m_lspCard,
-                                                       m_langReset, m_langRemove, m_langCompiled})
+    for (QWidget *w : std::initializer_list<QWidget *>{m_langName, m_langTool, m_langFlags, m_langExtensions,
+                                                       m_lspCard, m_langReset, m_langRemove, m_langCompiled,
+                                                       m_langRunAfter})
         w->setEnabled(has);
     if (!has)
         return;
     m_loadingLanguage = true;
     const LangEntry &e = m_entries[m_currentEntry];
+    m_langName->setText(e.name);
     m_langTool->setText(e.cfg.tool);
     m_langFlags->setText(e.cfg.flags);
     m_langExtensions->setText(e.cfg.extensions);
     m_langReset->setVisible(!e.custom);
     m_langRemove->setVisible(e.custom);
-    // "Compilada" só faz sentido para linguagens personalizadas (as embutidas
-    // já têm o comando certo).
+    // Nome exibido: editável em todas as linguagens (embutidas e personalizadas).
+    m_langName->setVisible(true);
+    // "Compilada" só nas personalizadas (as embutidas já têm o comando certo).
     m_langCompiled->setVisible(e.custom);
     m_langCompiled->setChecked(e.compiled);
+    // "Executar após compilar": para toda linguagem compilada (embutida ou
+    // personalizada marcada como compilada).
+    const bool compiled = e.custom ? e.compiled : Language::byId(e.id).isCompiled();
+    m_langRunAfter->setVisible(compiled);
+    m_langRunAfter->setChecked(e.cfg.runAfterBuild);
 
     const QList<LspPreset> presets = e.custom ? QList<LspPreset>() : LspManager::presets(e.id);
     m_lspCard->setVisible(!presets.isEmpty());
@@ -1004,10 +1027,19 @@ void SettingsDialog::storeLanguageForm()
     if (m_loadingLanguage || m_currentEntry < 0 || m_currentEntry >= m_entries.size())
         return;
     LangEntry &e = m_entries[m_currentEntry];
-    e.cfg = {m_langTool->text().trimmed(), m_langFlags->text().trimmed(), m_langExtensions->text().trimmed()};
+    e.cfg = {m_langTool->text().trimmed(), m_langFlags->text().trimmed(), m_langExtensions->text().trimmed(),
+             m_langRunAfter->isChecked()};
     e.compiled = m_langCompiled->isChecked();
-    if (e.custom && !e.cfg.tool.isEmpty())
-        e.name = e.name.isEmpty() ? e.cfg.tool : e.name;
+    if (e.custom) {
+        const QString typed = m_langName->text().trimmed();
+        e.name = !typed.isEmpty() ? typed : (e.cfg.tool.isEmpty() ? e.name : e.cfg.tool);
+    } else {
+        // Embutida: guarda só a diferença; nome igual ao do catálogo = padrão (sem override).
+        const QString typed = m_langName->text().trimmed();
+        const QString def = Language::byId(e.id).displayName;
+        e.cfg.displayName = (typed.isEmpty() || typed == def) ? QString() : typed;
+        e.name = typed.isEmpty() ? def : typed;
+    }
     e.lsp.enabled = m_lspOn->isChecked();
     // Item da lista guarda o comando; texto digitado vale como comando próprio.
     const int idx = m_lspCommand->currentIndex();
@@ -1030,7 +1062,8 @@ void SettingsDialog::updateLanguageStatus()
                                    : Language::byId(e.id);
     const QString example = Language::splitExtensions(e.cfg.extensions).value(0, QStringLiteral("txt"));
     QString hint = tr("Runs: %1")
-                       .arg(lang.commandFor(QStringLiteral("/dir/file.") + example, e.cfg.tool, e.cfg.flags));
+                       .arg(lang.commandFor(QStringLiteral("/dir/file.") + example, e.cfg.tool, e.cfg.flags,
+                                            false, e.cfg.runAfterBuild));
     // Como cada linguagem lida com um programa repartido em vários arquivos da
     // mesma pasta (o exemplo acima, numa pasta fictícia, mostra só um arquivo).
     QString multiFile;
@@ -1248,7 +1281,8 @@ void SettingsDialog::setForm(const AppSettings &s)
     QStringList missing;
     for (const Language &lang : Language::all()) {
         if (s.languageInstalled(lang.id)) {
-            m_entries.append({lang.id, lang.displayName, false, false, s.languageConfig(lang.id), s.lsp.value(lang.id)});
+            m_entries.append({lang.id, s.languageDisplayName(lang.id), false, false,
+                              s.languageConfig(lang.id), s.lsp.value(lang.id)});
         } else {
             missing << lang.displayName;
             if (s.languages.contains(lang.id))
@@ -1258,7 +1292,7 @@ void SettingsDialog::setForm(const AppSettings &s)
         }
     }
     for (const CustomLanguage &c : s.customLanguages)
-        m_entries.append({QString(), c.name, true, c.compiled, {c.tool, c.flags, c.extensions}, {}});
+        m_entries.append({QString(), c.name, true, c.compiled, {c.tool, c.flags, c.extensions, c.runAfterBuild}, {}});
     m_missingLanguages->setText(missing.isEmpty() ? QString()
                                                   : tr("Not installed on this system (hidden): %1. Install a "
                                                        "compiler or interpreter and it appears here.")
@@ -1355,12 +1389,13 @@ AppSettings SettingsDialog::settings() const
         if (e.custom) {
             if (!e.name.trimmed().isEmpty())
                 s.customLanguages.append({e.name.trimmed(), e.cfg.tool.isEmpty() ? e.name : e.cfg.tool, e.cfg.flags,
-                                          e.cfg.extensions, e.compiled});
+                                          e.cfg.extensions, e.compiled, e.cfg.runAfterBuild});
             continue;
         }
         // Só guarda o que difere do padrão: padrões futuros continuam valendo.
         const LanguageConfig def = AppSettings::defaultLanguageConfig(e.id);
-        if (e.cfg.tool != def.tool || e.cfg.flags != def.flags || e.cfg.extensions != def.extensions)
+        if (e.cfg.tool != def.tool || e.cfg.flags != def.flags || e.cfg.extensions != def.extensions
+            || e.cfg.runAfterBuild != def.runAfterBuild || e.cfg.displayName != def.displayName)
             s.languages.insert(e.id, e.cfg);
         if (!e.lsp.enabled || !e.lsp.command.isEmpty())
             s.lsp.insert(e.id, e.lsp);

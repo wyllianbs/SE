@@ -232,6 +232,45 @@ private Q_SLOTS:
         QVERIFY2(p.exitCode() == 0 && out.contains(QStringLiteral("R=42")), qPrintable(out));
     }
 
+    // "Executar após compilar" (runAfterBuild) liga/desliga o passo de execução
+    // das linguagens compiladas (embutidas e personalizadas).
+    void runAfterBuildTogglesExecution()
+    {
+        const Language c = Language::byId(QStringLiteral("c"));
+        QVERIFY(c.isCompiled());
+        QVERIFY(!Language::byId(QStringLiteral("python")).isCompiled());
+        // Com execução: aparece o passo final de rodar o binário.
+        const QString run = c.commandFor(QStringLiteral("/d/main.c"), QStringLiteral("gcc"), QString(), false, true);
+        QCOMPARE(run.count(QLatin1String("/tmp/slayer_out")), 3); // mkdir, -o e execução
+        // Sem execução: só compila (some o " && /tmp/slayer_out/%b").
+        const QString no = c.commandFor(QStringLiteral("/d/main.c"), QStringLiteral("gcc"), QString(), false, false);
+        QCOMPARE(no.count(QLatin1String("/tmp/slayer_out")), 2); // mkdir e -o apenas
+        QVERIFY2(no.contains(QLatin1String("-o /tmp/slayer_out/")), qPrintable(no));
+        // Vale também para personalizada compilada.
+        const Language x = Language::custom(QStringLiteral("X"), {QStringLiteral("x")}, true);
+        QCOMPARE(x.commandFor(QStringLiteral("/d/a.x"), QStringLiteral("cc"), QString(), false, false)
+                     .count(QLatin1String("/tmp/slayer_out")), 2);
+    }
+
+    // Nome exibido personalizável em qualquer linguagem embutida: vazio usa o
+    // nome do catálogo; a personalização sobrevive ao round-trip do JSON.
+    void languageNameOverride()
+    {
+        AppSettings s = AppSettings::defaults();
+        const QString def = Language::byId(QStringLiteral("c")).displayName;
+        QCOMPARE(s.languageDisplayName(QStringLiteral("c")), def); // sem override: catálogo
+
+        LanguageConfig cfg = s.languageConfig(QStringLiteral("c"));
+        cfg.displayName = QStringLiteral("LLVM");
+        s.languages.insert(QStringLiteral("c"), cfg);
+        QCOMPARE(s.languageDisplayName(QStringLiteral("c")), QStringLiteral("LLVM"));
+
+        const AppSettings r = AppSettings::fromJson(s.toJson());
+        QCOMPARE(r.languageDisplayName(QStringLiteral("c")), QStringLiteral("LLVM"));
+        QCOMPARE(r.languageDisplayName(QStringLiteral("python")),
+                 Language::byId(QStringLiteral("python")).displayName); // outras intactas
+    }
+
     void customLanguageTemplates()
     {
         QVERIFY(Language::helloWorldForTool("ruby").contains("puts"));

@@ -49,8 +49,8 @@ private:
         QString id;      //< vazio = linguagem personalizada
         QString name;
         bool custom = false;
-        bool compiled = false; //< personalizada compilada: gera binário e executa
-        LanguageConfig cfg;
+        bool compiled = false; //< personalizada compilada: gera binário
+        LanguageConfig cfg;    //< tool/flags/extensions e runAfterBuild
         LspConfig lsp;
     };
     void refreshLanguageList(int select);
@@ -142,10 +142,12 @@ private:
     QList<LangEntry> m_entries;
     int m_currentEntry = -1;
     bool m_loadingLanguage = false;
+    QLineEdit *m_langName = nullptr;      //< nome exibido (linguagens personalizadas)
     QLineEdit *m_langTool = nullptr;
     QLineEdit *m_langFlags = nullptr;
     QLineEdit *m_langExtensions = nullptr;
-    QCheckBox *m_langCompiled = nullptr; //< personalizada: compilar e executar
+    QCheckBox *m_langCompiled = nullptr;  //< personalizada: compilar (vs interpretar)
+    QCheckBox *m_langRunAfter = nullptr;  //< compilada: executar após compilar
     QLabel *m_langRunHint = nullptr;
     QPushButton *m_langReset = nullptr;
     QPushButton *m_langRemove = nullptr;

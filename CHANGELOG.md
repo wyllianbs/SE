@@ -9,6 +9,13 @@ All notable changes are also published on the
   of just running `tool flags file`, the editor builds the file to
   `/tmp/slayer_out` and runs the resulting binary — like the built-in C/C++/Rust.
   Handy for compilers such as `clang`, `g++`, `rustc` or `clang` on LLVM IR.
+- Every language now has an editable **Language name** (Settings ▸ Languages) —
+  not just custom ones. Rename a built-in language to whatever you like (for
+  example “LLVM” instead of `clang`); the name shows in the list, the status bar
+  and the New File dialog. Leaving it at the catalog name keeps the default.
+- All compiled languages (built-in C/C++/Rust and custom ones marked
+  **Compiled**) gained a **Run after building** toggle, on by default. Turn it
+  off to only build the binary without running it.
 
 ## 0.7.1 — 2026-11-05
 

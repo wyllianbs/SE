@@ -2147,17 +2147,20 @@ void MainWindow::runCurrent(bool interactive)
         }
     }
     QString tool, flags;
+    bool runAfterBuild = true;
     if (lang.isCustom()) {
         for (const CustomLanguage &c : std::as_const(m_settings.customLanguages)) {
             if (QStringLiteral("custom:") + c.name == lang.id) {
                 tool = c.tool;
                 flags = c.flags;
+                runAfterBuild = c.runAfterBuild;
             }
         }
     } else {
         const LanguageConfig cfg = m_settings.languageConfig(lang.id);
         tool = cfg.tool;
         flags = cfg.flags;
+        runAfterBuild = cfg.runAfterBuild;
     }
     // Foco no terminal (padrão): o programa pode ler entrada. Ou fica no editor.
     // Foco: terminal (padrão), editor, ou terminal só quando o programa pedir
@@ -2167,8 +2170,8 @@ void MainWindow::runCurrent(bool interactive)
         focus = TerminalDock::RunFocus::None;
     else if (m_settings.runFocus == 2 && !interactive)
         focus = TerminalDock::RunFocus::OnInput;
-    m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags, interactive), info.absolutePath(),
-                           focus);
+    m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags, interactive, runAfterBuild),
+                           info.absolutePath(), focus);
     if (focus != TerminalDock::RunFocus::Terminal)
         editor->setFocus();
 }
@@ -2905,7 +2908,9 @@ Language MainWindow::languageById(const QString &id) const
         }
         return Language::plainText();
     }
-    return Language::byId(id);
+    Language lang = Language::byId(id);
+    lang.displayName = m_settings.languageDisplayName(id); // nome personalizado, se houver
+    return lang;
 }
 
 /** Extensões configuradas em Settings → Languages; personalizadas têm prioridade. */
@@ -2921,8 +2926,11 @@ Language MainWindow::languageForPath(const QString &path) const
             return Language::custom(c.name, Language::splitExtensions(c.extensions), c.compiled);
     }
     for (const Language &lang : Language::all()) {
-        if (Language::splitExtensions(m_settings.languageConfig(lang.id).extensions).contains(ext))
-            return lang;
+        if (Language::splitExtensions(m_settings.languageConfig(lang.id).extensions).contains(ext)) {
+            Language l = lang;
+            l.displayName = m_settings.languageDisplayName(lang.id); // nome personalizado, se houver
+            return l;
+        }
     }
     return Language::plainText();
 }
