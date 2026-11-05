@@ -221,7 +221,7 @@ QJsonObject AppSettings::toJson() const
     QJsonArray custom;
     for (const CustomLanguage &c : customLanguages) {
         custom.append(QJsonObject{{"name", c.name}, {"tool", c.tool}, {"flags", c.flags},
-                                  {"extensions", c.extensions}});
+                                  {"extensions", c.extensions}, {"compiled", c.compiled}});
     }
     o[QStringLiteral("customLanguages")] = custom;
     return o;
@@ -322,7 +322,8 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     for (const QJsonValue &v : o.value(QStringLiteral("customLanguages")).toArray()) {
         const QJsonObject c = v.toObject();
         CustomLanguage cl{c.value("name").toString().trimmed(), c.value("tool").toString().trimmed(),
-                          c.value("flags").toString(), c.value("extensions").toString()};
+                          c.value("flags").toString(), c.value("extensions").toString(),
+                          c.value("compiled").toBool()};
         if (!cl.name.isEmpty())
             s.customLanguages.append(cl);
     }

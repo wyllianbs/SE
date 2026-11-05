@@ -52,7 +52,7 @@ struct Language
     QString commandFor(const QString &filePath, const QString &tool, const QString &flags,
                        bool interactive = false) const;
 
-    static Language custom(const QString &name, const QStringList &extensions);
+    static Language custom(const QString &name, const QStringList &extensions, bool compiled = false);
     /** Hello, World! para um interpretador/compilador pelo nome (linguagens personalizadas). */
     static QString helloWorldForTool(const QString &tool);
     static QStringList splitExtensions(const QString &text);

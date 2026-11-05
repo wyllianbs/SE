@@ -2901,7 +2901,7 @@ Language MainWindow::languageById(const QString &id) const
     if (id.startsWith(QLatin1String("custom:"))) {
         for (const CustomLanguage &c : m_settings.customLanguages) {
             if (QStringLiteral("custom:") + c.name == id)
-                return Language::custom(c.name, Language::splitExtensions(c.extensions));
+                return Language::custom(c.name, Language::splitExtensions(c.extensions), c.compiled);
         }
         return Language::plainText();
     }
@@ -2918,7 +2918,7 @@ Language MainWindow::languageForPath(const QString &path) const
         return Language::plainText();
     for (const CustomLanguage &c : m_settings.customLanguages) {
         if (Language::splitExtensions(c.extensions).contains(ext))
-            return Language::custom(c.name, Language::splitExtensions(c.extensions));
+            return Language::custom(c.name, Language::splitExtensions(c.extensions), c.compiled);
     }
     for (const Language &lang : Language::all()) {
         if (Language::splitExtensions(m_settings.languageConfig(lang.id).extensions).contains(ext))

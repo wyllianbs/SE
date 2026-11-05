@@ -487,14 +487,18 @@ QString Language::commandFor(const QString &filePath, const QString &tool, const
     return cmd;
 }
 
-Language Language::custom(const QString &name, const QStringList &extensions)
+Language Language::custom(const QString &name, const QStringList &extensions, bool compiled)
 {
     Language lang;
     lang.id = QStringLiteral("custom:") + name;
     lang.displayName = name;
     lang.extensions = extensions;
     lang.lineComment = QStringLiteral("#");
-    lang.runCommand = QStringLiteral("{tool} {flags} %f");
+    // Compilada: gera o binário em /tmp/slayer_out e o executa (como C/C++).
+    // Interpretada: só passa o arquivo à ferramenta.
+    lang.runCommand = compiled
+        ? QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} %f -o /tmp/slayer_out/%b && /tmp/slayer_out/%b")
+        : QStringLiteral("{tool} {flags} %f");
     return lang;
 }
 

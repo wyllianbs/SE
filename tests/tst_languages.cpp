@@ -202,6 +202,36 @@ private Q_SLOTS:
         QVERIFY(AppSettings::defaults().prettySymbols == false); // padrão: desligado
     }
 
+    // Linguagem personalizada marcada como "compilada": gera o binário em
+    // /tmp/slayer_out e o executa; a interpretada só passa o arquivo à ferramenta.
+    void customCompiledBuildsAndRuns()
+    {
+        const QString c = Language::custom(QStringLiteral("X"), {QStringLiteral("c")}, true)
+                              .commandFor(QStringLiteral("/d/main.c"), QStringLiteral("gcc"), QString());
+        QVERIFY2(c.contains(QLatin1String("mkdir -p /tmp/slayer_out")), qPrintable(c));
+        QVERIFY2(c.contains(QLatin1String("&& /tmp/slayer_out/")), qPrintable(c)); // executa o binário
+        const QString i = Language::custom(QStringLiteral("X"), {QStringLiteral("c")}, false)
+                              .commandFor(QStringLiteral("/d/main.c"), QStringLiteral("gcc"), QString());
+        QVERIFY2(!i.contains(QLatin1String("slayer_out")), qPrintable(i));
+
+        if (QStandardPaths::findExecutable(QStringLiteral("gcc")).isEmpty())
+            return; // integração só com gcc instalado
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("hello.c"));
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("#include <stdio.h>\nint main(){ printf(\"R=42\\n\"); return 0; }\n");
+        f.close();
+        const Language lang = Language::custom(QStringLiteral("CC"), {QStringLiteral("c")}, true);
+        QProcess p;
+        p.setWorkingDirectory(dir.path());
+        p.setProcessChannelMode(QProcess::MergedChannels);
+        p.start(QStringLiteral("bash"), {QStringLiteral("-c"), lang.commandFor(path, QStringLiteral("gcc"), QString())});
+        QVERIFY(p.waitForFinished(60000));
+        const QString out = QString::fromUtf8(p.readAll());
+        QVERIFY2(p.exitCode() == 0 && out.contains(QStringLiteral("R=42")), qPrintable(out));
+    }
+
     void customLanguageTemplates()
     {
         QVERIFY(Language::helloWorldForTool("ruby").contains("puts"));

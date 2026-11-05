@@ -45,9 +45,11 @@ struct CustomLanguage
     QString tool;
     QString flags;
     QString extensions;
+    bool compiled = false; //< compila em /tmp/slayer_out e executa o binário (como C/C++)
     bool operator==(const CustomLanguage &o) const
     {
-        return name == o.name && tool == o.tool && flags == o.flags && extensions == o.extensions;
+        return name == o.name && tool == o.tool && flags == o.flags && extensions == o.extensions
+               && compiled == o.compiled;
     }
 };
 

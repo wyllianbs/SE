@@ -70,7 +70,9 @@ QList<HelpTopic> HelpDialog::topics()
             "<p>%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds "
             "and runs the whole project (see <b>Projects</b>).</p>"
             "<p>Change the tool, flags and extensions of each language in <b>Settings → Languages</b>, or add your "
-            "own language (Ruby, Lua, Perl…) with <b>Add Language…</b>.</p>")
+            "own language (Ruby, Lua, Perl…) with <b>Add Language…</b>. Tick <b>Compiled</b> on a custom language to "
+            "build it to <code>/tmp/slayer_out</code> and run the result (like C/C++), instead of just passing the "
+            "file to the tool.</p>")
              .arg(keys("F5"), keys("Alt+F5"), keys("F4"))},
         {tr("Terminal"), tr("terminal shell bash console dock position left right top bottom float exit interrupt sigint ctrl+c"),
          tr("<p>%1 shows or hides the terminal and moves the focus to it; %2 opens a new terminal tab. The ▥ "

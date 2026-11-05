@@ -3,6 +3,13 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## Unreleased
+
+- Custom languages can now be marked **Compiled** (Settings ▸ Languages). Instead
+  of just running `tool flags file`, the editor builds the file to
+  `/tmp/slayer_out` and runs the resulting binary — like the built-in C/C++/Rust.
+  Handy for compilers such as `clang`, `g++`, `rustc` or `clang` on LLVM IR.
+
 ## 0.7.1 — 2026-11-05
 
 - The “go to line” bar's up/down buttons now use chevrons (like Kate), matching

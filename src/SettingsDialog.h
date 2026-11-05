@@ -49,6 +49,7 @@ private:
         QString id;      //< vazio = linguagem personalizada
         QString name;
         bool custom = false;
+        bool compiled = false; //< personalizada compilada: gera binário e executa
         LanguageConfig cfg;
         LspConfig lsp;
     };
@@ -144,6 +145,7 @@ private:
     QLineEdit *m_langTool = nullptr;
     QLineEdit *m_langFlags = nullptr;
     QLineEdit *m_langExtensions = nullptr;
+    QCheckBox *m_langCompiled = nullptr; //< personalizada: compilar e executar
     QLabel *m_langRunHint = nullptr;
     QPushButton *m_langReset = nullptr;
     QPushButton *m_langRemove = nullptr;
