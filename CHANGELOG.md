@@ -3,7 +3,7 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## Unreleased
+## 0.7.0 — 2026-11-05
 
 - The terminal also comes up with a shell prompt ready when it is restored
   visible at startup (its state from the last session), not only on the toolbar
