@@ -1147,6 +1147,9 @@ Document *MainWindow::createDocument()
     });
     connect(doc, &Document::changed, this, [this, doc]() {
         updateDocumentTitles(doc);
+        // Indicador de linguagem (canto inferior direito): reflete nome/badge do arquivo ativo.
+        if (CodeEditor *e = currentEditor(); e && e->doc() == doc)
+            updateStatus();
         m_lsp->attach(doc);
     });
     connect(doc, &Document::breakpointsChanged, this, [this, doc]() {

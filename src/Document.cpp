@@ -107,16 +107,22 @@ bool Document::isUntitledAndEmpty() const
 
 void Document::setLanguage(const Language &language)
 {
-    if (m_language.id == language.id && m_language.extensions == language.extensions
-        && m_language.keywords == language.keywords && m_language.types == language.types)
+    // Realce depende de id/extensões/keywords/types; já o nome exibido e o badge
+    // são só de apresentação (aba e barra de status).
+    const bool sameSyntax = m_language.id == language.id && m_language.extensions == language.extensions
+                            && m_language.keywords == language.keywords && m_language.types == language.types;
+    if (sameSyntax && m_language.displayName == language.displayName
+        && m_language.iconSpec == language.iconSpec)
         return;
     m_language = language;
-    m_highlighter->setLanguage(language);
-    if (!Language::debuggable(language.id))
-        clearBreakpoints();
-    m_folded.clear();
-    recomputeFolds();
-    Q_EMIT changed();
+    if (!sameSyntax) {
+        m_highlighter->setLanguage(language);
+        if (!Language::debuggable(language.id))
+            clearBreakpoints();
+        m_folded.clear();
+        recomputeFolds();
+    }
+    Q_EMIT changed(); // atualiza aba e indicador mesmo quando só o nome/badge mudou
 }
 
 bool Document::exceedsLimits(qint64 bytes, int lines, int longestLine) const
