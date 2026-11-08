@@ -23,7 +23,7 @@ public:
     using Callback = std::function<void(const QJsonValue &result)>;
 
     LspClient(const QString &command, const QString &rootPath, const QJsonObject &initOptions,
-              QObject *parent = nullptr);
+              const QJsonObject &configuration, QObject *parent = nullptr);
     ~LspClient() override;
 
     const QString &command() const { return m_command; }
@@ -38,6 +38,9 @@ public:
     const QStringList &completionTriggers() const { return m_triggers; }
     bool hasDefinition() const { return m_definition; }
     bool hasHover() const { return m_hover; }
+    bool hasFormatting() const { return m_formatting; }
+    bool hasRangeFormatting() const { return m_rangeFormatting; }
+    bool hasInlayHints() const { return m_inlayHints; }
 
     /** Junta um cabeçalho LSP a um corpo JSON (exposto para os testes). */
     static QByteArray frame(const QJsonObject &message);
@@ -58,6 +61,7 @@ private:
     QString m_command;
     QString m_rootPath;
     QJsonObject m_initOptions;
+    QJsonObject m_configuration; //< resposta a workspace/configuration (config do usuário)
     QProcess *m_process = nullptr;
     QByteArray m_buffer;
     int m_nextId = 1;
@@ -68,5 +72,8 @@ private:
     bool m_completion = false;
     bool m_definition = false;
     bool m_hover = false;
+    bool m_formatting = false;
+    bool m_rangeFormatting = false;
+    bool m_inlayHints = false;
     QStringList m_triggers;
 };

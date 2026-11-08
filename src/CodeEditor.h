@@ -5,6 +5,7 @@
 #include "Theme.h"
 
 #include <QHash>
+#include <QKeySequence>
 #include <QTextEdit>
 
 #include <functional>
@@ -12,6 +13,7 @@
 class QCompleter;
 class QStringListModel;
 class QMimeData;
+class QTimer;
 
 /**
  * Editor de código: numeração de linhas, realce, indentação e pares automáticos.
@@ -71,6 +73,30 @@ public:
     using HoverProvider = std::function<void(int line, int column, std::function<void(QString)> done)>;
     void setHoverProvider(HoverProvider provider) { m_hoverProvider = std::move(provider); }
 
+    /** Uma edição de texto do servidor (faixa em UTF-16, base 0). */
+    struct TextEdit { int startLine; int startColumn; int endLine; int endColumn; QString newText; };
+    /** Pede a formatação (documento inteiro, ou só a faixa) e chama done com as edições. */
+    using FormatProvider = std::function<void(bool selectionOnly, int startLine, int startColumn, int endLine,
+                                              int endColumn, std::function<void(QList<TextEdit>)> done)>;
+    void setFormatProvider(FormatProvider provider) { m_formatProvider = std::move(provider); }
+    bool hasFormatProvider() const { return bool(m_formatProvider); }
+    /** Atalhos exibidos ao lado dos itens de formatação no menu de contexto
+     * (espelham os do menu Edit). */
+    void setFormatShortcuts(const QKeySequence &document, const QKeySequence &selection)
+    { m_formatDocShortcut = document; m_formatSelShortcut = selection; }
+    /** Formata o documento inteiro pelo servidor de linguagem; done corre ao
+     * terminar (com ou sem edições), para encadear o salvamento. */
+    void formatDocument(std::function<void()> done = {});
+    /** Formata o trecho selecionado (ou o documento, se nada estiver selecionado). */
+    void formatSelection();
+
+    /** Fonte de dicas inline (inlay hints) do LSP para uma faixa; chama done com a lista. */
+    using InlayHintProvider = std::function<void(int startLine, int startColumn, int endLine, int endColumn,
+                                                 std::function<void(QList<InlayHint>)> done)>;
+    void setInlayHintProvider(InlayHintProvider provider);
+    /** Liga/desliga a exibição das dicas inline neste editor. */
+    void setInlayHintsEnabled(bool enabled);
+
     /** Posiciona o cursor em linha/coluna (base 0) e centraliza. */
     void goToLineColumn(int line, int column);
     int tabWidth() const { return m_tabWidth; }
@@ -114,6 +140,7 @@ Q_SIGNALS:
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
@@ -227,6 +254,18 @@ private:
     CompletionProvider m_provider;
     DefinitionProvider m_definitionProvider;
     HoverProvider m_hoverProvider;
+    FormatProvider m_formatProvider;
+    QKeySequence m_formatDocShortcut;
+    QKeySequence m_formatSelShortcut;
+    void applyTextEdits(const QList<TextEdit> &edits);
+    // Dicas inline (inlay hints) do LSP.
+    InlayHintProvider m_inlayHintProvider;
+    bool m_inlayHintsEnabled = false;
+    QTimer *m_inlayTimer = nullptr;
+    int m_inlayRequest = 0;       //< descarta respostas fora de ordem
+    void scheduleInlayHints();    //< (re)agenda o pedido com atraso curto
+    void requestInlayHints();
+    void paintInlayHints(class QPainter &p);
     QStringList m_triggers;
     QHash<QString, QString> m_insertFor; //< rótulo → texto a inserir
     int m_completionRequest = 0;

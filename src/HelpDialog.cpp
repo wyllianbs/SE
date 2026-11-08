@@ -106,16 +106,23 @@ QList<HelpTopic> HelpDialog::topics()
             "server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.</p>"
             "<p>Turn it on or off in <b>View</b> or <b>Settings → Editor → Features</b>.</p>")
              .arg(keys("Ctrl+Space"), keys("Enter"), keys("Tab"), keys("Esc"))},
-        {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright rust-analyzer diagnostics errors warnings underline completion go to definition hover documentation"),
+        {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright rust-analyzer gopls diagnostics errors warnings underline completion go to definition hover documentation format formatting gofumpt json settings configuration"),
          tr("<p>With a language server installed, errors and warnings are underlined (red, yellow, blue) and the "
             "line number takes their color. Hover the underline for the message; the message of the cursor line "
             "is also shown in the status bar.</p>"
-            "<p>The server also powers code completion, <b>Go to Definition</b> (%1 or Ctrl+click) and "
-            "documentation on hover (point at a symbol).</p>"
+            "<p>The server also powers code completion, <b>Go to Definition</b> (%1 or Ctrl+click), "
+            "documentation on hover (point at a symbol) and <b>Format Document</b> / <b>Format Selection</b> "
+            "(%2 / %3, or the right-click menu over the editor). <b>View → Auto-Format on Save</b> formats the "
+            "document with the server before each save (off by default).</p>"
             "<p>Choose the server of each language in <b>Settings → Languages</b>; its status tells "
             "whether it is installed and how to install it. For C and C++, clangd uses "
-            "<code>compile_commands.json</code> when present, otherwise the flags from Settings → Languages.</p>")
-             .arg(keys("F12"))},
+            "<code>compile_commands.json</code> when present, otherwise the flags from Settings → Languages.</p>"
+            "<p><b>Settings (JSON)</b> in the same card passes a configuration straight to the server, in the "
+            "editor-agnostic JSON form — for example, for Go:</p>"
+            "<pre>{\n  \"gopls\": {\n    \"formatting.gofumpt\": true,\n    \"ui.diagnostic.staticcheck\": true\n  }\n}</pre>"
+            "<p>The top-level key is the server's own section name (<code>gopls</code>, <code>rust-analyzer</code>…). "
+            "The box reports whether the JSON is valid; it is sent when the server starts.</p>")
+             .arg(keys("F12"), keys("Shift+Alt+F"), keys("Ctrl+K, Ctrl+F"))},
         {tr("Code folding"), tr("fold unfold collapse expand block folding node toplevel"),
          tr("<p>Click the arrow next to a line number to fold its block (C, C++, Java, JavaScript, Rust, Go and "
             "Python). Folded lines end with ⋯. <b>View → Code Folding</b> has the Kate commands: %1 toggles the "
@@ -218,6 +225,7 @@ QList<HelpTopic> HelpDialog::topics()
             "<tr><td>%19</td><td>Find in project</td></tr>"
             "<tr><td>%20</td><td>Go to line</td></tr>"
             "<tr><td>%46</td><td>Go to definition (also Ctrl+click)</td></tr>"
+            "<tr><td>%47</td><td>Format document / selection (LSP)</td></tr>"
             "<tr><td colspan='2'><b>View</b></td></tr>"
             "<tr><td>%21</td><td>Show/hide terminal</td></tr>"
             "<tr><td>%22</td><td>New terminal tab</td></tr>"
@@ -244,7 +252,7 @@ QList<HelpTopic> HelpDialog::topics()
             "<tr><td colspan='2'><b>Other</b></td></tr>"
             "<tr><td>%41</td><td>Settings</td></tr>"
             "<tr><td>%42</td><td>Help</td></tr></table>"),
-                       QStringList{QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+X / Ctrl+C / Ctrl+V"), QStringLiteral("Ctrl+A"), QStringLiteral("F12")})},
+                       QStringList{QStringLiteral("Ctrl+N"), QStringLiteral("Ctrl+Alt+N"), QStringLiteral("Ctrl+O"), QStringLiteral("Ctrl+Shift+O"), QStringLiteral("Ctrl+P"), QStringLiteral("Ctrl+S"), QStringLiteral("Ctrl+Shift+S"), QStringLiteral("Ctrl+L"), QStringLiteral("Ctrl+W"), QStringLiteral("Ctrl+Shift+F5"), QStringLiteral("Ctrl+Q"), QStringLiteral("Ctrl+Z / Ctrl+Shift+Z"), QStringLiteral("Ctrl+/"), QStringLiteral("Tab / Shift+Tab"), QStringLiteral("Ctrl+Space"), QStringLiteral("Insert"), QStringLiteral("Ctrl+F / Ctrl+H"), QStringLiteral("F3 / Shift+F3"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+G"), QStringLiteral("Ctrl+`"), QStringLiteral("Ctrl+Shift+`"), QStringLiteral("Ctrl+Shift+C / Ctrl+Shift+V"), QStringLiteral("Ctrl+Alt+B"), QStringLiteral("Ctrl+Shift+L / Ctrl+Shift+T"), QStringLiteral("Ctrl+Shift+R"), QStringLiteral("Ctrl+Alt+→ / Ctrl+Alt+←"), QStringLiteral("Ctrl+Shift+[ / Ctrl+Shift+]"), QStringLiteral("Ctrl+Alt+[ / Ctrl+Alt+]"), QStringLiteral("Ctrl++ / Ctrl+- / Ctrl+0"), QStringLiteral("Ctrl+Shift+D"), QStringLiteral("F5"), QStringLiteral("Alt+F5"), QStringLiteral("Shift+F5"), QStringLiteral("Ctrl+Shift+B"), QStringLiteral("F4"), QStringLiteral("Ctrl+F5"), QStringLiteral("F9"), QStringLiteral("F6 / F7 / Shift+F7"), QStringLiteral("F8"), QStringLiteral("Ctrl+,"), QStringLiteral("F1"), QStringLiteral("Ctrl+Shift+F"), QStringLiteral("Ctrl+X / Ctrl+C / Ctrl+V"), QStringLiteral("Ctrl+A"), QStringLiteral("F12"), QStringLiteral("Shift+Alt+F / Ctrl+K, Ctrl+F")})},
     };
 }
 

@@ -8,6 +8,8 @@
 #include <QMainWindow>
 #include <QPointer>
 
+#include <functional>
+
 class CodeEditor;
 class FindBar;
 class QAction;
@@ -106,11 +108,20 @@ private:
     void openFileAt(const QString &path, int line, int column);
     /** "Ir para definição" no editor atual (via servidor LSP). */
     void goToDefinition();
+    void formatDocument();
+    void formatSelection();
     // Arquivos recentes (como no Kate): lista persistida em QSettings.
     void addRecentFile(const QString &path);
     void rebuildRecentMenu();
-    bool save(CodeEditor *editor);
+    /** allowFormat=false pula o auto-formatar (assíncrono): usado ao fechar, onde
+     * a gravação precisa concluir antes de o editor ser destruído. */
+    bool save(CodeEditor *editor, bool allowFormat = true);
     bool saveAs(CodeEditor *editor);
+    /** Auto-formatar ao salvar: formata (via LSP) e chama write ao terminar;
+     * devolve true se iniciou a formatação (a gravação ocorre depois). */
+    bool formatBeforeSave(CodeEditor *editor, std::function<void()> write);
+    /** Grava um editor no modo auto-save (sem diálogos de erro). */
+    bool autoSaveWrite(CodeEditor *editor);
     bool closeTab(ViewSpace *space, int index);
     bool maybeSave(CodeEditor *editor);
     void runCurrent(bool interactive = false);
@@ -180,6 +191,7 @@ private:
     QTimer *m_saveSettingsTimer = nullptr;
     QTimer *m_themeChromeTimer = nullptr;
     QSet<CodeEditor *> m_autoSavePending;
+    QSet<CodeEditor *> m_formatSaving; //< editores em ciclo de auto-formatar ao salvar
     void autoSavePending();
     void changeEncoding(const QString &encoding, bool bom);
     void buildStatusBar();

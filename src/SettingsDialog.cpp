@@ -21,6 +21,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
+#include <QJsonDocument>
 #include <QMenu>
 #include <QLabel>
 #include <QLineEdit>
@@ -136,6 +137,7 @@ SettingsDialog::SettingsDialog(const AppSettings &settings, const Theme &theme, 
     addPage(tr("Terminal"), Icons::Terminal, buildTerminalPage());
     addPage(tr("Preview"), Icons::Server, buildPreviewPage());
     addPage(tr("Languages"), Icons::Languages, buildLanguagesPage());
+    m_langPageIndex = m_nav->count() - 1; // para o atalho "Language Server Settings…"
     addPage(tr("Symbols"), Icons::Symbols, buildSymbolsPage());
     connect(m_nav, &QListWidget::currentRowChanged, m_pages, &QStackedWidget::setCurrentIndex);
     m_nav->setCurrentRow(1);
@@ -887,9 +889,21 @@ QWidget *SettingsDialog::buildLanguagesPage()
     lspForm->setHorizontalSpacing(18);
     lspForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     m_lspCommand->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_lspSettings = new QPlainTextEdit;
+    m_lspSettings->setFont(QFont(Icons::monoFamily()));
+    m_lspSettings->setTabChangesFocus(false);
+    m_lspSettings->setLineWrapMode(QPlainTextEdit::NoWrap);
+    m_lspSettings->setPlaceholderText(QStringLiteral("{\n  \"gopls\": {\n    \"formatting.gofumpt\": true\n  }\n}"));
+    m_lspSettings->setMinimumHeight(140);
+    m_lspSettingsStatus = new QLabel;
+    m_lspSettingsStatus->setObjectName(QStringLiteral("Hint"));
+    m_lspSettingsStatus->setWordWrap(true);
+    m_lspSettingsStatus->setTextInteractionFlags(Qt::TextSelectableByMouse);
     lspForm->addRow(m_lspOn);
     lspForm->addRow(tr("Server"), m_lspCommand);
     lspForm->addRow(tr("Status"), m_lspStatus);
+    lspForm->addRow(tr("Settings (JSON)"), m_lspSettings);
+    lspForm->addRow(QString(), m_lspSettingsStatus);
     m_lspCard = card(tr("Language server (LSP)"), lspForm);
 
     auto *details = new QVBoxLayout;
@@ -946,6 +960,12 @@ QWidget *SettingsDialog::buildLanguagesPage()
             }
         });
     connect(m_lspOn, &QCheckBox::toggled, this, [this]() { storeLanguageForm(); updateLanguageStatus(); });
+    connect(m_lspSettings, &QPlainTextEdit::textChanged, this, [this]() {
+        if (!m_loadingLanguage) {
+            storeLanguageForm();
+            updateLspSettingsStatus();
+        }
+    });
     connect(m_lspCommand, &QComboBox::currentTextChanged, this, [this]() {
         if (!m_loadingLanguage) {
             storeLanguageForm();
@@ -1071,6 +1091,7 @@ void SettingsDialog::loadLanguageForm()
     for (const LspPreset &p : presets)
         m_lspCommand->addItem(QStringLiteral("%1 — %2").arg(p.name, p.command), p.command);
     m_lspOn->setChecked(e.lsp.enabled);
+    m_lspSettings->setPlainText(e.lsp.settingsJson);
     const QString cmd = effectiveLspCommand(e);
     const int idx = m_lspCommand->findData(cmd);
     if (idx >= 0)
@@ -1079,6 +1100,21 @@ void SettingsDialog::loadLanguageForm()
         m_lspCommand->setEditText(cmd);
     m_loadingLanguage = false;
     updateLanguageStatus();
+    updateLspSettingsStatus();
+}
+
+void SettingsDialog::showLanguageServer(const QString &languageId)
+{
+    if (m_langPageIndex >= 0)
+        m_nav->setCurrentRow(m_langPageIndex); // página Linguagens (não Preview)
+    // Seleciona a linguagem do documento ativo: a seleção dispara loadLanguageForm,
+    // que revela o cartão do servidor de linguagem (com o campo Settings JSON).
+    for (int i = 0; i < m_entries.size(); ++i) {
+        if (!m_entries[i].custom && m_entries[i].id == languageId) {
+            m_langList->setCurrentRow(i);
+            break;
+        }
+    }
 }
 
 QString SettingsDialog::badgeLabel(const QString &spec) const
@@ -1126,6 +1162,30 @@ void SettingsDialog::storeLanguageForm()
     if (!presets.isEmpty() && cmd == presets.first().command)
         cmd.clear(); // padrão: acompanha mudanças futuras do preset
     e.lsp.command = cmd;
+    e.lsp.settingsJson = m_lspSettings->toPlainText();
+}
+
+void SettingsDialog::updateLspSettingsStatus()
+{
+    const QString raw = m_lspSettings->toPlainText().trimmed();
+    if (raw.isEmpty()) {
+        m_lspSettingsStatus->setText(tr("Optional: paste the server configuration as JSON "
+                                        "(e.g. {\"gopls\": {…}}). It is sent to the language server."));
+        m_lspSettingsStatus->setStyleSheet(QString());
+        return;
+    }
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(raw.toUtf8(), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+        const QString why = doc.isObject() || err.error == QJsonParseError::NoError
+                                ? tr("must be a JSON object")
+                                : err.errorString();
+        m_lspSettingsStatus->setText(tr("Invalid JSON: %1").arg(why));
+        m_lspSettingsStatus->setStyleSheet(QStringLiteral("color: #f38ba8;"));
+    } else {
+        m_lspSettingsStatus->setText(tr("Valid JSON"));
+        m_lspSettingsStatus->setStyleSheet(QStringLiteral("color: #a6e3a1;"));
+    }
 }
 
 void SettingsDialog::updateLanguageStatus()
@@ -1161,6 +1221,8 @@ void SettingsDialog::updateLanguageStatus()
 
     const QString cmd = effectiveLspCommand(e);
     m_lspCommand->setEnabled(e.lsp.enabled);
+    // O JSON permanece editável mesmo com o servidor desligado, para o usuário
+    // preparar a configuração antes de ligá-lo.
     if (!e.lsp.enabled) {
         m_lspStatus->setText(tr("Off"));
         m_lspStatus->setStyleSheet(QString());
@@ -1459,6 +1521,8 @@ AppSettings SettingsDialog::settings() const
     s.previewCrossOriginIsolation = m_previewCoi->isChecked();
     // Preserva opções fora deste formulário.
     s.autoReload = m_detect.autoReload;
+    s.formatOnSave = m_detect.formatOnSave;
+    s.inlayHints = m_detect.inlayHints;
 
     const_cast<SettingsDialog *>(this)->storeLanguageForm();
     s.languages = m_hiddenLanguages;
@@ -1476,7 +1540,7 @@ AppSettings SettingsDialog::settings() const
             || e.cfg.runAfterBuild != def.runAfterBuild || e.cfg.displayName != def.displayName
             || e.cfg.icon != def.icon)
             s.languages.insert(e.id, e.cfg);
-        if (!e.lsp.enabled || !e.lsp.command.isEmpty())
+        if (!e.lsp.enabled || !e.lsp.command.isEmpty() || !e.lsp.settingsJson.trimmed().isEmpty())
             s.lsp.insert(e.id, e.lsp);
     }
 

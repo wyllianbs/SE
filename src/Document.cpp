@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
+#include <QHash>
 #include <QSaveFile>
 #include <QStringConverter>
 #include <QTextDocument>
@@ -414,6 +415,29 @@ void Document::setDiagnostics(const QList<Diagnostic> &diagnostics)
 {
     m_diagnostics = diagnostics;
     Q_EMIT diagnosticsChanged();
+}
+
+QString Document::inlayDisplay(const InlayHint &hint)
+{
+    QString s = hint.label;
+    if (hint.paddingLeft)
+        s.prepend(QLatin1Char(' '));
+    if (hint.paddingRight)
+        s.append(QLatin1Char(' '));
+    return s;
+}
+
+void Document::setInlayHints(const QList<InlayHint> &hints)
+{
+    m_inlayHints = hints;
+    if (m_highlighter) {
+        // Mapa bloco → células (coluna, texto) para o realce reservar o espaço.
+        QHash<int, QList<QPair<int, QString>>> cells;
+        for (const InlayHint &h : hints)
+            cells[h.line].append({h.column, inlayDisplay(h)});
+        m_highlighter->setInlayCells(cells);
+    }
+    Q_EMIT inlayHintsChanged();
 }
 
 QList<Diagnostic> Document::diagnosticsAt(int line) const

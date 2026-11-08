@@ -1,8 +1,13 @@
 #include "SyntaxHighlighter.h"
 
+#include <QFontMetricsF>
 #include <QTextBlock>
 #include <QTextDocument>
 #include <QTextLayout>
+
+// Folga extra (px) além da largura do texto da dica, para o "chip" respirar.
+// Precisa ser o MESMO valor usado ao desenhar em CodeEditor::paintInlayHints.
+constexpr qreal kInlayHintPad = 6.0;
 
 SyntaxHighlighter::SyntaxHighlighter(QTextDocument *document)
     : QSyntaxHighlighter(document)
@@ -199,6 +204,42 @@ bool SyntaxHighlighter::inString(int pos) const
     return format(pos).intProperty(RoleProperty) == int(Role::String);
 }
 
+void SyntaxHighlighter::setInlayCells(const QHash<int, QList<QPair<int, QString>>> &cellsByBlock)
+{
+    QTextDocument *doc = document();
+    if (!doc)
+        return;
+    // Rehighlight só dos blocos afetados (antes e agora), para aplicar/limpar a folga.
+    QList<int> affected = m_inlayCells.keys();
+    for (int bn : cellsByBlock.keys())
+        if (!m_inlayCells.contains(bn))
+            affected.append(bn);
+    m_inlayCells = cellsByBlock;
+    for (int bn : std::as_const(affected)) {
+        const QTextBlock b = doc->findBlockByNumber(bn);
+        if (b.isValid())
+            rehighlightBlock(b);
+    }
+}
+
+void SyntaxHighlighter::applyInlaySpacing(const QString &text)
+{
+    const auto it = m_inlayCells.constFind(currentBlock().blockNumber());
+    if (it == m_inlayCells.cend())
+        return;
+    const QFontMetricsF fm(document() ? document()->defaultFont() : QFont());
+    for (const auto &[col, display] : it.value()) {
+        // A folga é criada DEPOIS do glifo em (col-1), ou seja, logo antes de col.
+        if (col <= 0 || col > text.size())
+            continue;
+        const qreal width = fm.horizontalAdvance(display) + kInlayHintPad;
+        QTextCharFormat f = format(col - 1); // preserva a cor já aplicada
+        f.setFontLetterSpacingType(QFont::AbsoluteSpacing);
+        f.setFontLetterSpacing(width);
+        setFormat(col - 1, 1, f);
+    }
+}
+
 void SyntaxHighlighter::highlightBlock(const QString &text)
 {
     for (const Rule &rule : std::as_const(m_rules)) {
@@ -226,8 +267,10 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
     // Comentários de bloco (multilinha). Estado 1 + i = dentro do par i, para
     // que um bloco aberto com ''' só feche com '''.
     setCurrentBlockState(0);
-    if (m_blocks.isEmpty())
+    if (m_blocks.isEmpty()) {
+        applyInlaySpacing(text);
         return;
+    }
     // Aspas triplas do Python são, elas mesmas, aspas: o teste de "dentro de
     // string" não se aplica a elas.
     const bool quoteDelimiters = (m_language.id == QLatin1String("python"));
@@ -260,6 +303,7 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
         if (close < 0) {
             setFormat(start, text.length() - start, m_commentFormat);
             setCurrentBlockState(1 + open);
+            applyInlaySpacing(text);
             return;
         }
         const int stop = close + m_blocks[open].second.length();
@@ -267,4 +311,5 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
         pos = stop;
         open = -1;
     }
+    applyInlaySpacing(text);
 }

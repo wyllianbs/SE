@@ -22,6 +22,17 @@ struct Diagnostic
     QString message;
     QString source;
 };
+
+/** Dica inline do servidor LSP (inlay hint): tipo ou nome de parâmetro. */
+struct InlayHint
+{
+    int line = 0;        //< linha (base 0, = número do bloco)
+    int column = 0;      //< coluna UTF-16 onde a dica é inserida
+    QString label;       //< texto exibido (ex.: "int", "a:")
+    int kind = 0;        //< 1 = tipo, 2 = parâmetro
+    bool paddingLeft = false;
+    bool paddingRight = false;
+};
 class SyntaxHighlighter;
 
 /**
@@ -92,6 +103,12 @@ public:
     /** Diagnósticos que tocam a linha, do mais grave para o menos. */
     QList<Diagnostic> diagnosticsAt(int line) const;
 
+    // Inlay hints (dicas inline do LSP): compartilhadas por todas as visões.
+    const QList<InlayHint> &inlayHints() const { return m_inlayHints; }
+    void setInlayHints(const QList<InlayHint> &hints);
+    /** Texto exibido de uma dica (com os espaços de padding). */
+    static QString inlayDisplay(const InlayHint &hint);
+
     /** Nome da codificação ("UTF-8", "ISO-8859-15"…) e se o arquivo leva BOM. */
     const QString &encoding() const { return m_encoding; }
     bool hasBom() const { return m_bom; }
@@ -120,6 +137,7 @@ Q_SIGNALS:
     void changed();
     void foldingChanged();
     void diagnosticsChanged();
+    void inlayHintsChanged();
     void breakpointsChanged();
     void executionLineChanged();
     /** O arquivo mudou no disco e não foi relido (alterações locais, ou auto desligado). */
@@ -145,6 +163,7 @@ private:
     bool m_bom = false;
     bool m_crlf = false;
     QList<Diagnostic> m_diagnostics;
+    QList<InlayHint> m_inlayHints;
     QSet<int> m_breakpoints;
     int m_executionLine = -1;
     void watch();

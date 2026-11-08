@@ -183,9 +183,12 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("autoReload")] = autoReload;
     o[QStringLiteral("autoSave")] = autoSave;
     o[QStringLiteral("lspEnabled")] = lspEnabled;
+    o[QStringLiteral("formatOnSave")] = formatOnSave;
+    o[QStringLiteral("inlayHints")] = inlayHints;
     QJsonObject lspObj;
     for (auto it = lsp.cbegin(); it != lsp.cend(); ++it)
-        lspObj[it.key()] = QJsonObject{{"enabled", it->enabled}, {"command", it->command}};
+        lspObj[it.key()] = QJsonObject{{"enabled", it->enabled}, {"command", it->command},
+                                       {"settings", it->settingsJson}};
     o[QStringLiteral("lsp")] = lspObj;
     o[QStringLiteral("userThemes")] = userThemes;
     o[QStringLiteral("editorCursorBlink")] = editorCursorBlink;
@@ -272,11 +275,14 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.autoReload = flag("autoReload", s.autoReload);
     s.autoSave = flag("autoSave", s.autoSave);
     s.lspEnabled = flag("lspEnabled", s.lspEnabled);
+    s.formatOnSave = flag("formatOnSave", s.formatOnSave);
+    s.inlayHints = flag("inlayHints", s.inlayHints);
     s.userThemes = o.value(QStringLiteral("userThemes")).toArray();
     const QJsonObject lspObj = o.value(QStringLiteral("lsp")).toObject();
     for (auto it = lspObj.begin(); it != lspObj.end(); ++it) {
         const QJsonObject l = it.value().toObject();
-        s.lsp.insert(it.key(), {l.value("enabled").toBool(false), l.value("command").toString()});
+        s.lsp.insert(it.key(), {l.value("enabled").toBool(false), l.value("command").toString(),
+                                l.value("settings").toString()});
     }
     // Modo de indentação; migra do antigo "insertSpaces" (espaços / tabulações).
     if (o.contains(QStringLiteral("indentMode")))

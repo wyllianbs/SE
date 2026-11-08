@@ -32,6 +32,10 @@ public:
 
     AppSettings settings() const;
 
+    /** Abre a página Linguagens e seleciona a linguagem dada (e o seu servidor
+     * LSP). Usado pelo atalho do indicador de LSP na barra de status. */
+    void showLanguageServer(const QString &languageId);
+
 Q_SIGNALS:
     void applied(const AppSettings &settings);
 
@@ -73,6 +77,7 @@ private:
     Theme m_theme;
     QListWidget *m_nav;
     QStackedWidget *m_pages;
+    int m_langPageIndex = -1; //< linha de "Languages" no m_nav (índice da página)
 
     // Perfis
     QListWidget *m_profiles = nullptr;
@@ -160,6 +165,9 @@ private:
     QCheckBox *m_lspOn = nullptr;
     QComboBox *m_lspCommand = nullptr;
     QLabel *m_lspStatus = nullptr;
+    class QPlainTextEdit *m_lspSettings = nullptr;    //< configuração do servidor em JSON
+    QLabel *m_lspSettingsStatus = nullptr;            //< validade do JSON
+    void updateLspSettingsStatus();
     QLabel *m_missingLanguages = nullptr;
     QMap<QString, LanguageConfig> m_hiddenLanguages; //< configs de linguagens não instaladas, preservadas
     QMap<QString, LspConfig> m_hiddenLsp;

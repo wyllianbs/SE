@@ -39,9 +39,10 @@ struct SymbolRule
 struct LspConfig
 {
     bool enabled = true;
-    QString command; //< vazio = primeiro servidor conhecido
+    QString command;      //< vazio = primeiro servidor conhecido
+    QString settingsJson; //< configuração do servidor em JSON (ex. gopls); vazio = nenhuma
     bool operator==(const LspConfig &o) const
-    { return enabled == o.enabled && command == o.command; }
+    { return enabled == o.enabled && command == o.command && settingsJson == o.settingsJson; }
 };
 
 /** Linguagem definida pelo usuário: "<tool> <flags> arquivo". */
@@ -86,6 +87,8 @@ struct AppSettings
     bool autoReload = false;     //< relê sozinho arquivos alterados por outros programas
     bool autoSave = true;        //< salva automaticamente os arquivos editados (com nome)
     bool lspEnabled = false;     //< chave geral dos servidores de linguagem
+    bool formatOnSave = false;   //< formata o documento (via LSP) antes de salvar
+    bool inlayHints = false;     //< exibe dicas inline do LSP (tipos, nomes de parâmetros)
     bool editorCursorBlink = true;
     bool prettySymbols = false;  //< exibir sequências como símbolos (<= vira ≤); texto não muda
 

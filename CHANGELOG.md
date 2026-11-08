@@ -3,7 +3,21 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
-## 0.7.3 — 2026-11-05
+## 0.7.4 — 2026-11-08
+
+- Each language server can now take a **Settings (JSON)** configuration
+  (Settings ▸ Languages ▸ Language server). Paste the server's own options in the
+  editor-agnostic JSON form — for Go, for example, a `{"gopls": {…}}` object that
+  turns on `gofumpt`, `staticcheck`, inlay hints and the analyses — and the editor
+  passes them to the server (via `workspace/configuration` and
+  `workspace/didChangeConfiguration`), so its features light up. The box reports
+  whether the JSON is valid and stays editable even with the server turned off.
+- **Format Document** and **Format Selection** (LSP) were added to the **Edit**
+  menu and to the editor's right-click menu, with shortcuts `Shift+Alt+F` and
+  `Ctrl+K, Ctrl+F`. They use the language server's formatter (for example
+  `gofumpt`/`gofmt` through gopls).
+- New **View ▸ Auto-Format on Save** toggle (off by default): formats the
+  document with the language server before each save.
 
 - Custom languages can now be marked **Compiled** (Settings ▸ Languages). Instead
   of just running `tool flags file`, the editor builds the file to

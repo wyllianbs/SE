@@ -4,7 +4,9 @@
 #include <QAbstractItemView>
 #include <QAbstractTextDocumentLayout>
 #include <QCompleter>
+#include <QContextMenuEvent>
 #include <QFile>
+#include <QMenu>
 #include <QMimeData>
 #include <QRegularExpression>
 #include <QSet>
@@ -127,6 +129,9 @@ CodeEditor::CodeEditor(Document *document, QWidget *parent)
         updateExtraSelections();
         m_lineNumberArea->update();
     });
+    // Dicas inline (LSP): repinta quando mudam; repede quando o texto muda.
+    connect(document, &Document::inlayHintsChanged, this, [this]() { viewport()->update(); });
+    connect(this, &QTextEdit::textChanged, this, [this]() { scheduleInlayHints(); });
     setLineWrapMode(QTextEdit::NoWrap);
     setAcceptRichText(false); // colar insere texto puro, não HTML
     m_completer->setModel(m_completionModel);
@@ -1676,6 +1681,183 @@ void CodeEditor::goToDefinition()
     m_definitionProvider(c.blockNumber(), c.positionInBlock());
 }
 
+void CodeEditor::formatDocument(std::function<void()> done)
+{
+    if (!m_formatProvider) {
+        if (done)
+            done();
+        return;
+    }
+    QPointer<CodeEditor> self(this);
+    m_formatProvider(false, 0, 0, 0, 0, [self, done](QList<TextEdit> edits) {
+        if (self)
+            self->applyTextEdits(edits);
+        if (done)
+            done();
+    });
+}
+
+void CodeEditor::formatSelection()
+{
+    if (!m_formatProvider)
+        return;
+    const QTextCursor c = textCursor();
+    if (!c.hasSelection()) {
+        formatDocument(); // nada selecionado: formata tudo
+        return;
+    }
+    QTextCursor a(document());
+    a.setPosition(c.selectionStart());
+    QTextCursor b(document());
+    b.setPosition(c.selectionEnd());
+    const int sLine = a.blockNumber(), sCol = a.positionInBlock();
+    const int eLine = b.blockNumber(), eCol = b.positionInBlock();
+    QPointer<CodeEditor> self(this);
+    m_formatProvider(true, sLine, sCol, eLine, eCol,
+                     [self](QList<TextEdit> edits) { if (self) self->applyTextEdits(edits); });
+}
+
+void CodeEditor::applyTextEdits(const QList<TextEdit> &edits)
+{
+    if (edits.isEmpty())
+        return;
+    // Aplica do fim para o início: assim as posições anteriores continuam válidas
+    // mesmo quando o texto inserido tem comprimento diferente do substituído.
+    QList<TextEdit> sorted = edits;
+    std::sort(sorted.begin(), sorted.end(), [](const TextEdit &x, const TextEdit &y) {
+        return x.startLine != y.startLine ? x.startLine > y.startLine : x.startColumn > y.startColumn;
+    });
+    QTextCursor cur(document());
+    cur.beginEditBlock();
+    for (const TextEdit &e : std::as_const(sorted)) {
+        const QTextBlock sb = document()->findBlockByNumber(e.startLine);
+        if (!sb.isValid())
+            continue;
+        const int sPos = sb.position() + qBound(0, e.startColumn, sb.length() - 1);
+        const QTextBlock eb = document()->findBlockByNumber(e.endLine);
+        const int ePos = eb.isValid() ? eb.position() + qBound(0, e.endColumn, eb.length() - 1)
+                                      : document()->characterCount() - 1;
+        cur.setPosition(sPos);
+        cur.setPosition(qMax(sPos, ePos), QTextCursor::KeepAnchor);
+        cur.insertText(e.newText);
+    }
+    cur.endEditBlock();
+}
+
+// Folga extra (px) além do texto da dica. DEVE casar com o kInlayHintPad do
+// SyntaxHighlighter, que reserva o espaço inline via letter-spacing.
+static constexpr qreal kInlayHintPad = 6.0;
+
+void CodeEditor::setInlayHintProvider(InlayHintProvider provider)
+{
+    m_inlayHintProvider = std::move(provider);
+    if (m_inlayHintsEnabled)
+        scheduleInlayHints();
+}
+
+void CodeEditor::setInlayHintsEnabled(bool enabled)
+{
+    if (m_inlayHintsEnabled == enabled)
+        return;
+    m_inlayHintsEnabled = enabled;
+    if (enabled) {
+        scheduleInlayHints();
+    } else {
+        ++m_inlayRequest;        // descarta respostas pendentes
+        m_doc->setInlayHints({}); // limpa dicas e a folga reservada
+    }
+}
+
+void CodeEditor::scheduleInlayHints()
+{
+    if (!m_inlayHintsEnabled || !m_inlayHintProvider)
+        return;
+    if (!m_inlayTimer) {
+        m_inlayTimer = new QTimer(this);
+        m_inlayTimer->setSingleShot(true);
+        m_inlayTimer->setInterval(400);
+        connect(m_inlayTimer, &QTimer::timeout, this, &CodeEditor::requestInlayHints);
+    }
+    m_inlayTimer->start();
+}
+
+void CodeEditor::requestInlayHints()
+{
+    if (!m_inlayHintsEnabled || !m_inlayHintProvider || m_perfActive)
+        return;
+    QTextDocument *d = document();
+    const int lastBlock = d->blockCount() - 1;
+    const QTextBlock lb = d->findBlockByNumber(lastBlock);
+    const int endCol = lb.isValid() ? int(lb.text().size()) : 0;
+    const int token = ++m_inlayRequest;
+    QPointer<CodeEditor> self(this);
+    // Faixa = documento inteiro (posições absolutas; o servidor recebe o texto atual).
+    m_inlayHintProvider(0, 0, lastBlock, endCol, [self, token](QList<InlayHint> hints) {
+        if (self && token == self->m_inlayRequest)
+            self->m_doc->setInlayHints(hints);
+    });
+}
+
+void CodeEditor::paintInlayHints(QPainter &p)
+{
+    if (!m_inlayHintsEnabled)
+        return;
+    const QList<InlayHint> &hints = m_doc->inlayHints();
+    if (hints.isEmpty())
+        return;
+    const QFontMetricsF fm(font());
+    p.setFont(font());
+    const int vh = viewport()->height();
+    for (const InlayHint &h : hints) {
+        const QTextBlock b = document()->findBlockByNumber(h.line);
+        if (!b.isValid() || !b.isVisible())
+            continue;
+        const QRectF geo = blockBoundingGeometry(b).translated(contentOffset());
+        if (geo.bottom() < 0 || geo.top() > vh)
+            continue;
+        if (h.column <= 0 || h.column > b.text().size())
+            continue;
+        const QTextLine line = b.layout()->lineForTextPosition(h.column);
+        if (!line.isValid())
+            continue;
+        const QString disp = Document::inlayDisplay(h);
+        const qreal w = fm.horizontalAdvance(disp) + kInlayHintPad;
+        // A folga foi reservada antes do glifo em "column"; cursorToX já a inclui.
+        const qreal xRight = geo.left() + line.cursorToX(h.column);
+        const QRectF rect(xRight - w, geo.top() + line.y(), w, line.height());
+        QColor bg = m_theme.selection;
+        bg.setAlpha(70);
+        p.setPen(Qt::NoPen);
+        p.setBrush(bg);
+        p.drawRoundedRect(rect.adjusted(1, 2, -1, -2), 3, 3);
+        p.setPen(m_theme.textSecondary);
+        p.drawText(rect, Qt::AlignCenter, disp);
+    }
+}
+
+void CodeEditor::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu *menu = createStandardContextMenu(event->pos());
+    if (m_formatProvider) {
+        menu->addSeparator();
+        QAction *fmtDoc = menu->addAction(tr("Format Document"));
+        // Mostra o atalho sem registrar um acelerador (WidgetShortcut não conflita
+        // com a ação do menu Edit); o menu é transitório.
+        fmtDoc->setShortcut(m_formatDocShortcut);
+        fmtDoc->setShortcutContext(Qt::WidgetShortcut);
+        fmtDoc->setShortcutVisibleInContextMenu(true);
+        connect(fmtDoc, &QAction::triggered, this, [this]() { formatDocument(); });
+        QAction *fmtSel = menu->addAction(tr("Format Selection"));
+        fmtSel->setShortcut(m_formatSelShortcut);
+        fmtSel->setShortcutContext(Qt::WidgetShortcut);
+        fmtSel->setShortcutVisibleInContextMenu(true);
+        fmtSel->setEnabled(textCursor().hasSelection());
+        connect(fmtSel, &QAction::triggered, this, [this]() { formatSelection(); });
+    }
+    menu->exec(event->globalPos());
+    delete menu;
+}
+
 void CodeEditor::goToLineColumn(int line, int column)
 {
     const QTextBlock b = document()->findBlockByNumber(line);
@@ -1969,6 +2151,7 @@ void CodeEditor::paintEvent(QPaintEvent *event)
     paintHighlightOutlines(p);
     if (m_prettySymbols && !m_symbols.isEmpty())
         paintPrettySymbols(p);
+    paintInlayHints(p);
     paintGhostText(p);
     if (!m_doc->foldingEnabled())
         return;

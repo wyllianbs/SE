@@ -447,6 +447,12 @@ void MainWindow::createActions()
     }));
     reg(QStringLiteral("goToLine"), add(edit, tr("&Go to Line…"), QKeySequence(Qt::CTRL | Qt::Key_G), [this]() { goToLine(); }));
     reg(QStringLiteral("goToDefinition"), add(edit, tr("Go to &Definition"), QKeySequence(Qt::Key_F12), [this]() { goToDefinition(); }));
+    reg(QStringLiteral("formatDocument"),
+        add(edit, tr("&Format Document"), QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_F),
+            [this]() { formatDocument(); }));
+    reg(QStringLiteral("formatSelection"),
+        add(edit, tr("Format &Selection"), QKeySequence(Qt::CTRL | Qt::Key_K, Qt::CTRL | Qt::Key_F),
+            [this]() { formatSelection(); }));
     edit->addSeparator();
     // Chaves rápidas das opções de Settings → Editor → Features.
     auto toggle = [this](QMenu *menu, const QString &text, bool AppSettings::*field, const QString &on,
@@ -592,6 +598,14 @@ void MainWindow::createActions()
            tr("Code completion disabled"));
     toggle(view, tr("Auto-Close &Brackets and Quotes"), &AppSettings::autoClosePairs, tr("Auto-closing pairs enabled"),
            tr("Auto-closing pairs disabled"));
+    QAction *autoFormatA = toggle(view, tr("&Auto-Format on Save"), &AppSettings::formatOnSave,
+                                  tr("Auto-format on save enabled (needs a language server)"),
+                                  tr("Auto-format on save disabled"));
+    autoFormatA->setToolTip(tr("Format the document with the language server before each save"));
+    QAction *inlayA = toggle(view, tr("Inlay &Hints"), &AppSettings::inlayHints,
+                             tr("Inlay hints enabled (needs a language server)"),
+                             tr("Inlay hints disabled"));
+    inlayA->setToolTip(tr("Show inline type and parameter-name hints from the language server"));
     // Como no Kate: arquivo alterado por outro programa é relido sozinho.
     QAction *autoReloadA = toggle(view, tr("Auto &Reload Document"), &AppSettings::autoReload,
                                   tr("Files changed by other programs will reload automatically"),
@@ -1407,12 +1421,56 @@ void MainWindow::goToDefinition()
     editor->goToDefinition();
 }
 
-bool MainWindow::save(CodeEditor *editor)
+void MainWindow::formatDocument()
+{
+    CodeEditor *editor = currentEditor();
+    if (!editor)
+        return;
+    if (!editor->hasFormatProvider()) {
+        statusBar()->showMessage(tr("No language server for formatting"), 3000);
+        return;
+    }
+    editor->formatDocument();
+}
+
+void MainWindow::formatSelection()
+{
+    CodeEditor *editor = currentEditor();
+    if (!editor)
+        return;
+    if (!editor->hasFormatProvider()) {
+        statusBar()->showMessage(tr("No language server for formatting"), 3000);
+        return;
+    }
+    editor->formatSelection();
+}
+
+bool MainWindow::formatBeforeSave(CodeEditor *editor, std::function<void()> write)
+{
+    // Auto-formatar ao salvar: pede a formatação ao servidor e só então grava.
+    // Reentrância controlada por m_formatSaving — a gravação chama de volta o
+    // mesmo caminho de salvamento, agora já sem reformatar.
+    if (!m_settings.formatOnSave || m_formatSaving.contains(editor) || !m_lsp->hasFormatting(editor->doc()))
+        return false;
+    m_formatSaving.insert(editor);
+    CodeEditor *raw = editor;
+    QPointer<CodeEditor> alive(editor);
+    editor->formatDocument([this, alive, raw, write]() {
+        if (alive && write)
+            write();
+        m_formatSaving.remove(raw); // só depois de gravar, para não reformatar
+    });
+    return true;
+}
+
+bool MainWindow::save(CodeEditor *editor, bool allowFormat)
 {
     if (!editor)
         return false;
     if (editor->filePath().isEmpty())
         return saveAs(editor);
+    if (allowFormat && formatBeforeSave(editor, [this, editor]() { save(editor); }))
+        return true; // a gravação ocorre no retorno da formatação
     QString error;
     if (!editor->saveFile(editor->filePath(), &error)) {
         QMessageBox::warning(this, tr("Save"), tr("Could not save %1:\n%2").arg(editor->filePath(), error));
@@ -1460,7 +1518,7 @@ bool MainWindow::maybeSave(CodeEditor *editor)
         tr("“%1” has unsaved changes. Save them?").arg(editor->displayName()),
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
     if (answer == QMessageBox::Save)
-        return save(editor);
+        return save(editor, /*allowFormat=*/false); // gravação síncrona antes de fechar
     return answer == QMessageBox::Discard;
 }
 
@@ -1605,10 +1663,11 @@ void MainWindow::buildStatusBar()
         lspMenu->addAction(m_lspAction); // a mesma ação do menu Run: sempre sincronizada
         lspMenu->addSeparator();
         connect(lspMenu->addAction(tr("Language Server Settings…")), &QAction::triggered, this, [this]() {
+            // Abre direto nas configurações do servidor da linguagem do documento ativo.
+            const QString langId = currentEditor() ? currentEditor()->language().id : QString();
             showSettings();
             if (auto *dialog = findChild<SettingsDialog *>())
-                if (auto *nav = dialog->findChild<QListWidget *>(QStringLiteral("SettingsNav")))
-                    nav->setCurrentRow(4); // Linguagens (com os servidores de linguagem)
+                dialog->showLanguageServer(langId);
         });
     });
 
@@ -2381,19 +2440,33 @@ void MainWindow::autoSavePending()
         // a faixa do arquivo pede a decisão (recarregar ou sobrescrever).
         if (m_diskChanged.contains(e->doc()))
             continue;
-        // Sem janela de erro: ela voltaria a cada pausa na digitação.
-        QString error;
-        if (!e->saveFile(e->filePath(), &error)) {
-            statusBar()->showMessage(tr("Auto-save of %1 failed: %2").arg(e->displayName(), error), 8000);
+        // Auto-formatar ao salvar: grava no retorno da formatação (assíncrono).
+        if (formatBeforeSave(e, [this, e]() { autoSaveWrite(e); }))
             continue;
-        }
-        m_lsp->documentSaved(e->doc());
-        saved = true;
+        if (autoSaveWrite(e))
+            saved = true;
     }
     // Com o preview por proxy (servidor externo), o conteúdo vem do disco: ao
     // salvar, recarrega para o navegador mostrar a alteração.
     if (saved && m_preview && m_preview->isRunning())
         m_preview->triggerReload();
+}
+
+bool MainWindow::autoSaveWrite(CodeEditor *editor)
+{
+    if (!editor || editor->filePath().isEmpty() || !editor->doc()->isModified())
+        return false;
+    // Sem janela de erro: ela voltaria a cada pausa na digitação.
+    QString error;
+    if (!editor->saveFile(editor->filePath(), &error)) {
+        statusBar()->showMessage(tr("Auto-save of %1 failed: %2").arg(editor->displayName(), error), 8000);
+        return false;
+    }
+    m_lsp->documentSaved(editor->doc());
+    // Caminho assíncrono (auto-formatar): dispara o reload do preview aqui.
+    if (m_formatSaving.contains(editor) && m_preview && m_preview->isRunning())
+        m_preview->triggerReload();
+    return true;
 }
 
 QHash<QString, QList<int>> MainWindow::collectBreakpoints() const
@@ -2699,6 +2772,46 @@ void MainWindow::configureEditor(CodeEditor *editor) const
                      lsp->hover(doc, line, column, [done](const QString &text) { done(text); });
                  })
                : CodeEditor::HoverProvider());
+    // Mesmos atalhos do menu Edit, exibidos também no menu de contexto.
+    editor->setFormatShortcuts(QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_F),
+                               QKeySequence(Qt::CTRL | Qt::Key_K, Qt::CTRL | Qt::Key_F));
+    const int tabSize = m_settings.indentWidth;
+    const bool insertSpaces = m_settings.indentMode != CodeEditor::IndentTabs;
+    editor->setFormatProvider(
+        useLsp ? CodeEditor::FormatProvider([self, lsp, doc, tabSize, insertSpaces](
+                     bool selectionOnly, int sLine, int sCol, int eLine, int eCol,
+                     std::function<void(QList<CodeEditor::TextEdit>)> done) {
+                     auto convert = [done](const QList<LspTextEdit> &edits) {
+                         QList<CodeEditor::TextEdit> out;
+                         for (const LspTextEdit &e : edits)
+                             out.append({e.startLine, e.startColumn, e.endLine, e.endColumn, e.newText});
+                         done(out);
+                     };
+                     if (!lsp->hasFormatting(doc) && !lsp->hasRangeFormatting(doc)) {
+                         self->statusBar()->showMessage(tr("No formatter for this language"), 3000);
+                         done({});
+                         return;
+                     }
+                     if (selectionOnly && lsp->hasRangeFormatting(doc))
+                         lsp->formatRange(doc, sLine, sCol, eLine, eCol, tabSize, insertSpaces, convert);
+                     else
+                         lsp->format(doc, tabSize, insertSpaces, convert);
+                 })
+               : CodeEditor::FormatProvider());
+
+    const bool wantInlay = useLsp && m_settings.inlayHints;
+    editor->setInlayHintProvider(
+        wantInlay ? CodeEditor::InlayHintProvider([lsp, doc](int sLine, int sCol, int eLine, int eCol,
+                                                             std::function<void(QList<InlayHint>)> done) {
+                        lsp->inlayHints(doc, sLine, sCol, eLine, eCol, [done](const QList<LspInlayHint> &hints) {
+                            QList<InlayHint> out;
+                            for (const LspInlayHint &h : hints)
+                                out.append({h.line, h.column, h.label, h.kind, h.paddingLeft, h.paddingRight});
+                            done(out);
+                        });
+                    })
+                  : CodeEditor::InlayHintProvider());
+    editor->setInlayHintsEnabled(wantInlay);
 }
 
 void MainWindow::scheduleSettingsSave()
@@ -2847,7 +2960,8 @@ void MainWindow::applySettings(const AppSettings &settings)
         || old.indentMode != m_settings.indentMode
         || old.prettySymbols != m_settings.prettySymbols
         || old.symbols != m_settings.symbols
-        || old.lspEnabled != m_settings.lspEnabled;
+        || old.lspEnabled != m_settings.lspEnabled
+        || old.inlayHints != m_settings.inlayHints;
 
     const bool langsChanged = old.languages != m_settings.languages
                               || old.customLanguages != m_settings.customLanguages;

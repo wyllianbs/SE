@@ -7,11 +7,12 @@
 #include <QUrl>
 
 LspClient::LspClient(const QString &command, const QString &rootPath, const QJsonObject &initOptions,
-                     QObject *parent)
+                     const QJsonObject &configuration, QObject *parent)
     : QObject(parent)
     , m_command(command)
     , m_rootPath(rootPath)
     , m_initOptions(initOptions)
+    , m_configuration(configuration)
 {
 }
 
@@ -94,6 +95,9 @@ bool LspClient::start()
              {"hover", QJsonObject{
                   {"dynamicRegistration", false},
                   {"contentFormat", QJsonArray{"plaintext", "markdown"}}}},
+             {"formatting", QJsonObject{{"dynamicRegistration", false}}},
+             {"rangeFormatting", QJsonObject{{"dynamicRegistration", false}}},
+             {"inlayHint", QJsonObject{{"dynamicRegistration", false}}},
          }},
         {"workspace", QJsonObject{{"configuration", true}, {"workspaceFolders", true}}},
         {"general", QJsonObject{{"positionEncodings", QJsonArray{"utf-16"}}}},
@@ -120,10 +124,22 @@ bool LspClient::start()
         m_definition = definition.isObject() || definition.toBool();
         const QJsonValue hover = caps.value("hoverProvider");
         m_hover = hover.isObject() || hover.toBool();
+        const QJsonValue formatting = caps.value("documentFormattingProvider");
+        m_formatting = formatting.isObject() || formatting.toBool();
+        const QJsonValue rangeFormatting = caps.value("documentRangeFormattingProvider");
+        m_rangeFormatting = rangeFormatting.isObject() || rangeFormatting.toBool();
+        const QJsonValue inlayHint = caps.value("inlayHintProvider");
+        m_inlayHints = inlayHint.isObject() || inlayHint.toBool();
         m_triggers.clear();
         for (const QJsonValue &t : completion.toObject().value("triggerCharacters").toArray())
             m_triggers << t.toString();
         send(QJsonObject{{"jsonrpc", "2.0"}, {"method", "initialized"}, {"params", QJsonObject{}}});
+        // Empurra a configuração do usuário (ex. gopls): alguns servidores só a
+        // buscam (workspace/configuration) após este aviso.
+        if (!m_configuration.isEmpty())
+            send(QJsonObject{{"jsonrpc", "2.0"},
+                             {"method", "workspace/didChangeConfiguration"},
+                             {"params", QJsonObject{{"settings", m_configuration}}}});
         m_ready = true;
         const QList<QJsonObject> queued = m_queue;
         m_queue.clear();
@@ -201,10 +217,20 @@ void LspClient::handle(const QJsonObject &message)
         // Requisição do servidor: responde o mínimo que os servidores esperam.
         QJsonValue result;
         if (method == QLatin1String("workspace/configuration")) {
+            // Responde com a configuração do usuário. A seção pedida (ex. "gopls")
+            // casa com a chave de topo do JSON; sem seção (ou sem casar), devolve o
+            // objeto inteiro, o que cobre JSON sem embrulho.
             QJsonArray items;
-            const int n = message.value("params").toObject().value("items").toArray().size();
-            for (int i = 0; i < n; ++i)
-                items.append(QJsonValue());
+            const QJsonArray requested = message.value("params").toObject().value("items").toArray();
+            for (const QJsonValue &v : requested) {
+                const QString section = v.toObject().value("section").toString();
+                if (!section.isEmpty() && m_configuration.contains(section))
+                    items.append(m_configuration.value(section));
+                else if (!m_configuration.isEmpty())
+                    items.append(m_configuration);
+                else
+                    items.append(QJsonValue());
+            }
             result = items;
         }
         send(QJsonObject{{"jsonrpc", "2.0"}, {"id", id}, {"result", result}});

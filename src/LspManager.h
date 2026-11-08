@@ -29,6 +29,27 @@ struct LspCompletion
     QString detail;
 };
 
+/** Uma edição de texto do servidor (formatação): faixa em UTF-16, base 0. */
+struct LspTextEdit
+{
+    int startLine = 0;
+    int startColumn = 0;
+    int endLine = 0;
+    int endColumn = 0;
+    QString newText;
+};
+
+/** Uma dica inline (inlay hint) do servidor: posição UTF-16, base 0. */
+struct LspInlayHint
+{
+    int line = 0;
+    int column = 0;
+    QString label;
+    int kind = 0; //< 1 = tipo, 2 = parâmetro
+    bool paddingLeft = false;
+    bool paddingRight = false;
+};
+
 /** Um destino de "ir para definição" (linha e coluna UTF-16, base 0). */
 struct LspLocation
 {
@@ -78,6 +99,21 @@ public:
     /** Pede a documentação (hover) na posição; callback com texto vazio = nada. */
     void hover(Document *doc, int line, int column, HoverCallback callback);
     bool hasHover(Document *doc) const;
+
+    using FormatCallback = std::function<void(const QList<LspTextEdit> &)>;
+    bool hasFormatting(Document *doc) const;
+    bool hasRangeFormatting(Document *doc) const;
+    /** Formata o documento inteiro. tabSize/insertSpaces vêm do editor. */
+    void format(Document *doc, int tabSize, bool insertSpaces, FormatCallback callback);
+    /** Formata só a faixa (linha/coluna UTF-16, base 0). */
+    void formatRange(Document *doc, int startLine, int startColumn, int endLine, int endColumn, int tabSize,
+                     bool insertSpaces, FormatCallback callback);
+
+    using InlayHintsCallback = std::function<void(const QList<LspInlayHint> &)>;
+    bool hasInlayHints(Document *doc) const;
+    /** Pede as dicas inline da faixa (linha/coluna UTF-16, base 0). */
+    void inlayHints(Document *doc, int startLine, int startColumn, int endLine, int endColumn,
+                    InlayHintsCallback callback);
 
     /** Texto curto para o rodapé ("clangd", "pylsp — starting"…). */
     QString statusFor(Document *doc) const;

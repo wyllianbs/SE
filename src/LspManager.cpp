@@ -4,6 +4,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QJsonDocument>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QStandardPaths>
@@ -118,6 +119,7 @@ void LspManager::setSettings(const AppSettings &settings)
     for (const QString &id : ids) {
         LspClient *c = m_clients.value(id);
         if (!c || !m_settings.lspEnabled || !m_settings.lspConfig(id).enabled || c->command() != commandFor(id)
+            || old.lspConfig(id).settingsJson != m_settings.lspConfig(id).settingsJson
             || (id.startsWith(QLatin1Char('c')) && old.languageConfig(id).flags != m_settings.languageConfig(id).flags)) {
             m_clients.remove(id);
             if (c) {
@@ -182,7 +184,16 @@ LspClient *LspManager::clientFor(const QString &id, const QString &rootPath)
         init[QStringLiteral("fallbackFlags")] = flags;
     }
 
-    auto *client = new LspClient(command, rootPath, init, this);
+    // Configuração do usuário (JSON): respondida em workspace/configuration.
+    QJsonObject configuration;
+    const QString raw = m_settings.lspConfig(id).settingsJson.trimmed();
+    if (!raw.isEmpty()) {
+        const QJsonDocument parsed = QJsonDocument::fromJson(raw.toUtf8());
+        if (parsed.isObject())
+            configuration = parsed.object();
+    }
+
+    auto *client = new LspClient(command, rootPath, init, configuration, this);
     connect(client, &LspClient::diagnosticsPublished, this, &LspManager::onDiagnostics);
     connect(client, &LspClient::ready, this, &LspManager::statusChanged);
     auto onDown = [this, id, command, client](const QString &reason) {
@@ -424,6 +435,128 @@ void LspManager::hover(Document *doc, int line, int column, HoverCallback callba
             text = textOf(contents);
         }
         callback(text.trimmed());
+    });
+}
+
+bool LspManager::hasFormatting(Document *doc) const
+{
+    const auto it = m_docs.constFind(doc);
+    return it != m_docs.cend() && it->client && it->client->hasFormatting();
+}
+
+bool LspManager::hasRangeFormatting(Document *doc) const
+{
+    const auto it = m_docs.constFind(doc);
+    return it != m_docs.cend() && it->client && it->client->hasRangeFormatting();
+}
+
+namespace {
+QList<LspTextEdit> parseTextEdits(const QJsonValue &result)
+{
+    QList<LspTextEdit> out;
+    for (const QJsonValue &v : result.toArray()) {
+        const QJsonObject o = v.toObject();
+        const QJsonObject range = o.value("range").toObject();
+        const QJsonObject start = range.value("start").toObject();
+        const QJsonObject end = range.value("end").toObject();
+        LspTextEdit e;
+        e.startLine = start.value("line").toInt();
+        e.startColumn = start.value("character").toInt();
+        e.endLine = end.value("line").toInt();
+        e.endColumn = end.value("character").toInt();
+        e.newText = o.value("newText").toString();
+        out.append(e);
+    }
+    return out;
+}
+} // namespace
+
+void LspManager::format(Document *doc, int tabSize, bool insertSpaces, FormatCallback callback)
+{
+    auto it = m_docs.find(doc);
+    if (it == m_docs.end() || !it->client || !it->client->hasFormatting()) {
+        callback({});
+        return;
+    }
+    if (it->timer->isActive())
+        sendChange(doc); // o servidor precisa do texto atual
+    const QJsonObject options{{"tabSize", tabSize},
+                              {"insertSpaces", insertSpaces},
+                              {"trimTrailingWhitespace", true},
+                              {"insertFinalNewline", true},
+                              {"trimFinalNewlines", true}};
+    const QJsonObject params{{"textDocument", QJsonObject{{"uri", it->uri}}}, {"options", options}};
+    it->client->request(QStringLiteral("textDocument/formatting"), params,
+                        [callback](const QJsonValue &result) { callback(parseTextEdits(result)); });
+}
+
+void LspManager::formatRange(Document *doc, int startLine, int startColumn, int endLine, int endColumn, int tabSize,
+                             bool insertSpaces, FormatCallback callback)
+{
+    auto it = m_docs.find(doc);
+    if (it == m_docs.end() || !it->client || !it->client->hasRangeFormatting()) {
+        callback({});
+        return;
+    }
+    if (it->timer->isActive())
+        sendChange(doc);
+    const QJsonObject options{{"tabSize", tabSize},
+                              {"insertSpaces", insertSpaces},
+                              {"trimTrailingWhitespace", true},
+                              {"insertFinalNewline", true},
+                              {"trimFinalNewlines", true}};
+    const QJsonObject range{{"start", QJsonObject{{"line", startLine}, {"character", startColumn}}},
+                            {"end", QJsonObject{{"line", endLine}, {"character", endColumn}}}};
+    const QJsonObject params{{"textDocument", QJsonObject{{"uri", it->uri}}}, {"range", range}, {"options", options}};
+    it->client->request(QStringLiteral("textDocument/rangeFormatting"), params,
+                        [callback](const QJsonValue &result) { callback(parseTextEdits(result)); });
+}
+
+bool LspManager::hasInlayHints(Document *doc) const
+{
+    const auto it = m_docs.constFind(doc);
+    return it != m_docs.cend() && it->client && it->client->hasInlayHints();
+}
+
+void LspManager::inlayHints(Document *doc, int startLine, int startColumn, int endLine, int endColumn,
+                            InlayHintsCallback callback)
+{
+    auto it = m_docs.find(doc);
+    if (it == m_docs.end() || !it->client || !it->client->hasInlayHints()) {
+        callback({});
+        return;
+    }
+    if (it->timer->isActive())
+        sendChange(doc); // o servidor precisa do texto atual
+    const QJsonObject range{{"start", QJsonObject{{"line", startLine}, {"character", startColumn}}},
+                            {"end", QJsonObject{{"line", endLine}, {"character", endColumn}}}};
+    const QJsonObject params{{"textDocument", QJsonObject{{"uri", it->uri}}}, {"range", range}};
+    it->client->request(QStringLiteral("textDocument/inlayHint"), params, [callback](const QJsonValue &result) {
+        QList<LspInlayHint> out;
+        for (const QJsonValue &v : result.toArray()) {
+            const QJsonObject o = v.toObject();
+            const QJsonObject pos = o.value("position").toObject();
+            LspInlayHint h;
+            h.line = pos.value("line").toInt();
+            h.column = pos.value("character").toInt();
+            // label: string, ou vetor de InlayHintLabelPart {value}.
+            const QJsonValue label = o.value("label");
+            if (label.isString()) {
+                h.label = label.toString();
+            } else {
+                QString s;
+                for (const QJsonValue &part : label.toArray())
+                    s += part.toObject().value("value").toString();
+                h.label = s;
+            }
+            h.kind = o.value("kind").toInt();
+            h.paddingLeft = o.value("paddingLeft").toBool();
+            h.paddingRight = o.value("paddingRight").toBool();
+            h.label = h.label.trimmed();
+            if (!h.label.isEmpty())
+                out.append(h);
+        }
+        callback(out);
     });
 }
 
