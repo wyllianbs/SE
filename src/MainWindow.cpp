@@ -2112,12 +2112,26 @@ void MainWindow::updateStatus()
     m_modeLabel->setText(editor->overwriteMode() ? tr("OVERWRITE") : tr("INSERT"));
     m_perfLabel->setVisible(editor->performanceActive());
     m_encodingButton->setText(editor->doc()->encodingLabel());
-    // Visível para linguagens com servidor conhecido: mostra o servidor ativo,
-    // ou "LSP off" para dar como religar dali mesmo.
+    // Visível para toda linguagem com servidor conhecido (mesmo se o servidor
+    // falhar ou não estiver instalado): o indicador não some e dá para religar
+    // ou abrir as configurações dali. Mostra só o nome do servidor.
+    const QString langId = editor->language().id;
     const QString server = m_lsp->statusFor(editor->doc());
-    const bool lspLanguage = LspManager::languages().contains(editor->language().id);
-    m_lspLabel->setVisible(!server.isEmpty() || (lspLanguage && !m_settings.lspEnabled));
-    m_lspLabel->setText(server.isEmpty() ? tr("LSP off") : server);
+    const bool lspLanguage = LspManager::languages().contains(langId);
+    const bool lspOn = m_settings.lspEnabled && m_settings.lspConfig(langId).enabled;
+    m_lspLabel->setVisible(lspLanguage || !server.isEmpty());
+    QString lspText;
+    if (!server.isEmpty()) {
+        lspText = server; // rodando ("clangd") ou iniciando ("clangd — starting")
+    } else if (!lspOn) {
+        lspText = tr("LSP off");
+    } else {
+        // Ligado, mas o servidor não está rodando (não instalado ou falhou).
+        const QString name =
+            m_settings.lspConfig(langId).command.trimmed().split(QLatin1Char(' '), Qt::SkipEmptyParts).value(0);
+        lspText = name.isEmpty() ? tr("LSP off") : tr("%1 — off").arg(name);
+    }
+    m_lspLabel->setText(lspText);
     m_lspLabel->setIcon(Icons::icon(Icons::Server, server.isEmpty() ? m_theme.textSecondary : m_theme.primary, 14));
     // Diagnóstico da linha do cursor, como no Slayer Editor Android.
     const QList<Diagnostic> here = editor->doc()->diagnosticsAt(c.blockNumber());

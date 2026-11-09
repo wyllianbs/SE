@@ -106,14 +106,15 @@ QList<HelpTopic> HelpDialog::topics()
             "server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.</p>"
             "<p>Turn it on or off in <b>View</b> or <b>Settings → Editor → Features</b>.</p>")
              .arg(keys("Ctrl+Space"), keys("Enter"), keys("Tab"), keys("Esc"))},
-        {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright rust-analyzer gopls diagnostics errors warnings underline completion go to definition hover documentation format formatting gofumpt json settings configuration"),
+        {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright rust-analyzer gopls diagnostics errors warnings underline completion go to definition hover documentation format formatting gofumpt json settings configuration inlay hints inlayhint type parameter names"),
          tr("<p>With a language server installed, errors and warnings are underlined (red, yellow, blue) and the "
             "line number takes their color. Hover the underline for the message; the message of the cursor line "
             "is also shown in the status bar.</p>"
             "<p>The server also powers code completion, <b>Go to Definition</b> (%1 or Ctrl+click), "
             "documentation on hover (point at a symbol) and <b>Format Document</b> / <b>Format Selection</b> "
             "(%2 / %3, or the right-click menu over the editor). <b>View → Auto-Format on Save</b> formats the "
-            "document with the server before each save (off by default).</p>"
+            "document with the server before each save (off by default). <b>View → Inlay Hints</b> (off by "
+            "default) shows the server's inline type and parameter-name hints when it provides them.</p>"
             "<p>Choose the server of each language in <b>Settings → Languages</b>; its status tells "
             "whether it is installed and how to install it. For C and C++, clangd uses "
             "<code>compile_commands.json</code> when present, otherwise the flags from Settings → Languages.</p>"

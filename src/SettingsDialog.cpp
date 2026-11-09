@@ -1088,8 +1088,10 @@ void SettingsDialog::loadLanguageForm()
     const QList<LspPreset> presets = e.custom ? QList<LspPreset>() : LspManager::presets(e.id);
     m_lspCard->setVisible(!presets.isEmpty());
     m_lspCommand->clear();
+    // Mostra só o nome do servidor (ex.: "clangd"); o comando real fica no dado
+    // do item. Um comando próprio (digitado) aparece como o texto completo.
     for (const LspPreset &p : presets)
-        m_lspCommand->addItem(QStringLiteral("%1 — %2").arg(p.name, p.command), p.command);
+        m_lspCommand->addItem(p.name, p.command);
     m_lspOn->setChecked(e.lsp.enabled);
     m_lspSettings->setPlainText(e.lsp.settingsJson);
     const QString cmd = effectiveLspCommand(e);

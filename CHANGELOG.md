@@ -3,6 +3,17 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## 0.7.5 — 2026-11-08
+
+- New **View ▸ Inlay Hints** toggle (off by default): shows the language
+  server's inline type and parameter-name hints (for example, gopls with
+  `ui.inlayhint.hints` enabled shows `x int := …` and `fn(name: value)`). The
+  hints are drawn in reserved inline space, so they never overlap the code and
+  never change the file's text.
+- The inlay-hint interface and the recent LSP options (Settings JSON, document
+  formatting, auto-format on save) are now fully translated to Portuguese
+  (pt_BR), and the Help page documents them.
+
 ## 0.7.4 — 2026-11-08
 
 - Each language server can now take a **Settings (JSON)** configuration
