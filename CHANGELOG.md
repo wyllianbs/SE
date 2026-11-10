@@ -3,6 +3,19 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## 0.7.6 — 2026-11-10
+
+- Python can now run a **secondary language server** alongside the main one
+  (Settings ▸ Languages ▸ Python ▸ Secondary language server). The suggested
+  pairing is **Pyright** as the main server (types, hover, completion) and
+  **pylsp** as the secondary (lint and formatting, which Pyright does not do).
+  Diagnostics and completions from both servers are merged; hover, go-to-
+  definition and formatting use the main server and fall back to the secondary
+  when it does not provide them. The status bar shows both (e.g. `pyright + pylsp`).
+- The **Settings (JSON)** box now shows a real example for the selected server
+  (gopls, pylsp, Pyright, Ruff, rust-analyzer, and others) instead of a single
+  fixed sample, so each language suggests the options that actually apply to it.
+
 ## 0.7.5 — 2026-11-08
 
 - New **View ▸ Inlay Hints** toggle (off by default): shows the language

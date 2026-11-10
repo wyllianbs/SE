@@ -106,7 +106,7 @@ QList<HelpTopic> HelpDialog::topics()
             "server runs, its items (shown first). %1 opens the list at any time. %2 or %3 accept, %4 closes.</p>"
             "<p>Turn it on or off in <b>View</b> or <b>Settings → Editor → Features</b>.</p>")
              .arg(keys("Ctrl+Space"), keys("Enter"), keys("Tab"), keys("Esc"))},
-        {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright rust-analyzer gopls diagnostics errors warnings underline completion go to definition hover documentation format formatting gofumpt json settings configuration inlay hints inlayhint type parameter names"),
+        {tr("Language servers (LSP)"), tr("lsp language server clangd pylsp pyright rust-analyzer gopls diagnostics errors warnings underline completion go to definition hover documentation format formatting gofumpt json settings configuration inlay hints inlayhint type parameter names secondary server merge python"),
          tr("<p>With a language server installed, errors and warnings are underlined (red, yellow, blue) and the "
             "line number takes their color. Hover the underline for the message; the message of the cursor line "
             "is also shown in the status bar.</p>"
@@ -122,7 +122,13 @@ QList<HelpTopic> HelpDialog::topics()
             "editor-agnostic JSON form — for example, for Go:</p>"
             "<pre>{\n  \"gopls\": {\n    \"formatting.gofumpt\": true,\n    \"ui.diagnostic.staticcheck\": true\n  }\n}</pre>"
             "<p>The top-level key is the server's own section name (<code>gopls</code>, <code>rust-analyzer</code>…). "
-            "The box reports whether the JSON is valid; it is sent when the server starts.</p>")
+            "The box shows a real example for the selected server and reports whether the JSON is valid; it is sent "
+            "when the server starts.</p>"
+            "<p><b>Python</b> can run a <b>secondary language server</b> next to the main one (same card). The "
+            "suggested pairing is <b>Pyright</b> as the main server (types, hover, completion) and <b>pylsp</b> as "
+            "the secondary one (lint and formatting). Diagnostics and completions from both are merged; hover, "
+            "Go to Definition and formatting use the main server and fall back to the secondary. The status bar "
+            "shows both, such as <code>pyright + pylsp</code>.</p>")
              .arg(keys("F12"), keys("Shift+Alt+F"), keys("Ctrl+K, Ctrl+F"))},
         {tr("Code folding"), tr("fold unfold collapse expand block folding node toplevel"),
          tr("<p>Click the arrow next to a line number to fold its block (C, C++, Java, JavaScript, Rust, Go and "

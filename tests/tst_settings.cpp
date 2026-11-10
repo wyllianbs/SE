@@ -32,6 +32,50 @@ private Q_SLOTS:
         QVERIFY(!out.lsp.contains("cpp"));
     }
 
+    void lspSecondaryServerRoundTrip()
+    {
+        // Servidor secundário (Python): pyright principal + pylsp secundário.
+        AppSettings in = AppSettings::defaults();
+        LspConfig cfg;
+        cfg.enabled = true;
+        cfg.command = "pyright-langserver --stdio";
+        cfg.secondaryEnabled = true;
+        cfg.secondaryCommand = "pylsp";
+        cfg.secondarySettingsJson = "{\"pylsp\":{\"plugins\":{\"pyflakes\":{\"enabled\":true}}}}";
+        in.lsp.insert("python", cfg);
+
+        const AppSettings out = AppSettings::fromJson(in.toJson());
+        const LspConfig r = out.lsp.value("python");
+        QVERIFY(r.secondaryEnabled);
+        QCOMPARE(r.command, QStringLiteral("pyright-langserver --stdio"));
+        QCOMPARE(r.secondaryCommand, QStringLiteral("pylsp"));
+        QCOMPARE(r.secondarySettingsJson, cfg.secondarySettingsJson);
+        // Padrão: sem secundário quando nada foi configurado.
+        QVERIFY(!AppSettings::defaults().lspConfig("python").secondaryEnabled);
+    }
+
+    void dialogPythonSecondaryServer()
+    {
+        // Caminho da UI: Python com servidor secundário (pyright principal + pylsp).
+        AppSettings in = AppSettings::defaults();
+        LspConfig cfg;
+        cfg.enabled = true;
+        cfg.command = "pyright-langserver --stdio";
+        cfg.secondaryEnabled = true;
+        cfg.secondaryCommand = "pylsp";
+        cfg.secondarySettingsJson = "{\"pylsp\":{}}";
+        in.lsp.insert("python", cfg);
+
+        SettingsDialog dialog(in, Theme::builtIns().first());
+        dialog.showLanguageServer("python"); // seleciona Python e carrega o formulário
+        const AppSettings out = dialog.settings();
+        const LspConfig r = out.lsp.value("python");
+        QVERIFY(r.secondaryEnabled);
+        QCOMPARE(r.command, QStringLiteral("pyright-langserver --stdio"));
+        QCOMPARE(r.secondaryCommand, QStringLiteral("pylsp"));
+        QCOMPARE(r.secondarySettingsJson, QStringLiteral("{\"pylsp\":{}}"));
+    }
+
     void symbolsRoundTrip()
     {
         AppSettings in = AppSettings::defaults();

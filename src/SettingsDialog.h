@@ -168,6 +168,13 @@ private:
     class QPlainTextEdit *m_lspSettings = nullptr;    //< configuração do servidor em JSON
     QLabel *m_lspSettingsStatus = nullptr;            //< validade do JSON
     void updateLspSettingsStatus();
+    void updateLspSettingsPlaceholder(); //< exemplo conforme o servidor selecionado
+    // Servidor secundário opcional (hoje só exposto no Python).
+    QWidget *m_lspSecondaryCard = nullptr;
+    QCheckBox *m_lspSecondaryOn = nullptr;
+    class QComboBox *m_lspSecondaryCommand = nullptr;
+    class QPlainTextEdit *m_lspSecondarySettings = nullptr;
+    QLabel *m_lspSecondaryStatus = nullptr;
     QLabel *m_missingLanguages = nullptr;
     QMap<QString, LanguageConfig> m_hiddenLanguages; //< configs de linguagens não instaladas, preservadas
     QMap<QString, LspConfig> m_hiddenLsp;

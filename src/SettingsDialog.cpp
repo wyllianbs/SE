@@ -893,7 +893,7 @@ QWidget *SettingsDialog::buildLanguagesPage()
     m_lspSettings->setFont(QFont(Icons::monoFamily()));
     m_lspSettings->setTabChangesFocus(false);
     m_lspSettings->setLineWrapMode(QPlainTextEdit::NoWrap);
-    m_lspSettings->setPlaceholderText(QStringLiteral("{\n  \"gopls\": {\n    \"formatting.gofumpt\": true\n  }\n}"));
+    m_lspSettings->setPlaceholderText(QStringLiteral("{\n  \n}")); // ajustado por servidor em loadLanguageForm()
     m_lspSettings->setMinimumHeight(140);
     m_lspSettingsStatus = new QLabel;
     m_lspSettingsStatus->setObjectName(QStringLiteral("Hint"));
@@ -906,10 +906,35 @@ QWidget *SettingsDialog::buildLanguagesPage()
     lspForm->addRow(QString(), m_lspSettingsStatus);
     m_lspCard = card(tr("Language server (LSP)"), lspForm);
 
+    // ── Servidor secundário (roda junto do principal; hoje só o Python o expõe) ──
+    m_lspSecondaryOn = new QCheckBox(tr("Also run a secondary server (merges diagnostics and completion)"));
+    m_lspSecondaryCommand = new QComboBox;
+    m_lspSecondaryCommand->setEditable(true);
+    m_lspSecondaryCommand->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_lspSecondarySettings = new QPlainTextEdit;
+    m_lspSecondarySettings->setFont(QFont(Icons::monoFamily()));
+    m_lspSecondarySettings->setTabChangesFocus(false);
+    m_lspSecondarySettings->setLineWrapMode(QPlainTextEdit::NoWrap);
+    m_lspSecondarySettings->setPlaceholderText(QStringLiteral("{\n  \n}"));
+    m_lspSecondarySettings->setMinimumHeight(120);
+    m_lspSecondaryStatus = new QLabel;
+    m_lspSecondaryStatus->setObjectName(QStringLiteral("Hint"));
+    m_lspSecondaryStatus->setWordWrap(true);
+    m_lspSecondaryStatus->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    auto *lspSecForm = new QFormLayout;
+    lspSecForm->setHorizontalSpacing(18);
+    lspSecForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    lspSecForm->addRow(m_lspSecondaryOn);
+    lspSecForm->addRow(tr("Server"), m_lspSecondaryCommand);
+    lspSecForm->addRow(tr("Settings (JSON)"), m_lspSecondarySettings);
+    lspSecForm->addRow(QString(), m_lspSecondaryStatus);
+    m_lspSecondaryCard = card(tr("Secondary language server"), lspSecForm);
+
     auto *details = new QVBoxLayout;
     details->setSpacing(12);
     details->addWidget(card(tr("Run (F5)"), runForm));
     details->addWidget(m_lspCard);
+    details->addWidget(m_lspSecondaryCard);
     details->addStretch(1);
 
     auto *listBox = new QVBoxLayout;
@@ -967,9 +992,31 @@ QWidget *SettingsDialog::buildLanguagesPage()
         }
     });
     connect(m_lspCommand, &QComboBox::currentTextChanged, this, [this]() {
+        updateLspSettingsPlaceholder(); // exemplo acompanha o servidor, mesmo durante a carga
         if (!m_loadingLanguage) {
             storeLanguageForm();
             updateLanguageStatus();
+        }
+    });
+    // Servidor secundário: mesmos gatilhos do principal.
+    connect(m_lspSecondaryOn, &QCheckBox::toggled, this, [this]() {
+        if (!m_loadingLanguage) {
+            storeLanguageForm();
+            updateLanguageStatus();
+            updateLspSettingsStatus();
+        }
+    });
+    connect(m_lspSecondaryCommand, &QComboBox::currentTextChanged, this, [this]() {
+        updateLspSettingsPlaceholder();
+        if (!m_loadingLanguage) {
+            storeLanguageForm();
+            updateLanguageStatus();
+        }
+    });
+    connect(m_lspSecondarySettings, &QPlainTextEdit::textChanged, this, [this]() {
+        if (!m_loadingLanguage) {
+            storeLanguageForm();
+            updateLspSettingsStatus();
         }
     });
 
@@ -1100,9 +1147,55 @@ void SettingsDialog::loadLanguageForm()
         m_lspCommand->setCurrentIndex(idx);
     else
         m_lspCommand->setEditText(cmd);
+
+    // Servidor secundário: só o Python o expõe, e só quando há 2+ servidores.
+    const bool secondarySupported = (e.id == QLatin1String("python")) && presets.size() >= 2;
+    m_lspSecondaryCard->setVisible(secondarySupported);
+    if (secondarySupported) {
+        m_lspSecondaryCommand->clear();
+        for (const LspPreset &p : presets)
+            m_lspSecondaryCommand->addItem(p.name, p.command);
+        m_lspSecondaryOn->setChecked(e.lsp.secondaryEnabled);
+        m_lspSecondarySettings->setPlainText(e.lsp.secondarySettingsJson);
+        // Comando do secundário: o salvo ou, se vazio, o complementar ao principal.
+        QString sec = e.lsp.secondaryCommand.trimmed();
+        if (sec.isEmpty()) {
+            for (const LspPreset &p : presets)
+                if (p.command != cmd) { sec = p.command; break; }
+        }
+        const int si = m_lspSecondaryCommand->findData(sec);
+        if (si >= 0)
+            m_lspSecondaryCommand->setCurrentIndex(si);
+        else
+            m_lspSecondaryCommand->setEditText(sec);
+        m_lspSecondaryCommand->setEnabled(e.lsp.secondaryEnabled);
+        m_lspSecondarySettings->setEnabled(e.lsp.secondaryEnabled);
+    }
+
+    updateLspSettingsPlaceholder(); // exemplo do servidor desta linguagem
     m_loadingLanguage = false;
     updateLanguageStatus();
     updateLspSettingsStatus();
+}
+
+void SettingsDialog::updateLspSettingsPlaceholder()
+{
+    // Comando do servidor atualmente selecionado (dado do item, ou texto digitado).
+    const int idx = m_lspCommand->currentIndex();
+    const QString cmd = (idx >= 0 && m_lspCommand->itemText(idx) == m_lspCommand->currentText())
+                            ? m_lspCommand->itemData(idx).toString()
+                            : m_lspCommand->currentText().trimmed();
+    const QString example = LspManager::settingsExample(cmd);
+    m_lspSettings->setPlaceholderText(example.isEmpty() ? QStringLiteral("{\n  \n}") : example);
+
+    if (m_lspSecondaryCard && m_lspSecondaryCard->isVisible()) {
+        const int si = m_lspSecondaryCommand->currentIndex();
+        const QString sc = (si >= 0 && m_lspSecondaryCommand->itemText(si) == m_lspSecondaryCommand->currentText())
+                               ? m_lspSecondaryCommand->itemData(si).toString()
+                               : m_lspSecondaryCommand->currentText().trimmed();
+        const QString ex2 = LspManager::settingsExample(sc);
+        m_lspSecondarySettings->setPlaceholderText(ex2.isEmpty() ? QStringLiteral("{\n  \n}") : ex2);
+    }
 }
 
 void SettingsDialog::showLanguageServer(const QString &languageId)
@@ -1165,29 +1258,44 @@ void SettingsDialog::storeLanguageForm()
         cmd.clear(); // padrão: acompanha mudanças futuras do preset
     e.lsp.command = cmd;
     e.lsp.settingsJson = m_lspSettings->toPlainText();
+
+    // Servidor secundário (só o Python o expõe hoje).
+    if (m_lspSecondaryCard->isVisible()) {
+        e.lsp.secondaryEnabled = m_lspSecondaryOn->isChecked();
+        const int si = m_lspSecondaryCommand->currentIndex();
+        e.lsp.secondaryCommand = (si >= 0 && m_lspSecondaryCommand->itemText(si) == m_lspSecondaryCommand->currentText())
+                                     ? m_lspSecondaryCommand->itemData(si).toString()
+                                     : m_lspSecondaryCommand->currentText().trimmed();
+        e.lsp.secondarySettingsJson = m_lspSecondarySettings->toPlainText();
+    }
 }
 
 void SettingsDialog::updateLspSettingsStatus()
 {
-    const QString raw = m_lspSettings->toPlainText().trimmed();
-    if (raw.isEmpty()) {
-        m_lspSettingsStatus->setText(tr("Optional: paste the server configuration as JSON "
-                                        "(e.g. {\"gopls\": {…}}). It is sent to the language server."));
-        m_lspSettingsStatus->setStyleSheet(QString());
-        return;
-    }
-    QJsonParseError err;
-    const QJsonDocument doc = QJsonDocument::fromJson(raw.toUtf8(), &err);
-    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
-        const QString why = doc.isObject() || err.error == QJsonParseError::NoError
-                                ? tr("must be a JSON object")
-                                : err.errorString();
-        m_lspSettingsStatus->setText(tr("Invalid JSON: %1").arg(why));
-        m_lspSettingsStatus->setStyleSheet(QStringLiteral("color: #f38ba8;"));
-    } else {
-        m_lspSettingsStatus->setText(tr("Valid JSON"));
-        m_lspSettingsStatus->setStyleSheet(QStringLiteral("color: #a6e3a1;"));
-    }
+    auto validate = [this](const QString &text, QLabel *status) {
+        const QString raw = text.trimmed();
+        if (raw.isEmpty()) {
+            status->setText(tr("Optional: paste the server configuration as JSON "
+                               "(e.g. {\"gopls\": {…}}). It is sent to the language server."));
+            status->setStyleSheet(QString());
+            return;
+        }
+        QJsonParseError err;
+        const QJsonDocument doc = QJsonDocument::fromJson(raw.toUtf8(), &err);
+        if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+            const QString why = doc.isObject() || err.error == QJsonParseError::NoError
+                                    ? tr("must be a JSON object")
+                                    : err.errorString();
+            status->setText(tr("Invalid JSON: %1").arg(why));
+            status->setStyleSheet(QStringLiteral("color: #f38ba8;"));
+        } else {
+            status->setText(tr("Valid JSON"));
+            status->setStyleSheet(QStringLiteral("color: #a6e3a1;"));
+        }
+    };
+    validate(m_lspSettings->toPlainText(), m_lspSettingsStatus);
+    if (m_lspSecondaryCard && m_lspSecondaryCard->isVisible())
+        validate(m_lspSecondarySettings->toPlainText(), m_lspSecondaryStatus);
 }
 
 void SettingsDialog::updateLanguageStatus()

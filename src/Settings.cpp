@@ -188,7 +188,10 @@ QJsonObject AppSettings::toJson() const
     QJsonObject lspObj;
     for (auto it = lsp.cbegin(); it != lsp.cend(); ++it)
         lspObj[it.key()] = QJsonObject{{"enabled", it->enabled}, {"command", it->command},
-                                       {"settings", it->settingsJson}};
+                                       {"settings", it->settingsJson},
+                                       {"secondaryEnabled", it->secondaryEnabled},
+                                       {"secondaryCommand", it->secondaryCommand},
+                                       {"secondarySettings", it->secondarySettingsJson}};
     o[QStringLiteral("lsp")] = lspObj;
     o[QStringLiteral("userThemes")] = userThemes;
     o[QStringLiteral("editorCursorBlink")] = editorCursorBlink;
@@ -281,8 +284,14 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     const QJsonObject lspObj = o.value(QStringLiteral("lsp")).toObject();
     for (auto it = lspObj.begin(); it != lspObj.end(); ++it) {
         const QJsonObject l = it.value().toObject();
-        s.lsp.insert(it.key(), {l.value("enabled").toBool(false), l.value("command").toString(),
-                                l.value("settings").toString()});
+        LspConfig cfg;
+        cfg.enabled = l.value("enabled").toBool(false);
+        cfg.command = l.value("command").toString();
+        cfg.settingsJson = l.value("settings").toString();
+        cfg.secondaryEnabled = l.value("secondaryEnabled").toBool(false);
+        cfg.secondaryCommand = l.value("secondaryCommand").toString();
+        cfg.secondarySettingsJson = l.value("secondarySettings").toString();
+        s.lsp.insert(it.key(), cfg);
     }
     // Modo de indentação; migra do antigo "insertSpaces" (espaços / tabulações).
     if (o.contains(QStringLiteral("indentMode")))

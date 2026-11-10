@@ -41,8 +41,18 @@ struct LspConfig
     bool enabled = true;
     QString command;      //< vazio = primeiro servidor conhecido
     QString settingsJson; //< configuração do servidor em JSON (ex. gopls); vazio = nenhuma
+    // Servidor secundário opcional (hoje só exposto no Python): roda junto do
+    // principal. Diagnósticos e completações dos dois são unidos; hover,
+    // definição e formatação usam o principal e caem no secundário.
+    bool secondaryEnabled = false;
+    QString secondaryCommand;      //< comando do servidor secundário (vazio = nenhum)
+    QString secondarySettingsJson; //< configuração JSON do secundário
     bool operator==(const LspConfig &o) const
-    { return enabled == o.enabled && command == o.command && settingsJson == o.settingsJson; }
+    {
+        return enabled == o.enabled && command == o.command && settingsJson == o.settingsJson
+               && secondaryEnabled == o.secondaryEnabled && secondaryCommand == o.secondaryCommand
+               && secondarySettingsJson == o.secondarySettingsJson;
+    }
 };
 
 /** Linguagem definida pelo usuário: "<tool> <flags> arquivo". */

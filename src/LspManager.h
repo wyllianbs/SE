@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Document.h" // Diagnostic
 #include "Settings.h"
 
 #include <QHash>
@@ -72,6 +73,8 @@ public:
     ~LspManager() override;
 
     static QList<LspPreset> presets(const QString &languageId);
+    /** Exemplo de configuração JSON do servidor do comando dado (placeholder); vazio = genérico. */
+    static QString settingsExample(const QString &command);
     static bool isInstalled(const QString &command);
     /** Linguagens com servidor conhecido, na ordem exibida em Settings. */
     static QStringList languages();
@@ -125,13 +128,26 @@ Q_SIGNALS:
 private:
     struct Tracked
     {
-        QPointer<LspClient> client;
+        QPointer<LspClient> client;   //< servidor principal
+        QPointer<LspClient> client2;  //< servidor secundário (opcional)
         QString uri;
-        int version = 0;
+        int version = 0;              //< versão enviada ao principal
+        int version2 = 0;             //< versão enviada ao secundário
+        QList<Diagnostic> diag;       //< últimos diagnósticos do principal
+        QList<Diagnostic> diag2;      //< últimos diagnósticos do secundário
         QTimer *timer = nullptr;
     };
 
     LspClient *clientFor(const QString &languageId, const QString &rootPath);
+    /** Cria/recupera um cliente por chave (principal ou secundário). */
+    LspClient *makeClient(const QString &key, const QString &langId, const QString &command,
+                          const QString &settingsJson, const QString &rootPath);
+    /** Chave do cliente secundário de uma linguagem em m_clients. */
+    static QString secondaryKey(const QString &languageId);
+    /** Dentre principal/secundário, o primeiro que oferece a capacidade dada. */
+    LspClient *provider(const Tracked &t, bool (LspClient::*has)() const) const;
+    /** Reaplica no documento a união dos diagnósticos dos dois servidores. */
+    void applyMerged(Document *doc);
     void restartClients();
     QString m_projectRoot;
     void sendChange(Document *doc);
