@@ -3,6 +3,15 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## 0.7.7 — 2026-11-14
+
+- **Format Document / Format Selection** for C and C++ now honours the editor's
+  indentation width and mode (Settings ▸ Editor). clangd formats through
+  clang-format and ignores the LSP tab-size, falling back to the LLVM style
+  (2 spaces); the editor now runs `clang-format` directly with a style built from
+  the configured width and tabs/spaces. A project `.clang-format` still takes
+  precedence, and if `clang-format` is not installed it falls back to the server.
+
 ## 0.7.6 — 2026-11-10
 
 - Python can now run a **secondary language server** alongside the main one

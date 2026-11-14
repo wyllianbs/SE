@@ -1421,6 +1421,65 @@ void MainWindow::goToDefinition()
     editor->goToDefinition();
 }
 
+namespace {
+// Procura um .clang-format (ou _clang-format) subindo a partir da pasta do arquivo.
+bool hasClangFormatFile(const QString &filePath)
+{
+    if (filePath.isEmpty())
+        return false;
+    QDir dir = QFileInfo(filePath).absoluteDir();
+    for (int i = 0; i < 64; ++i) {
+        if (dir.exists(QStringLiteral(".clang-format")) || dir.exists(QStringLiteral("_clang-format")))
+            return true;
+        if (!dir.cdUp())
+            break;
+    }
+    return false;
+}
+} // namespace
+
+bool MainWindow::clangFormat(Document *doc, bool selectionOnly, int startLine, int endLine, QString *out) const
+{
+    const QString exe = QStandardPaths::findExecutable(QStringLiteral("clang-format"));
+    if (exe.isEmpty() || !doc)
+        return false;
+    const QString filePath = doc->filePath();
+
+    QStringList args;
+    // Estilo: o .clang-format do projeto tem prioridade; senão, estilo inline
+    // montado a partir da indentação das Settings (largura + modo).
+    if (hasClangFormatFile(filePath)) {
+        args << QStringLiteral("-style=file");
+    } else {
+        const int w = qMax(1, m_settings.indentWidth);
+        const QString useTab = (m_settings.indentMode == CodeEditor::IndentSpaces)
+                                   ? QStringLiteral("Never")
+                                   : QStringLiteral("ForIndentation");
+        args << QStringLiteral("-style={BasedOnStyle: LLVM, IndentWidth: %1, TabWidth: %1, "
+                               "ContinuationIndentWidth: %1, UseTab: %2}")
+                    .arg(w)
+                    .arg(useTab);
+    }
+    if (!filePath.isEmpty())
+        args << QStringLiteral("-assume-filename=%1").arg(filePath);
+    if (selectionOnly)
+        args << QStringLiteral("-lines=%1:%2").arg(startLine + 1).arg(endLine + 1);
+
+    QProcess p;
+    p.start(exe, args);
+    if (!p.waitForStarted(3000))
+        return false;
+    p.write(doc->text()->toPlainText().toUtf8());
+    p.closeWriteChannel();
+    if (!p.waitForFinished(5000) || p.exitStatus() != QProcess::NormalExit || p.exitCode() != 0)
+        return false;
+    const QString result = QString::fromUtf8(p.readAllStandardOutput());
+    if (result.isEmpty())
+        return false; // não apaga o documento se algo deu errado
+    *out = result;
+    return true;
+}
+
 void MainWindow::formatDocument()
 {
     CodeEditor *editor = currentEditor();
@@ -2801,6 +2860,21 @@ void MainWindow::configureEditor(CodeEditor *editor) const
                              out.append({e.startLine, e.startColumn, e.endLine, e.endColumn, e.newText});
                          done(out);
                      };
+                     // C/C++: o clangd formata via clang-format e ignora o tabSize do
+                     // LSP (cairia no estilo LLVM = 2 espaços). Formatamos direto com o
+                     // clang-format, usando o estilo da indentação das Settings, para
+                     // respeitar a largura/modo. Se o clang-format faltar/falhar, cai no LSP.
+                     const QString langId = doc->language().id;
+                     if (langId == QLatin1String("c") || langId == QLatin1String("cpp")) {
+                         QString formatted;
+                         if (self->clangFormat(doc, selectionOnly, sLine, eLine, &formatted)) {
+                             QTextDocument *td = doc->text();
+                             const int lastBlock = qMax(0, td->blockCount() - 1);
+                             const int lastLen = td->findBlockByNumber(lastBlock).text().length();
+                             done({{0, 0, lastBlock, lastLen, formatted}});
+                             return;
+                         }
+                     }
                      if (!lsp->hasFormatting(doc) && !lsp->hasRangeFormatting(doc)) {
                          self->statusBar()->showMessage(tr("No formatter for this language"), 3000);
                          done({});

@@ -110,6 +110,10 @@ private:
     void goToDefinition();
     void formatDocument();
     void formatSelection();
+    /** Formata C/C++ via clang-format com o estilo da indentação das Settings
+     *  (ou o .clang-format do projeto, se existir). false = clang-format ausente
+     *  ou falhou (o chamador cai no formatador do LSP). */
+    bool clangFormat(class Document *doc, bool selectionOnly, int startLine, int endLine, QString *out) const;
     // Arquivos recentes (como no Kate): lista persistida em QSettings.
     void addRecentFile(const QString &path);
     void rebuildRecentMenu();
