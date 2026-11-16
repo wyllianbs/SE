@@ -86,7 +86,9 @@ QList<Language> buildLanguages()
         {"bool", "string", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16",
          "uint32", "uint64", "uintptr", "byte", "rune", "float32", "float64", "error", "any"},
         "//", "/*", "*/",
-        QStringLiteral("{tool} run {flags} %f")});
+        // %F: o arquivo + os outros .go do pacote (sem func main() próprio), como em
+        // C/C++. "go run a.go b.go" compila o pacote main sem exigir go.mod.
+        QStringLiteral("{tool} run {flags} %F")});
 
     list.append({QStringLiteral("javascript"), QStringLiteral("JavaScript"), {"js", "mjs", "cjs"},
         {"async", "await", "break", "case", "catch", "class", "const", "continue", "debugger",
@@ -109,7 +111,10 @@ QList<Language> buildLanguages()
         {"boolean", "byte", "char", "double", "float", "int", "long", "short", "void", "String",
          "Integer", "List", "Map", "Object", "System"},
         "//", "/*", "*/",
-        QStringLiteral("{tool} {flags} %f")});
+        // Compila todos os .java da pasta (javac = {tool}) e roda a classe do master
+        // (%b = nome do arquivo = nome da classe pública). Sem declaração de package.
+        QStringLiteral("mkdir -p /tmp/slayer_out && {tool} {flags} %F -d /tmp/slayer_out "
+                       "&& java -cp /tmp/slayer_out %b")});
 
     list.append({QStringLiteral("bash"), QStringLiteral("Shell"), {"sh", "bash"},
         {"if", "then", "else", "elif", "fi", "case", "esac", "for", "while", "until", "do",

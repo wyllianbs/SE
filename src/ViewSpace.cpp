@@ -1,6 +1,7 @@
 #include "ViewSpace.h"
 #include "CodeEditor.h"
 #include "Icons.h"
+#include "Language.h"
 
 #include <QHBoxLayout>
 #include <QContextMenuEvent>
@@ -117,6 +118,22 @@ void ViewSpace::showTabMenu(int index, const QPoint &globalPos)
                     a->setEnabled(count() > 1);
                 if (key == QLatin1String("copyPath"))
                     a->setEnabled(editorAt(index) && !editorAt(index)->filePath().isEmpty());
+            }
+            // Arquivo principal (master): só para C/C++ já salvos. Marcado quando
+            // é o master atual; compila e executa o projeto a partir dele.
+            CodeEditor *editor = editorAt(index);
+            const QString id = editor ? editor->language().id : QString();
+            if (editor && !editor->filePath().isEmpty()
+                && (id == QLatin1String("c") || id == QLatin1String("cpp")
+                    || id == QLatin1String("go") || id == QLatin1String("java"))) {
+                menu.addSeparator();
+                QAction *master = menu.addAction(tr("Main File (Run Target)"));
+                master->setCheckable(true);
+                master->setChecked(editor->filePath() == m_masterPath);
+                master->setToolTip(tr("Compile and run the project from this file"));
+                connect(master, &QAction::triggered, this, [this, index]() {
+                    Q_EMIT tabActionRequested(this, index, QStringLiteral("toggleMaster"));
+                });
             }
         }
         menu.exec(globalPos);

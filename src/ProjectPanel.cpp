@@ -22,6 +22,35 @@ class ProjectFilter : public QSortFilterProxyModel
 public:
     using QSortFilterProxyModel::QSortFilterProxyModel;
     QPointer<Project> project;
+    QString masterPath; //< arquivo principal (master), marcado com estrela
+
+    /** Troca o master e repinta as linhas afetada(s) sem recolher a árvore. */
+    void setMaster(const QString &path)
+    {
+        const QString old = masterPath;
+        if (old == path)
+            return;
+        masterPath = path;
+        auto *fs = static_cast<QFileSystemModel *>(sourceModel());
+        for (const QString &p : {old, path}) {
+            if (p.isEmpty())
+                continue;
+            const QModelIndex idx = mapFromSource(fs->index(p));
+            if (idx.isValid())
+                Q_EMIT dataChanged(idx, idx, {Qt::DisplayRole});
+        }
+    }
+
+    QVariant data(const QModelIndex &index, int role) const override
+    {
+        // Acrescenta " ★" ao nome do arquivo principal (master).
+        if (role == Qt::DisplayRole && index.column() == 0 && !masterPath.isEmpty()) {
+            auto *fs = static_cast<QFileSystemModel *>(sourceModel());
+            if (fs->filePath(mapToSource(index)) == masterPath)
+                return QSortFilterProxyModel::data(index, role).toString() + QStringLiteral("  ★");
+        }
+        return QSortFilterProxyModel::data(index, role);
+    }
 
 protected:
     bool filterAcceptsRow(int row, const QModelIndex &parent) const override
@@ -100,6 +129,11 @@ void ProjectPanel::setProject(Project *project)
     setWindowTitle(project->name());
 }
 
+void ProjectPanel::setMasterFile(const QString &path)
+{
+    static_cast<ProjectFilter *>(m_proxy)->setMaster(path);
+}
+
 void ProjectPanel::reveal(const QString &path)
 {
     if (!m_project || !m_project->contains(path))
@@ -132,6 +166,17 @@ void ProjectPanel::showContextMenu(const QPoint &pos)
         menu.addSeparator();
         connect(menu.addAction(tr("Rename…")), &QAction::triggered, this, [this, path]() { renameEntry(path); });
         connect(menu.addAction(tr("Move to Trash")), &QAction::triggered, this, [this, path]() { trashEntry(path); });
+    }
+    // Arquivo principal (master): fontes C/C++/Go/Java (nunca cabeçalhos).
+    static const QStringList kMasterExt{QStringLiteral("c"), QStringLiteral("cpp"),
+                                        QStringLiteral("cc"), QStringLiteral("cxx"),
+                                        QStringLiteral("go"), QStringLiteral("java")};
+    if (fi.isFile() && kMasterExt.contains(fi.suffix().toLower())) {
+        menu.addSeparator();
+        QAction *master = menu.addAction(tr("Main File (Run Target)"));
+        master->setCheckable(true);
+        master->setChecked(path == static_cast<ProjectFilter *>(m_proxy)->masterPath);
+        connect(master, &QAction::triggered, this, [this, path]() { Q_EMIT masterToggleRequested(path); });
     }
     menu.addSeparator();
     const QString target = path.isEmpty() ? m_project->root() : path;

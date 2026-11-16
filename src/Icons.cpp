@@ -167,7 +167,7 @@ const QList<Icons::Badge> &Icons::badgeLibrary()
         {QStringLiteral("cpp"), 0xE61D, QStringLiteral("C++"), QColor("#f34b7d")},
         {QStringLiteral("python"), 0xE606, QStringLiteral("Python"), QColor("#ffbc03")},
         {QStringLiteral("rust"), 0xE7A8, QStringLiteral("Rust"), QColor("#dea584")},
-        {QStringLiteral("go"), 0xE626, QStringLiteral("Go"), QColor("#00add8")},
+        {QStringLiteral("go"), 0xE627, QStringLiteral("Go"), QColor("#00add8")},
         {QStringLiteral("javascript"), 0xE60C, QStringLiteral("JavaScript"), QColor("#f1e05a")},
         {QStringLiteral("java"), 0xE738, QStringLiteral("Java"), QColor("#e76f00")},
         {QStringLiteral("shell"), 0xE795, QStringLiteral("Shell"), QColor("#89e051")},

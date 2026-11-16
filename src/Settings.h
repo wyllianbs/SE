@@ -136,6 +136,7 @@ struct AppSettings
     int terminalHistory = 10000;  //< linhas de histórico; -1 = ilimitado
     int terminalScrollbar = 2;    //< 0 = oculta, 1 = esquerda, 2 = direita
     int runFocus = 2;             //< foco ao executar: 0 = terminal, 1 = editor, 2 = terminal só se pedir entrada (padrão)
+    bool askRunScope = false;     //< em projeto com build system, perguntar "projeto ou só o arquivo?" (padrão: não; F5 segue o build system)
 
     // Pré-visualização de HTML/CSS/JS (Run abre no navegador)
     QString previewCommand;      //< servidor externo, ex. "php -S {host}:{port}"; vazio = servidor embutido

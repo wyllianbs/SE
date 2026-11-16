@@ -58,15 +58,24 @@ QList<HelpTopic> HelpDialog::topics()
          tr("<p>%1 saves, %2 saves under a new name and %3 saves every modified document (untitled ones ask for a "
             "name). A ● in the tab marks unsaved changes; closing asks before discarding them.</p>")
              .arg(keys("Ctrl+S"), keys("Ctrl+Shift+S"), keys("Ctrl+L"))},
-        {tr("Running code"), tr("run execute compile build f5 gcc g++ python flags tool multiple files modules header linker"),
+        {tr("Running code"), tr("run execute compile build f5 gcc g++ go java javac python flags tool multiple files modules header linker main file master run target entry point"),
          tr("<p>%1 saves the file and runs it in the terminal. C, C++ and Rust are compiled to "
             "<code>/tmp/slayer_out</code> and then executed; interpreted languages run directly.</p>"
-            "<p>For C and C++, the sibling source files in the same folder that do not have their own "
+            "<p>For C, C++, Go and Java, the sibling source files in the same folder that do not have their own "
             "<code>main()</code> are compiled together, so a program split across files (e.g. a module and its "
-            "<code>.h</code> header) links without a Makefile. Other programs in the folder (each with its own "
-            "<code>main()</code>) are left out. Because every other source file without a <code>main()</code> is "
-            "pulled in, keep one program per folder — or open the folder as a project (see <b>Projects</b>) — so "
-            "unrelated modules are not linked in (which could cause “multiple definition” or compile errors).</p>"
+            "<code>.h</code> header, a Go package, or several Java classes) builds and runs without a Makefile. "
+            "Other programs in the folder (each with its own <code>main()</code>) are left out. Because every "
+            "other source file without a <code>main()</code> is pulled in, keep one program per folder — or open "
+            "the folder as a project (see <b>Projects</b>) — so unrelated modules are not linked in (which could "
+            "cause “multiple definition” or compile errors).</p>"
+            "<p>With a folder open, you can pick the <b>main file</b> (the one with <code>main()</code>): "
+            "right-click its tab or its entry in the project tree and tick <b>Main File (Run Target)</b>. "
+            "A star (★) marks it in both places, and from then on %1 compiles and runs the project from that file "
+            "no matter which tab is active — so running from a helper module (e.g. <code>readCPF.c</code>) builds "
+            "the same program as running from <code>main.c</code>, instead of failing with "
+            "“undefined reference to <code>main</code>” (or, in Go, “function main is undeclared”). Right-click "
+            "and untick it to clear the choice; it is remembered per project. C, C++, Go and Java files can be "
+            "the main file (Java needs a JDK, with <code>javac</code>).</p>"
             "<p>%2 runs and stays in the interpreter (Python, JavaScript, shell). In an open folder, %3 builds "
             "and runs the whole project (see <b>Projects</b>).</p>"
             "<p>Change the tool, flags, extensions, the <b>Language name</b> shown in the list and its <b>Badge</b> "
@@ -166,7 +175,7 @@ QList<HelpTopic> HelpDialog::topics()
             "The last two take an opacity (alpha) in the color picker — the editor fills the match and draws a "
             "crisp outline around it, so the highlight stays visible on any theme.</p>")
              .arg(keys("Ctrl++"), keys("Ctrl+-"), keys("Ctrl+0"), keys("Ctrl+Shift+D"))},
-        {tr("Projects"), tr("project folder open folder workspace tree quick open find in project build run cmake make"),
+        {tr("Projects"), tr("project folder open folder workspace tree quick open find in project build run cmake make main file master run target"),
          tr("<p><b>File → Open Folder…</b> (%1) opens a folder as a project: its files appear in the side panel "
             "(%2 shows or hides it; right-click for new file, new folder, rename, move to trash and copy path). "
             "Each project remembers its open tabs; <b>Open Recent Project</b> and <b>Close Folder</b> are in the "
@@ -177,9 +186,16 @@ QList<HelpTopic> HelpDialog::topics()
             "honored by Quick Open and the search.</p>"
             "<p>%5 builds and %6 builds and runs the project, from its folder, in the terminal. The commands are "
             "detected from the project root (CMake, Make, Cargo, Go, npm, Meson, Python) and can be changed in "
-            "<b>Run → Configure Project Commands…</b>.</p>")
+            "<b>Run → Configure Project Commands…</b>. When a build system is detected, %7 on a C/C++ file "
+            "follows it and builds the project too — and %7 on a <code>Makefile</code> runs it as well. To be "
+            "asked each time whether to run the project or only the file, turn on <b>Ask whether to run the "
+            "project or only the file</b> in <b>Settings → Terminal</b>.</p>"
+            "<p>For a plain C/C++ folder with no build system, right-click a tab or a tree entry and pick "
+            "<b>Main File (Run Target)</b> to mark the file that has <code>main()</code> (shown with a ★). "
+            "Running (%7) then always builds and runs the project from that file, whatever tab is active "
+            "(see <b>Running code</b>).</p>")
              .arg(keys("Ctrl+Shift+O"), keys("Ctrl+Alt+B"), keys("Ctrl+P"), keys("Ctrl+Shift+F"), keys("Ctrl+Shift+B"),
-                  keys("F4"))},
+                  keys("F4"), keys("F5"))},
         {tr("Debugging"), tr("debug debugger breakpoint step gdb debugpy rust-gdb variables call stack continue"),
          tr("<p>%1 debugs the current file (Python with debugpy, C and C++ with gdb, Rust with rust-gdb). "
             "%2 toggles a breakpoint, "

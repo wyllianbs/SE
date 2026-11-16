@@ -67,7 +67,7 @@ LanguageConfig AppSettings::defaultLanguageConfig(const QString &id)
     if (id == QLatin1String("javascript"))
         return {QStringLiteral("node"), QString(), QStringLiteral("js mjs cjs")};
     if (id == QLatin1String("java"))
-        return {QStringLiteral("java"), QString(), QStringLiteral("java")};
+        return {QStringLiteral("javac"), QString(), QStringLiteral("java")};
     if (id == QLatin1String("bash"))
         return {QStringLiteral("bash"), QString(), QStringLiteral("sh bash")};
     if (id == QLatin1String("ruby"))
@@ -219,6 +219,7 @@ QJsonObject AppSettings::toJson() const
     o[QStringLiteral("terminalHistory")] = terminalHistory;
     o[QStringLiteral("terminalScrollbar")] = terminalScrollbar;
     o[QStringLiteral("runFocus")] = runFocus;
+    o[QStringLiteral("askRunScope")] = askRunScope;
 
     o[QStringLiteral("previewCommand")] = previewCommand;
     o[QStringLiteral("previewHost")] = previewHost;
@@ -332,6 +333,7 @@ AppSettings AppSettings::fromJson(const QJsonObject &o)
     s.terminalHistory = qBound(-1, num("terminalHistory", s.terminalHistory), 1000000);
     s.terminalScrollbar = qBound(0, num("terminalScrollbar", s.terminalScrollbar), 2);
     s.runFocus = qBound(0, num("runFocus", s.runFocus), 2);
+    s.askRunScope = flag("askRunScope", s.askRunScope);
 
     s.previewCommand = str("previewCommand", s.previewCommand);
     s.previewHost = str("previewHost", s.previewHost);

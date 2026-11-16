@@ -625,6 +625,13 @@ QWidget *SettingsDialog::buildTerminalPage()
                               "focus until the program waits for keyboard input."));
     form->addRow(tr("Focus on run"), m_runFocus);
 
+    m_askRunScope = new QCheckBox(tr("Ask whether to run the project or only the file"));
+    m_askRunScope->setToolTip(tr("Only in a folder with a build system (Make, CMake…). When off (the "
+                                 "default), Run (F5) follows the build system: it builds the project if one "
+                                 "is detected, otherwise it compiles the file (using the main file). "
+                                 "Run Project is always on F4."));
+    form->addRow(QString(), m_askRunScope);
+
     m_terminalTransparency = new QSlider(Qt::Horizontal);
     m_terminalTransparency->setRange(0, 90);
     m_terminalTransparency->setSingleStep(5);
@@ -1514,6 +1521,7 @@ void SettingsDialog::setForm(const AppSettings &s)
     m_previewBrowser->setCurrentIndex(qMax(0, m_previewBrowser->findData(s.previewBrowser)));
     m_previewReload->setCurrentIndex(qMax(0, m_previewReload->findData(s.previewReload)));
     m_runFocus->setCurrentIndex(qMax(0, m_runFocus->findData(s.runFocus)));
+    m_askRunScope->setChecked(s.askRunScope);
     m_previewInterval->setValue(s.previewReloadInterval);
     m_previewDebounce->setValue(s.previewDebounceMs);
     m_previewCoi->setChecked(s.previewCrossOriginIsolation);
@@ -1626,6 +1634,7 @@ AppSettings SettingsDialog::settings() const
     s.previewBrowser = m_previewBrowser->currentData().toString();
     s.previewReload = m_previewReload->currentData().toInt();
     s.runFocus = m_runFocus->currentData().toInt();
+    s.askRunScope = m_askRunScope->isChecked();
     s.previewReloadInterval = m_previewInterval->value();
     s.previewDebounceMs = m_previewDebounce->value();
     s.previewCrossOriginIsolation = m_previewCoi->isChecked();

@@ -63,7 +63,7 @@ enum Glyph : char32_t {
     LangCpp = 0xE61D,
     LangPython = 0xE606,
     LangRust = 0xE7A8,
-    LangGo = 0xE626,
+    LangGo = 0xE627,
     LangJs = 0xE60C,
     LangJava = 0xE738,
     LangShell = 0xE795,

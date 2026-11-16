@@ -25,6 +25,8 @@ public:
 
     void setActive(bool active);
     bool isActive() const { return m_active; }
+    /** Caminho do arquivo principal (master) do projeto, para o menu da aba. */
+    void setMasterPath(const QString &path) { m_masterPath = path; }
     void setTheme(const Theme &theme);
     /** Habilita as ações que dependem de haver mais de um espaço de visão. */
     void setMultipleViews(bool multiple, bool inactiveHidden);
@@ -63,4 +65,5 @@ private:
     QAction *m_closeInactive;
     QAction *m_hideInactive;
     bool m_active = false;
+    QString m_masterPath; //< arquivo principal (master) do projeto, se houver
 };

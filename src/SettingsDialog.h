@@ -135,6 +135,7 @@ private:
     QComboBox *m_previewBrowser = nullptr;
     QComboBox *m_previewReload = nullptr;
     QComboBox *m_runFocus = nullptr;
+    QCheckBox *m_askRunScope = nullptr;
     QSpinBox *m_previewInterval = nullptr;
     QSpinBox *m_previewDebounce = nullptr;
     QCheckBox *m_previewCoi = nullptr;

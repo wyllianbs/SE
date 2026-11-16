@@ -20,6 +20,8 @@ public:
     void setProject(Project *project);
     /** Seleciona (e expande até) o arquivo na árvore, se ele estiver no projeto. */
     void reveal(const QString &path);
+    /** Arquivo principal (master) do projeto: marca a árvore com uma estrela. */
+    void setMasterFile(const QString &path);
 
 Q_SIGNALS:
     void fileActivated(const QString &path);
@@ -28,6 +30,8 @@ Q_SIGNALS:
     /** Um arquivo aberto foi renomeado ou apagado aqui: as abas devem acompanhar. */
     void fileRenamed(const QString &from, const QString &to);
     void fileRemoved(const QString &path);
+    /** Pedido de (des)marcar um arquivo como principal (master), pelo menu da árvore. */
+    void masterToggleRequested(const QString &path);
 
 private:
     void showContextMenu(const QPoint &pos);

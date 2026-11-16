@@ -3,6 +3,29 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## 0.7.8 — 2026-11-16
+
+- New **Main File (Run Target)** for C and C++ projects. With a folder open,
+  right-click a tab or an entry in the project tree and tick **Main File (Run
+  Target)** to mark the source that has `main()`; a star (★) flags it on the tab
+  and in the tree. From then on **Run** (F5) compiles and runs the project from
+  that file regardless of the active tab, so running a helper module (e.g.
+  `readCPF.c`) builds the same program as running `main.c` instead of failing
+  with “undefined reference to `main`”. The choice is a toggle (right-click
+  again to clear) and is remembered per project. The main file, and the
+  “compile the sibling sources together” behaviour, now also cover **Go** and
+  **Java**: Run on any file builds the whole package/program (`go run *.go`;
+  `javac` of every class, then `java` of the main class — a JDK is required).
+- The **Go badge** now uses a filled gopher glyph, so it reads clearly in dark
+  mode (the previous outline one was nearly invisible).
+- **Run now follows the build system** by default. In a folder with a build
+  system (Make, CMake, Cargo, Go, npm, Meson), **Run** (F5) on a C/C++ file
+  builds the whole project instead of popping up the *“run the project or only
+  this file?”* dialog, and **Run** on a `Makefile` runs it (`make` / `make run`)
+  rather than reporting “no run command”. The old prompt is now opt-in:
+  **Settings ▸ Terminal ▸ Ask whether to run the project or only the file**
+  (off by default). **Run Project** stays on F4.
+
 ## 0.7.7 — 2026-11-14
 
 - **Format Document / Format Selection** for C and C++ now honours the editor's

@@ -149,13 +149,26 @@ MainWindow::MainWindow(QWidget *parent)
             if (p == from || p.startsWith(from + QLatin1Char('/')))
                 e->setFilePath(to + p.mid(from.size()));
         }
+        // O master acompanha o arquivo renomeado (ou um arquivo numa pasta renomeada).
+        if (!m_masterFile.isEmpty()
+            && (m_masterFile == from || m_masterFile.startsWith(from + QLatin1Char('/')))) {
+            m_masterFile = to + m_masterFile.mid(from.size());
+            QSettings().setValue(sessionKey() + QStringLiteral("/masterFile"),
+                                 m_project->relativePath(m_masterFile));
+            updateMasterIndicators();
+        }
         updateStatus();
     });
     connect(m_projectPanel, &ProjectPanel::fileRemoved, this, [this](const QString &path) {
         // Abas de arquivos apagados ficam abertas (como no VS Code): viram "apagado no disco".
-        Q_UNUSED(path);
+        // Se o master foi apagado, deixa de haver master.
+        if (!m_masterFile.isEmpty()
+            && (m_masterFile == path || m_masterFile.startsWith(path + QLatin1Char('/'))))
+            setMasterFile(m_masterFile); // igual ao atual ⇒ limpa (toggle)
         updateStatus();
     });
+    connect(m_projectPanel, &ProjectPanel::masterToggleRequested, this,
+            [this](const QString &path) { setMasterFile(path); });
     m_projectSearch = new ProjectSearch(this);
     addDockWidget(Qt::LeftDockWidgetArea, m_projectSearch);
     tabifyDockWidget(m_projectPanel, m_projectSearch);
@@ -942,6 +955,7 @@ ViewSpace *MainWindow::createViewSpace()
 {
     auto *space = new ViewSpace;
     space->setTheme(m_theme);
+    space->setMasterPath(m_masterFile); //< novo split já mostra o master correto
     connect(space, &QTabWidget::tabCloseRequested, this, [this, space](int i) { closeTab(space, i); });
     connect(space, &QTabWidget::currentChanged, this, [this, space]() {
         if (space == m_activeSpace) {
@@ -1635,6 +1649,8 @@ void MainWindow::tabAction(ViewSpace *space, int index, const QString &action)
             if (e != editor && !closeTab(space, space->indexOf(e)))
                 break;
         }
+    } else if (action == QLatin1String("toggleMaster")) {
+        setMasterFile(editor->filePath());
     }
 }
 
@@ -1675,13 +1691,17 @@ void MainWindow::renameFile(CodeEditor *editor)
 void MainWindow::updateDocumentTitles(Document *doc)
 {
     const QString modified = doc->isModified() ? QStringLiteral("  ●") : QString();
+    // Arquivo principal (master): estrela à frente do nome na aba.
+    const QString master = (!m_masterFile.isEmpty() && doc->filePath() == m_masterFile)
+                               ? QStringLiteral("★ ")
+                               : QString();
     const Language &docLang = doc->language();
     const QIcon icon = Icons::badgeIcon(docLang.iconSpec, docLang.id, 16);
     for (ViewSpace *s : viewSpaces()) {
         for (int i = 0; i < s->count(); ++i) {
             if (s->editorAt(i)->doc() != doc)
                 continue;
-            s->setTabText(i, doc->displayName() + modified);
+            s->setTabText(i, master + doc->displayName() + modified);
             s->setTabToolTip(i, doc->filePath());
             s->setTabIcon(i, icon);
         }
@@ -2239,6 +2259,17 @@ void MainWindow::updateStatus()
 
 // ----------------------------------------------------------- executar
 
+namespace {
+// Linguagens compiladas multi-arquivo que usam o modelo %F + "arquivo principal"
+// (master): compilam os fontes vizinhos sem entry point próprio e rodam a partir
+// do arquivo que tem a função principal.
+bool usesEntryPointModel(const QString &id)
+{
+    return id == QLatin1String("c") || id == QLatin1String("cpp")
+        || id == QLatin1String("go") || id == QLatin1String("java");
+}
+} // namespace
+
 void MainWindow::runCurrent(bool interactive)
 {
     CodeEditor *editor = currentEditor();
@@ -2252,6 +2283,23 @@ void MainWindow::runCurrent(bool interactive)
         statusBar()->showMessage(tr("Use the Live Preview button to open HTML in the browser."), 4000);
         return;
     }
+    // Makefile / GNUmakefile: "rodar" = acionar o build system. Num projeto,
+    // equivale ao Run Project (F4), usando o Configure Project Commands; num
+    // arquivo solto (sem pasta aberta), roda "make" na pasta dele.
+    if (!interactive && editor->language().id == QLatin1String("makefile")) {
+        const QFileInfo mk(editor->filePath());
+        if (m_project && m_project->contains(mk.absoluteFilePath())) {
+            runProject(true, true);
+        } else {
+            TerminalDock::RunFocus f = TerminalDock::RunFocus::Terminal;
+            if (m_settings.runFocus == 1)
+                f = TerminalDock::RunFocus::None;
+            else if (m_settings.runFocus == 2)
+                f = TerminalDock::RunFocus::OnInput;
+            m_terminal->runCommand(QStringLiteral("make"), mk.absolutePath(), f);
+        }
+        return;
+    }
     if (editor->language().runCommand.isEmpty()) {
         statusBar()->showMessage(tr("No run command for %1 files — set one in Settings → Languages.")
                                      .arg(editor->language().displayName), 5000);
@@ -2259,12 +2307,19 @@ void MainWindow::runCurrent(bool interactive)
     }
     const QFileInfo info(editor->filePath());
     const Language &lang = editor->language();
-    // C/C++ dentro de um projeto CMake/Make: compilar só o arquivo costuma falhar
-    // no linker (as funções estão nos outros arquivos). Pergunta o que fazer.
+    // C/C++ dentro de um projeto com build system (CMake/Make…): compilar só o
+    // arquivo costuma falhar no linker. Por padrão (askRunScope desligado), o Run
+    // segue o build system e compila o projeto, sem perguntar. Com a opção ligada
+    // (Configurações ▸ Terminal), pergunta projeto ou só o arquivo. O F4 roda o
+    // projeto sempre; o master cuida da compilação por arquivo quando não há build.
     if (!interactive && m_project && m_project->contains(info.absoluteFilePath())
-        && (lang.id == QLatin1String("c") || lang.id == QLatin1String("cpp"))) {
+        && usesEntryPointModel(lang.id)) {
         const ProjectCommands pc = projectCommands();
         if (!pc.build.isEmpty()) {
+            if (!m_settings.askRunScope) {
+                runProject(true, true);
+                return;
+            }
             QMessageBox box(QMessageBox::Question, tr("Run"),
                             tr("“%1” is part of a %2 project. Run the whole project or only this file?")
                                 .arg(info.fileName(), pc.system),
@@ -2281,18 +2336,32 @@ void MainWindow::runCurrent(bool interactive)
                 return;
         }
     }
+    // Ponto de entrada (master): havendo um arquivo principal C/C++ no projeto,
+    // a compilação é sempre ancorada nele — não importa a aba ativa. O conjunto
+    // de fontes (%F) e o nome do binário (%b) passam a vir do master, de modo que
+    // rodar de readCPF.c produz o mesmo que rodar de main.c.
+    QFileInfo runInfo = info;
+    Language runLang = lang;
+    if (!interactive && m_project && !m_masterFile.isEmpty() && QFileInfo::exists(m_masterFile)
+        && m_project->contains(m_masterFile) && usesEntryPointModel(lang.id)) {
+        const Language masterLang = languageForPath(m_masterFile);
+        if (masterLang.id == lang.id) { // master e aba ativa na mesma linguagem
+            runInfo = QFileInfo(m_masterFile);
+            runLang = masterLang;
+        }
+    }
     QString tool, flags;
     bool runAfterBuild = true;
-    if (lang.isCustom()) {
+    if (runLang.isCustom()) {
         for (const CustomLanguage &c : std::as_const(m_settings.customLanguages)) {
-            if (QStringLiteral("custom:") + c.name == lang.id) {
+            if (QStringLiteral("custom:") + c.name == runLang.id) {
                 tool = c.tool;
                 flags = c.flags;
                 runAfterBuild = c.runAfterBuild;
             }
         }
     } else {
-        const LanguageConfig cfg = m_settings.languageConfig(lang.id);
+        const LanguageConfig cfg = m_settings.languageConfig(runLang.id);
         tool = cfg.tool;
         flags = cfg.flags;
         runAfterBuild = cfg.runAfterBuild;
@@ -2305,8 +2374,8 @@ void MainWindow::runCurrent(bool interactive)
         focus = TerminalDock::RunFocus::None;
     else if (m_settings.runFocus == 2 && !interactive)
         focus = TerminalDock::RunFocus::OnInput;
-    m_terminal->runCommand(lang.commandFor(info.absoluteFilePath(), tool, flags, interactive, runAfterBuild),
-                           info.absolutePath(), focus);
+    m_terminal->runCommand(runLang.commandFor(runInfo.absoluteFilePath(), tool, flags, interactive, runAfterBuild),
+                           runInfo.absolutePath(), focus);
     if (focus != TerminalDock::RunFocus::Terminal)
         editor->setFocus();
 }
@@ -3375,6 +3444,68 @@ QString MainWindow::sessionKey() const
     return QStringLiteral("projects/") + QString::fromLatin1(hash.toHex().left(16));
 }
 
+/**
+ * (Des)marca o arquivo principal (master) do projeto: âncora da compilação
+ * C/C++. Toggle — marcar o próprio master o remove. Persiste por projeto
+ * (caminho relativo à raiz) e atualiza a estrela nas abas e na árvore.
+ */
+void MainWindow::setMasterFile(const QString &path)
+{
+    if (!m_project)
+        return;
+    const QString abs = QFileInfo(path).absoluteFilePath();
+    // Toggle: o mesmo arquivo desmarca; outro vira o novo master.
+    const bool clearing = (abs == m_masterFile);
+    if (!clearing && !m_project->contains(abs))
+        return;
+    m_masterFile = clearing ? QString() : abs;
+
+    QSettings s;
+    const QString key = sessionKey() + QStringLiteral("/masterFile");
+    if (m_masterFile.isEmpty())
+        s.remove(key);
+    else
+        s.setValue(key, m_project->relativePath(m_masterFile));
+
+    updateMasterIndicators();
+    statusBar()->showMessage(clearing
+                                 ? tr("Main file cleared")
+                                 : tr("Main file: %1").arg(QFileInfo(m_masterFile).fileName()),
+                             2500);
+}
+
+/** Lê o master salvo do projeto atual (caminho relativo) e aplica-o à UI. */
+void MainWindow::loadMasterFile()
+{
+    m_masterFile.clear();
+    if (m_project) {
+        QSettings s;
+        const QString rel = s.value(sessionKey() + QStringLiteral("/masterFile")).toString();
+        if (!rel.isEmpty()) {
+            const QFileInfo fi(m_project->absolutePath(rel));
+            if (fi.exists())
+                m_masterFile = fi.absoluteFilePath(); // mesma normalização das abas/árvore
+        }
+    }
+    updateMasterIndicators();
+}
+
+/** Propaga o master para as abas (estrela + menu) e para a árvore do projeto. */
+void MainWindow::updateMasterIndicators()
+{
+    m_projectPanel->setMasterFile(m_masterFile);
+    for (ViewSpace *s : viewSpaces())
+        s->setMasterPath(m_masterFile);
+    // Reescreve os títulos (a estrela entra/sai), cada documento uma única vez.
+    QSet<Document *> seen;
+    for (CodeEditor *e : allEditors()) {
+        if (!seen.contains(e->doc())) {
+            seen.insert(e->doc());
+            updateDocumentTitles(e->doc());
+        }
+    }
+}
+
 void MainWindow::restoreTabs(const QString &key)
 {
     QSettings s;
@@ -3495,6 +3626,7 @@ bool MainWindow::openProject(const QString &root, bool restore, bool saveCurrent
     addRecentProject(abs);
     if (restore)
         restoreTabs(sessionKey());
+    loadMasterFile();
     updateStatus();
     return true;
 }
@@ -3506,6 +3638,8 @@ void MainWindow::closeProject()
     saveTabs(sessionKey());
     if (!closeAllTabs())
         return;
+    m_masterFile.clear();
+    m_projectPanel->setMasterFile(QString());
     delete m_project;
     m_project = nullptr;
     m_projectPanel->setProject(nullptr);

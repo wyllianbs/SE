@@ -78,6 +78,10 @@ private:
     void configureProjectCommands();
     void addRecentProject(const QString &root);
     void rebuildRecentProjectsMenu();
+    // Arquivo principal (master) do projeto: âncora da compilação C/C++.
+    void setMasterFile(const QString &path); //< (des)marca; persiste e atualiza a UI
+    void loadMasterFile();                   //< lê o master salvo do projeto atual
+    void updateMasterIndicators();           //< estrela nas abas, na árvore e nos espaços
 
     CodeEditor *newTab();
     void newFileFromTemplate();
@@ -207,6 +211,7 @@ private:
     QMenu *m_recentProjectsMenu = nullptr;
     QStringList m_recentProjects;
     Project *m_project = nullptr;
+    QString m_masterFile; //< caminho absoluto do arquivo principal (master), ou vazio
     ProjectPanel *m_projectPanel = nullptr;
     ProjectSearch *m_projectSearch = nullptr;
     QList<QAction *> m_projectActions; //< ativas só com projeto aberto
