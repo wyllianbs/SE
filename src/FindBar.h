@@ -22,8 +22,9 @@ public:
     // Alterna a barra: fecha se já estiver visível, senão abre (como o ícone
     // da lupa no VS Code). Usada pela ação Localizar.
     void toggle(bool replace);
-    /** Recolore os ícones das setas conforme o tema. */
-    void setIconColor(const QColor &color);
+    /** Recolore os ícones das setas conforme o tema; `accent` destaca o aviso de
+     *  "a busca deu a volta" no status. */
+    void setIconColor(const QColor &color, const QColor &accent = QColor());
 
     void findNext();
     void findPrevious();
@@ -33,6 +34,8 @@ protected:
 
 private:
     bool find(bool backward);
+    /** Mostra, destacado, que a busca passou do fim (ou início) e recomeçou. */
+    void showWrapStatus(bool backward);
     void replaceOne();
     void replaceAll();
     QString pattern() const;
@@ -50,4 +53,5 @@ private:
     QPushButton *m_prev;
     QPushButton *m_next;
     QColor m_iconColor;
+    QColor m_accent; //< destaque do aviso de wrap (cor de acento do tema)
 };

@@ -104,9 +104,11 @@ FindBar::FindBar(QWidget *parent)
     hide();
 }
 
-void FindBar::setIconColor(const QColor &color)
+void FindBar::setIconColor(const QColor &color, const QColor &accent)
 {
     m_iconColor = color;
+    if (accent.isValid())
+        m_accent = accent;
     if (m_prev)
         m_prev->setIcon(Icons::icon(Icons::ChevronUp, color, 16));
     if (m_next)
@@ -172,6 +174,7 @@ void FindBar::toggle(bool replace)
 bool FindBar::find(bool backward)
 {
     m_status->clear();
+    m_status->setStyleSheet(QString()); // tira o destaque de um aviso anterior
     if (!m_editor || pattern().isEmpty())
         return false;
     QTextDocument::FindFlags flags;
@@ -180,15 +183,28 @@ bool FindBar::find(bool backward)
     if (m_wholeWord->isChecked()) flags |= QTextDocument::FindWholeWords;
 
     if (m_editor->find(pattern(), flags))
-        return true;
-    // Recomeça do outro extremo.
+        return true; // achou adiante, sem dar a volta
+    // Nada daqui até o extremo: recomeça do outro extremo (wrap-around).
     QTextCursor c = m_editor->textCursor();
     c.movePosition(backward ? QTextCursor::End : QTextCursor::Start);
     m_editor->setTextCursor(c);
-    if (m_editor->find(pattern(), flags))
+    if (m_editor->find(pattern(), flags)) {
+        showWrapStatus(backward); // deu a volta: avisa, para não parecer sem fim
         return true;
+    }
     m_status->setText(tr("No results"));
     return false;
+}
+
+void FindBar::showWrapStatus(bool backward)
+{
+    // ↻ + texto: fica evidente que chegou ao fim (ou início) e recomeçou.
+    m_status->setText(backward
+                          ? tr("↻ Reached the top — continued from the bottom")
+                          : tr("↻ Reached the end — continued from the top"));
+    if (m_accent.isValid())
+        m_status->setStyleSheet(QStringLiteral("#FindStatus { color: %1; font-weight: 600; }")
+                                    .arg(m_accent.name()));
 }
 
 void FindBar::findNext()
@@ -233,6 +249,7 @@ void FindBar::replaceAll()
         ++count;
     }
     edit.endEditBlock();
+    m_status->setStyleSheet(QString()); // sem destaque de wrap
     m_status->setText(tr("%n replaced", nullptr, count));
 }
 

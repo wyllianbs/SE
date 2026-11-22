@@ -133,40 +133,40 @@ void SyntaxHighlighter::rebuildRules(bool rehighlightNow)
     // \b com UseUnicodeProperties: palavras acentuadas não casam parcialmente.
     const auto uni = QRegularExpression::UseUnicodePropertiesOption;
     if (m_language.id == QLatin1String("html") || m_language.id == QLatin1String("xml")) {
-        // Tag names: apenas após "<" ou "</". O grupo 1 cobre só o nome.
-        if (!m_language.keywords.isEmpty()) {
-            QStringList tagEsc;
-            for (const QString &w : m_language.keywords)
-                tagEsc << QRegularExpression::escape(w);
-            m_rules.append({QRegularExpression(
-                                QStringLiteral("<\\/?\\s*(") + tagEsc.join(QLatin1Char('|'))
-                                    + QStringLiteral(")(?=[\\s>/>])"),
-                                QRegularExpression::CaseInsensitiveOption),
-                            fmt(m_theme, Role::Keyword, true), 1});
-        }
-        // Atributos: nome seguido de "=" (fora de string).
-        if (!m_language.types.isEmpty()) {
-            QStringList escaped;
-            for (const QString &w : m_language.types)
-                escaped << QRegularExpression::escape(w);
-            m_rules.append({QRegularExpression(
-                                QStringLiteral("\\b(") + escaped.join(QLatin1Char('|')) + QStringLiteral(")(?=\\s*=)")),
-                            fmt(m_theme, Role::Type), 1});
-        }
+        // Nome de QUALQUER tag, após "<" ou "</" (sem espaço entre "<" e o nome,
+        // para "a < b" não virar tag). Grupo 1 = só o nome. Dispensa lista fixa,
+        // então tags como <dl>, <dt>, <dd>, <figure>… também são realçadas.
+        m_rules.append({QRegularExpression(QStringLiteral("</?([A-Za-z_][A-Za-z0-9:._-]*)"), uni),
+                        fmt(m_theme, Role::Keyword, true), 1});
+        // Atributo: QUALQUER nome precedido de espaço e seguido de "=" (um só, não
+        // "==", para não casar texto como "a == b"). Grupo 1 = só o nome.
+        m_rules.append({QRegularExpression(
+                            QStringLiteral("(?<=\\s)([A-Za-z_:][A-Za-z0-9:._-]*)(?=\\s*=(?!=))")),
+                        fmt(m_theme, Role::Type), 1});
     } else {
         if (!m_language.types.isEmpty())
             m_rules.append({QRegularExpression(wordAlternation(m_language.types), uni), fmt(m_theme, Role::Type)});
-        if (!m_language.keywords.isEmpty())
+        if (m_language.id == QLatin1String("css")) {
+            // Propriedade: QUALQUER nome antes de ":" numa declaração (logo após
+            // "{" ou ";"), sem lista fixa — e sem casar pseudo-classes (".a:hover"),
+            // cujo nome não vem após "{"/";". Grupo 1 = só o nome.
+            m_rules.append({QRegularExpression(QStringLiteral("[{;]\\s*([-A-Za-z][\\w-]*)(?=\\s*:)")),
+                            fmt(m_theme, Role::Keyword, true), 1});
+        } else if (!m_language.keywords.isEmpty()) {
             m_rules.append({QRegularExpression(wordAlternation(m_language.keywords), uni),
                             fmt(m_theme, Role::Keyword, true)});
+        }
     }
     if (m_language.id == QLatin1String("c") || m_language.id == QLatin1String("cpp"))
         m_rules.append({QRegularExpression(QStringLiteral("^\\s*#\\s*\\w+.*$")),
                         fmt(m_theme, Role::Preprocessor)});
     if (m_language.id == QLatin1String("python"))
         m_rules.append({QRegularExpression(QStringLiteral("^\\s*@[\\w.]+")), fmt(m_theme, Role::Preprocessor)});
-    if (m_language.id == QLatin1String("css"))
+    if (m_language.id == QLatin1String("css")) {
         m_rules.append({QRegularExpression(QStringLiteral("@[\\w-]+")), fmt(m_theme, Role::Preprocessor)}); // @media, @import…
+        m_rules.append({QRegularExpression(QStringLiteral("--[A-Za-z_][\\w-]*")), fmt(m_theme, Role::Type)}); // variáveis (custom properties)
+        m_rules.append({QRegularExpression(QStringLiteral("#[0-9a-fA-F]{3,8}\\b")), fmt(m_theme, Role::Number)}); // cores hex
+    }
     if (m_language.id == QLatin1String("cmake") || m_language.id == QLatin1String("makefile"))
         m_rules.append({QRegularExpression(QStringLiteral("\\$[({][A-Za-z_@<^*%?][\\w.-]*[)}]|\\$[@<^*%?]")),
                         fmt(m_theme, Role::Preprocessor)});

@@ -1,11 +1,14 @@
 #include "Icons.h"
 
 #include <QBuffer>
+#include <QDir>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QGuiApplication>
 #include <QHash>
 #include <QPainter>
 #include <QPixmap>
+#include <QStandardPaths>
 #include <QUrl>
 
 namespace {
@@ -282,4 +285,23 @@ QString Icons::glyphUrl(Glyph glyph, const QColor &color, int size)
                         + QString::fromLatin1(png.toBase64(QByteArray::Base64Encoding));
     urlCache.insert(key, url);
     return url;
+}
+
+QString Icons::glyphFile(Glyph glyph, const QColor &color, int size)
+{
+    static QHash<IconKey, QString> fileCache;
+    const IconKey key{glyph, color.rgba(), size};
+    if (const auto it = fileCache.constFind(key); it != fileCache.cend())
+        return it.value();
+
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
+                        + QStringLiteral("/glyphs");
+    QDir().mkpath(dir);
+    // Nome por glifo+cor+tamanho: temas diferentes geram arquivos diferentes.
+    const QString path = dir
+        + QStringLiteral("/g%1_%2_%3.png").arg(quint32(glyph), 0, 16).arg(color.rgba(), 0, 16).arg(size);
+    if (!QFileInfo::exists(path))
+        render(glyph, color, size, 2.0).save(path, "PNG"); // 2x para nitidez
+    fileCache.insert(key, path);
+    return path;
 }

@@ -3,6 +3,22 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## 0.7.9 — 2026-11-22
+
+- **Find/Replace now says when the search wrapped around.** When *Find Next* (or
+  *Previous*) passes the end of the document and continues from the top — the
+  same for Replace — the find bar shows a highlighted “↻ Reached the end —
+  continued from the top” (or “…the top — continued from the bottom”), so it is
+  obvious the search looped instead of silently going on forever.
+- **Tab scroll buttons** (shown when many files are open and the tabs overflow)
+  are now larger and clearly visible, with bold left/right chevrons in the text
+  colour instead of the tiny, nearly invisible default arrows.
+- **HTML/XML and CSS highlighting no longer rely on a fixed list.** Any tag is
+  now highlighted (e.g. `<dl>`, `<dt>`, `<dd>`, `<figure>`…), not just a built-in
+  set, and likewise any attribute. In CSS, any property is highlighted, plus
+  custom properties (`--var`) and hex colours — while text like `a == b` or
+  `a < b` and CSS pseudo-classes (`:hover`) are left alone.
+
 ## 0.7.8 — 2026-11-16
 
 - New **Main File (Run Target)** for C and C++ projects. With a folder open,

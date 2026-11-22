@@ -208,6 +208,14 @@ sudo apt install gdb</translation>
             <numerusform>%n substituídas</numerusform>
         </translation>
     </message>
+    <message>
+        <source>↻ Reached the top — continued from the bottom</source>
+        <translation>↻ Chegou ao início — recomeçou do fim</translation>
+    </message>
+    <message>
+        <source>↻ Reached the end — continued from the top</source>
+        <translation>↻ Chegou ao fim — recomeçou do início</translation>
+    </message>
 </context>
 <context>
     <name>HelpDialog</name>

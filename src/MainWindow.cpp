@@ -3229,7 +3229,7 @@ void MainWindow::refreshIcons()
         action->setIcon(Icons::icon(glyph, color, size));
     }
     m_runToolbarAction->setIcon(Icons::icon(Icons::Run, m_theme.window, size));
-    m_findBar->setIconColor(m_theme.textSecondary);
+    m_findBar->setIconColor(m_theme.textSecondary, m_theme.primary);
     for (ViewSpace *s : viewSpaces()) {
         for (int i = 0; i < s->count(); ++i) {
             if (auto *b = qobject_cast<QToolButton *>(s->tabBar()->tabButton(i, QTabBar::RightSide)))
@@ -3284,6 +3284,16 @@ QTabBar::tab { background: transparent; color: %7; padding: 8px 14px; margin: 4p
 QTabBar::tab:selected { background: %2; color: %3; }
 QTabBar::tab:hover:!selected { background: %4; color: %3; }
 QTabBar[activeSpace="true"]::tab:selected { border-top: 2px solid %5; }
+/* Botões de rolagem das abas (muitos arquivos): área larga e setas grandes e
+   nítidas (chevrons na cor do texto), em vez das setinhas quase invisíveis. */
+QTabBar::scroller { width: 40px; }
+QTabBar QToolButton { background: %4; border: none; border-radius: 6px; margin: 5px 1px 0 1px; }
+QTabBar QToolButton:hover { background: %5; }
+QTabBar QToolButton:disabled { background: transparent; }
+QTabBar QToolButton::left-arrow { image: url("%13"); width: 16px; height: 16px; }
+QTabBar QToolButton::right-arrow { image: url("%14"); width: 16px; height: 16px; }
+QTabBar QToolButton#TabClose { background: transparent; }
+QTabBar QToolButton#TabClose:hover { background: %4; }
 QSplitter::handle { background: %4; }
 QSplitter::handle:horizontal { width: 1px; }
 QSplitter::handle:vertical { height: 1px; }
@@ -3396,7 +3406,9 @@ QComboBox::drop-down { border: none; width: 22px; background: transparent; }
                               Icons::glyphUrl(Icons::Check, t.window, 14),
                               Icons::glyphUrl(Icons::ChevronUp, t.textSecondary, 12),
                               Icons::glyphUrl(Icons::ChevronDown, t.textSecondary, 12),
-                              t.terminalBackground.name());
+                              t.terminalBackground.name(),
+                              Icons::glyphFile(Icons::ChevronLeft, t.text, 16),
+                              Icons::glyphFile(Icons::ChevronRight, t.text, 16));
     s_key = cacheKey;
     return s_sheet;
 }

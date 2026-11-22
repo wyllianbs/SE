@@ -39,6 +39,7 @@ enum Glyph : char32_t {
     ChevronUp = 0xEAB7,
     ChevronDown = 0xEAB4,
     ChevronRight = 0xEAB6,
+    ChevronLeft = 0xEAB5,
     GitBranch = 0xE725,
     Server = 0xEB50,
     SaveAll = 0xEB49,
@@ -101,6 +102,9 @@ QIcon icon(Glyph glyph, const QColor &color, int size = 18);
 QString glyphText(Glyph glyph);
 /** PNG em memória como data-URL (para url() em folhas de estilo); sem disco. */
 QString glyphUrl(Glyph glyph, const QColor &color, int size);
+/** PNG gravado no cache; devolve o caminho do arquivo. Necessário em subcontroles
+ *  que ignoram data-URL (ex.: setas de rolagem do QTabBar). */
+QString glyphFile(Glyph glyph, const QColor &color, int size);
 Glyph forLanguage(const QString &languageId);
 QColor colorForLanguage(const QString &languageId);
 
