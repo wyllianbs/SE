@@ -60,6 +60,6 @@ struct Language
 
     static Language custom(const QString &name, const QStringList &extensions, bool compiled = false);
     /** Hello, World! para um interpretador/compilador pelo nome (linguagens personalizadas). */
-    static QString helloWorldForTool(const QString &tool);
+    static QString helloWorldForTool(const QString &tool, const QString &ext = QString());
     static QStringList splitExtensions(const QString &text);
 };

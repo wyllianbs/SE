@@ -56,7 +56,7 @@ NewFileDialog::NewFileDialog(const AppSettings &settings, const QString &lastLan
         const QString ext = Language::splitExtensions(c.extensions).value(0, QStringLiteral("txt"));
         add(Icons::badgeIcon(c.icon, QStringLiteral("custom:") + c.name, 18), c.name,
             QStringLiteral("custom:") + c.name, QStringLiteral("untitled.") + ext,
-            Language::helloWorldForTool(c.tool));
+            Language::helloWorldForTool(c.tool, ext));
     }
     add(Icons::icon(Icons::File, Icons::colorForLanguage(QString()), 18), tr("Empty file"), QString(),
         QString(), QString());

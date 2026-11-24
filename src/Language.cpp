@@ -516,11 +516,23 @@ Language Language::custom(const QString &name, const QStringList &extensions, bo
     return lang;
 }
 
-QString Language::helloWorldForTool(const QString &tool)
+QString Language::helloWorldForTool(const QString &tool, const QString &ext)
 {
     // Pelo interpretador/compilador (primeira palavra do comando, sem versão).
     QString name = tool.trimmed().section(QLatin1Char(' '), 0, 0).section(QLatin1Char('/'), -1);
     name.remove(QRegularExpression(QStringLiteral("[0-9.]+$")));
+    // LLVM IR: a extensão ".ll" (ou ferramentas do LLVM) decide — "clang" sozinho
+    // cairia no Hello World de C. Usa @puts para não depender de declarações extras.
+    const QString e = ext.trimmed().toLower();
+    if (e == QLatin1String("ll") || name == QLatin1String("lli") || name == QLatin1String("llc")
+        || name == QLatin1String("llvm-as") || name == QLatin1String("opt"))
+        return QStringLiteral(
+            "@.str = private constant [15 x i8] c\"Hello, World!\\0A\\00\"\n\n"
+            "declare i32 @puts(ptr)\n\n"
+            "define i32 @main() {\n"
+            "  %r = call i32 @puts(ptr @.str)\n"
+            "  ret i32 0\n"
+            "}\n");
     static const QHash<QString, QString> byTool{
         {"python", "python"}, {"node", "javascript"}, {"bash", "bash"}, {"sh", "bash"}, {"zsh", "bash"},
         {"ruby", "ruby"}, {"perl", "perl"}, {"lua", "lua"}, {"php", "php"}, {"Rscript", "r"}, {"julia", "julia"},

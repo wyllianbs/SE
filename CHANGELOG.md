@@ -3,6 +3,11 @@
 All notable changes are also published on the
 [GitHub releases](https://github.com/wyllianbs/SE/releases) page.
 
+## 0.8.0 — 2026-11-24
+
+- New **LLVM IR** files (`.ll`, or a custom language whose tool is `lli`/`llc`)
+  now start from a proper LLVM IR *Hello, World!* template instead of the C one.
+
 ## 0.7.9 — 2026-11-22
 
 - **Find/Replace now says when the search wrapped around.** When *Find Next* (or
